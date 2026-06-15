@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Status — MyJay.net</title>
+  <title>Status | MyJay.net</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@1,300&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
   <link rel="icon" type="image/png" href="/assets/img/favicon.png">
@@ -14,7 +14,7 @@
     <span class="cursor"></span>
     <span class="version">myjay v0.1.0-alpha</span>
     <span class="uptime" data-uptime>uptime 0d 00:00:00</span>
-    <div class="marquee"><span>status: nominal — system status — all components self-reporting fine —</span></div>
+    <div class="marquee"><span>status: nominal :: system status :: all components self-reporting fine ::</span></div>
   </div>
 
   <header class="torn-header compact">
@@ -35,7 +35,7 @@
     <section>
       <h1>Status.</h1>
       <p class="text-muted">
-        No incident history yet — there's only been one incident so far and
+        No incident history yet, there's only been one incident so far and
         it was a typo. This page reflects live settings and Cloudflare's own
         infrastructure status.
       </p>
@@ -43,8 +43,8 @@
 <span class="dim">$ myjay status --verbose</span>
 platform:           <span class="ok">operational</span>
 maintenance mode:   <span id="maintenance-status" class="dim">checking...</span>
-sites hosted:       <span id="stats-sites">—</span>
-page views served:  <span id="stats-views">—</span>
+sites hosted:       <span id="stats-sites">...</span>
+page views served:  <span id="stats-views">...</span>
       </div>
     </section>
 
@@ -66,24 +66,24 @@ page views served:  <span id="stats-views">—</span>
             <td><span class="badge badge-live">operational</span></td>
           </tr>
           <tr>
-            <td>D1 — myjay-db</td>
+            <td>D1 (myjay-db)</td>
             <td>Accounts, sites, settings</td>
             <td><span class="badge badge-live">operational</span></td>
           </tr>
           <tr>
-            <td>R2 — myjay-sites</td>
+            <td>R2 (myjay-sites)</td>
             <td>User file storage</td>
             <td><span class="badge badge-live">operational</span></td>
           </tr>
           <tr>
-            <td>KV — myjay-sessions</td>
+            <td>KV (myjay-sessions)</td>
             <td>Login sessions</td>
             <td><span class="badge badge-live">operational</span></td>
           </tr>
         </tbody>
       </table>
       <p class="text-muted mt-1">
-        These reflect Cloudflare's own infrastructure — if Cloudflare is
+        These reflect Cloudflare's own infrastructure. If Cloudflare is
         having a bad day, so are we. Check
         <a href="https://www.cloudflarestatus.com/" target="_blank" rel="noopener">cloudflarestatus.com</a>
         for the real source of truth.
@@ -99,8 +99,8 @@ page views served:  <span id="stats-views">—</span>
   </main>
 
   <footer class="footer">
-    <span class="footnote">[1] The uptime counter in the status bar is decorative — it counts since launch, not since the last restart (Workers don't really "restart").</span>
-    <span class="footnote">[2] v0.1.0-alpha — built on Cloudflare Pages, Workers, D1, R2, KV.</span>
+    <span class="footnote">[1] The uptime counter in the status bar is decorative. It counts since launch, not since the last restart (Workers don't really "restart").</span>
+    <span class="footnote">[2] v0.1.0-alpha, built on Cloudflare Pages, Workers, D1, R2, KV.</span>
     <span class="footnote">[3] <a href="/status.html">Status</a> · <a href="/privacy.html">Privacy</a> · <a href="/terms.html">Terms</a></span>
   </footer>
 
@@ -122,7 +122,7 @@ page views served:  <span id="stats-views">—</span>
           maintenanceEl.textContent = 'ENABLED';
           maintenanceEl.className = 'err';
           explainerEl.textContent =
-            'The platform is currently in maintenance mode — most pages redirect to the maintenance screen until an admin turns this back off.';
+            'The platform is currently in maintenance mode. Most pages redirect to the maintenance screen until an admin turns this back off.';
         } else {
           maintenanceEl.textContent = 'disabled';
           maintenanceEl.className = 'ok';
@@ -134,6 +134,7 @@ page views served:  <span id="stats-views">—</span>
         document.getElementById('stats-sites').textContent = stats.totalSites;
         document.getElementById('stats-views').textContent = stats.totalViews;
       } catch {
+        // if even this fails, things are *really* on fire. say so and move on.
         document.getElementById('maintenance-status').textContent = 'unknown';
         document.getElementById('maintenance-explainer').textContent = 'Could not reach the API to check.';
       }

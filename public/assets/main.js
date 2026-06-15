@@ -1,4 +1,4 @@
-// MyJay shared client utilities — status bar uptime, nav auth state, API helpers.
+// MyJay shared client utilities: status bar uptime, nav auth state, API helpers.
 
 const LAUNCH_DATE = new Date('2025-01-01T00:00:00Z');
 
@@ -84,7 +84,7 @@ async function initAnnouncement() {
 
     document.body.insertBefore(banner, document.body.firstChild);
   } catch {
-    // decorative — ignore failures
+    // decorative, whatever, ignore failures
   }
 }
 

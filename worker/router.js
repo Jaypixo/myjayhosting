@@ -1,8 +1,8 @@
-// myjay-router — serves published user sites from R2 at username.myjay.net.
+// myjay-router: serves published user sites from R2 at username.myjay.net.
 //
 // Deploy: wrangler deploy worker/router.js --name myjay-router
 // Trigger: Custom Domain *.myjay.net
-// Bindings required: DB (D1), SITES (R2) — same as the Pages project.
+// Bindings required: DB (D1), SITES (R2), same as the Pages project.
 
 const CONTENT_TYPES = {
   html: 'text/html; charset=utf-8',
@@ -78,10 +78,10 @@ function siteNotPublishedResponse(username) {
   const safe = escapeHtml(username);
   const html = pageShell(`${safe}.myjay.net`, `
     <h1><em>nothing here yet.</em></h1>
-    <p><strong>${safe}.myjay.net</strong> hasn't published a site — or doesn't exist.</p>
+    <p><strong>${safe}.myjay.net</strong> hasn't published a site, or doesn't exist.</p>
     <div class="terminal">
 $ curl ${safe}.myjay.net<br>
-status: 404 — site not published<br>
+status: 404, site not published<br>
 hint: claim this name at <a href="https://myjay.net/register.html">myjay.net</a>
     </div>
   `);
@@ -90,12 +90,12 @@ hint: claim this name at <a href="https://myjay.net/register.html">myjay.net</a>
 
 function fileNotFoundResponse(username) {
   const safe = escapeHtml(username);
-  const html = pageShell(`${safe}.myjay.net — 404`, `
+  const html = pageShell(`${safe}.myjay.net | 404`, `
     <h1><em>404</em></h1>
     <p>That page doesn't exist on <strong>${safe}.myjay.net</strong>.</p>
     <div class="terminal">
 $ ls sites/${safe}/<br>
-error: ENOENT — no such file
+error: ENOENT, no such file
     </div>
   `);
   return new Response(html, { status: 404, headers: { 'Content-Type': 'text/html; charset=utf-8' } });
@@ -106,7 +106,7 @@ export default {
     const url = new URL(request.url);
     const labels = url.hostname.toLowerCase().split('.');
 
-    // Expect username.myjay.net — anything without a subdomain isn't ours to serve.
+    // Expect username.myjay.net, anything without a subdomain isn't ours to serve.
     if (labels.length < 3) {
       return new Response('Not found', { status: 404 });
     }
@@ -138,6 +138,8 @@ export default {
 
     const contentType = object.httpMetadata?.contentType || contentTypeFor(resolvedPath);
 
+    // waitUntil so the visitor gets their page immediately, the view count
+    // write happens after the response is already on its way out
     if (contentType.startsWith('text/html')) {
       ctx.waitUntil(
         env.DB.prepare('UPDATE sites SET view_count = view_count + 1 WHERE username = ?').bind(username).run()

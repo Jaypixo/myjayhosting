@@ -1,4 +1,4 @@
--- MyJay Hosting Platform — D1 schema (Phase 1)
+-- MyJay Hosting Platform, D1 schema (Phase 1)
 -- Run with: npx wrangler d1 execute myjay-db --file=schema/d1-init.sql
 
 CREATE TABLE IF NOT EXISTS users (

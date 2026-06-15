@@ -1,6 +1,6 @@
 # Copy this file to worker/wrangler.toml and fill in your account/resource IDs.
 # Used only if you deploy the router with `wrangler deploy` from the worker/
-# directory — the Cloudflare dashboard flow in CLAUDE.md works without it.
+# directory. The Cloudflare dashboard flow in CLAUDE.md works without it.
 
 name = "myjay-router"
 main = "router.js"

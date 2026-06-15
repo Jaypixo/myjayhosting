@@ -1,5 +1,5 @@
 # Copy this file to wrangler.toml and fill in your account/resource IDs.
-# wrangler.toml is gitignored — it contains account-specific identifiers.
+# wrangler.toml is gitignored, it contains account-specific identifiers.
 
 name = "myjay"
 compatibility_date = "2024-01-01"
@@ -28,5 +28,5 @@ id = "<your-kv-namespace-id>"
 ADMIN_EMAIL = "<your-email@example.com>"
 MAX_UPLOAD_BYTES = "52428800"
 
-# SESSION_SECRET is sensitive — set it with:
+# SESSION_SECRET is sensitive, set it with:
 #   npx wrangler secret put SESSION_SECRET

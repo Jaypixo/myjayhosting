@@ -2,7 +2,7 @@
   "name": "myjay",
   "version": "0.1.0",
   "private": true,
-  "description": "MyJay — Neocities-style static site hosting on Cloudflare Pages, Workers, D1, R2, and KV.",
+  "description": "MyJay: Neocities-style static site hosting on Cloudflare Pages, Workers, D1, R2, and KV.",
   "scripts": {
     "setup": "node scripts/setup.mjs",
     "dev": "wrangler pages dev public --compatibility-date=2024-01-01",

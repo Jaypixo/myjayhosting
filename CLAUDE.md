@@ -1,4 +1,4 @@
-# CLAUDE.md — MyJay Hosting Platform
+# CLAUDE.md: MyJay Hosting Platform
 > Codex for AI-assisted development. Read this entire file before writing a single line of code.
 
 ---
@@ -7,7 +7,7 @@
 
 **Product:** A Neocities-style static website hosting platform for the indie web.
 **Domain:** `myjay.net`
-**Stack:** 100% Cloudflare — Pages, Pages Functions (Workers), D1, R2, KV. No external servers. No Node backend. No Docker. No traditional databases.
+**Stack:** 100% Cloudflare: Pages, Pages Functions (Workers), D1, R2, KV. No external servers. No Node backend. No Docker. No traditional databases.
 **Repository:** GitHub → deployed via Cloudflare Pages CI/CD
 **Design system:** Papyrus/Terminal (see §Design System below). Every page must conform to it.
 
@@ -80,7 +80,7 @@ Claude cannot touch your Cloudflare dashboard. You must do these steps yourself 
 ### 1. Cloudflare Pages Project
 - Create a new Pages project named `myjay`
 - Connect it to your GitHub repository
-- Build command: `npm run build` (or leave blank — no build step needed for Phase 1)
+- Build command: `npm run build` (or leave blank, no build step needed for Phase 1)
 - Output directory: `public`
 - Production branch: `main`
 
@@ -139,7 +139,7 @@ After cloning the repo, copy `wrangler.toml.example` to `wrangler.toml` and fill
 - All `/api/*` routes except register/login are protected by `_middleware.js`, which reads the cookie, validates against KV, and attaches `request.user` to context
 - Admin routes additionally check `user.role === 'admin'`
 
-Use the Web Crypto API (available in Workers) for bcrypt equivalent — specifically PBKDF2 with SHA-256 and a random salt. Store as `salt:hash` in D1. Do not use bcryptjs or any npm package unless it's a pure Web Crypto wrapper.
+Use the Web Crypto API (available in Workers) for bcrypt equivalent, specifically PBKDF2 with SHA-256 and a random salt. Store as `salt:hash` in D1. Do not use bcryptjs or any npm package unless it's a pure Web Crypto wrapper.
 
 ### File Storage (R2)
 User files are stored in R2 with the key pattern: `sites/{username}/{filepath}`
@@ -149,7 +149,7 @@ Example: if `noah` uploads `index.html`, it's stored as `sites/noah/index.html`.
 Upload endpoint (`/api/site/upload`):
 - Validate session (middleware)
 - Validate file type (whitelist: html, css, js, jpg, jpeg, png, gif, webp, svg, ico, txt, md, xml, json, woff, woff2, ttf)
-- Validate total storage quota (query R2 list, sum sizes — free tier: 50MB)
+- Validate total storage quota (query R2 list, sum sizes, free tier: 50MB)
 - Store in R2 with correct `Content-Type` header
 - Update `sites.updated_at` in D1
 - Return new file tree
@@ -194,7 +194,7 @@ sites (
 )
 ```
 
-No separate files table — enumerate R2 directly. This keeps D1 lean.
+No separate files table, enumerate R2 directly. This keeps D1 lean.
 
 ### Explore Page
 `GET /api/explore` returns the 24 most recently updated published sites. Query:
@@ -206,7 +206,7 @@ ORDER BY s.updated_at DESC
 LIMIT 24
 ```
 
-View counts: the subdomain Router Worker increments `sites.view_count` via a D1 write on each page load. To avoid hammering D1, use a KV counter as a write buffer and flush to D1 periodically (or just write directly — it's fine for Phase 1).
+View counts: the subdomain Router Worker increments `sites.view_count` via a D1 write on each page load. To avoid hammering D1, use a KV counter as a write buffer and flush to D1 periodically (or just write directly, it's fine for Phase 1).
 
 ---
 
@@ -221,16 +221,16 @@ View counts: the subdomain Router Worker increments `sites.view_count` via a D1 
 - Navigation: Home / Explore / About / Login (or Dashboard if logged in)
 - JS checks for session cookie on page load. If present, swap Login link for Dashboard + username
 
-### `index.html` — Marketing Homepage
+### `index.html`: Marketing Homepage
 Hero: large torn-paper header. Headline (Crimson Pro italic): *"Your corner of the web."* Subheadline: *"Free static hosting. No trackers. No algorithms. No VC money. Just your HTML."*
 
 Below the header:
 - Three-column feature strip (terminal card style): Upload → Publish → Done
-- A live counter widget: *"X sites hosted, Y files served"* — fetch from `/api/explore` count
+- A live counter widget: *"X sites hosted, Y files served"*, fetch from `/api/explore` count
 - A preview strip of recently updated sites (pull from `/api/explore`, show 6 cards)
 - A call-to-action button: *"Claim your subdomain →"* → `/register.html`
 
-### `register.html` — Registration
+### `register.html`: Registration
 - Username field (validated: 3–32 chars, `[a-z0-9-]` only, checked live against `/api/auth/check-username`)
 - Shows preview: `username.myjay.net`
 - Email + password fields
@@ -241,7 +241,7 @@ Below the header:
 - Email + password
 - POST `/api/auth/login` → redirect to `/dashboard.html`
 
-### `dashboard.html` — User Dashboard (authenticated)
+### `dashboard.html`: User Dashboard (authenticated)
 Layout: sidebar + main (270px / 1fr grid).
 
 Sidebar:
@@ -250,25 +250,25 @@ Sidebar:
 - Storage bar: `{used}MB / 50MB`
 - Nav: Files / Settings / Visit Site / Logout
 
-Main — Files tab:
+Main: Files tab:
 - File tree view (fetch from `/api/site/files`)
 - Upload button → opens file picker (multi-file, drag-and-drop)
 - Files shown as a tree with delete buttons
-- Publish toggle (big, obvious): *"Site is LIVE"* / *"Site is DRAFT"* — POST `/api/site/publish`
+- Publish toggle (big, obvious): *"Site is LIVE"* / *"Site is DRAFT"*, POST `/api/site/publish`
 - Code editor: clicking a file in the tree opens it in a simple `<textarea>` (or CodeMirror if you can load it from a CDN without npm) with a Save button
 
-Main — Settings tab:
+Main: Settings tab:
 - Site title field
 - Bio field
 - Change email / password
 
-### `explore.html` — Browse Sites
+### `explore.html`: Browse Sites
 - Grid of site cards (fetch `/api/explore`)
 - Each card: username, site title or "untitled", last updated, view count
 - Click → opens `username.myjay.net` in new tab
 - Simple text filter input (client-side filter on loaded results)
 
-### `admin.html` — Owner Panel (role: admin only)
+### `admin.html`: Owner Panel (role: admin only)
 - Redirect to `/login.html` if not admin
 - Tabs: Users / Sites / Stats
 - Users tab: paginated table of all users, with ban/delete actions
@@ -282,7 +282,7 @@ Static page. Voice: dry, honest. Cover: what this is, what it isn't, the hosting
 
 ## Design System
 
-Every HTML page in `public/` must implement the Papyrus/Terminal design system exactly as specified. Extract shared CSS into `public/assets/style.css` and link it from every page — do not duplicate styles.
+Every HTML page in `public/` must implement the Papyrus/Terminal design system exactly as specified. Extract shared CSS into `public/assets/style.css` and link it from every page, do not duplicate styles.
 
 ### CSS Custom Properties (mandatory in every file / `:root`)
 ```css
@@ -325,10 +325,10 @@ Every HTML page in `public/` must implement the Papyrus/Terminal design system e
 - Dashboard/admin: sidebar+main grid `270px 1fr`
 
 ### Required Elements (every page)
-1. **Graph paper body background** — repeating-linear-gradient grid
-2. **Status bar** — 28px fixed top, paper-alt bg, blinking cursor + uptime counter + marquee ticker
-3. **Torn-paper header** — `clip-path: polygon(...)` jagged edge, ink background
-4. **Footer footnotes** — `[1]` and `[2]` in IBM Plex Mono 0.7rem muted
+1. **Graph paper body background**: repeating-linear-gradient grid
+2. **Status bar**: 28px fixed top, paper-alt bg, blinking cursor + uptime counter + marquee ticker
+3. **Torn-paper header**: `clip-path: polygon(...)` jagged edge, ink background
+4. **Footer footnotes**: `[1]` and `[2]` in IBM Plex Mono 0.7rem muted
 
 ### Logo
 `https://myjay.net/public/MyJayLogo-Transparent.png`
@@ -381,7 +381,7 @@ DELETE /api/admin/sites/:id  → { ok }
 ## Security Rules
 
 - All user-uploaded files are served from R2 via the subdomain Worker. They never execute on the main domain.
-- The main `myjay.net` domain only serves the platform UI — no user content ever appears here.
+- The main `myjay.net` domain only serves the platform UI, no user content ever appears here.
 - Session tokens are UUIDs stored in KV. The cookie is `HttpOnly; Secure; SameSite=Lax`. Never expose session tokens in API responses.
 - Username validation must be enforced server-side (not just client-side): regex `^[a-z0-9-]{3,32}$`. Block reserved names: `www`, `api`, `admin`, `mail`, `ftp`, `myjay`, `support`, `help`, `static`, `assets`, `cdn`.
 - File uploads: validate Content-Type on the server. Reject executables. Reject files > `MAX_UPLOAD_BYTES` per file. Enforce total quota per user.
@@ -416,17 +416,17 @@ npx wrangler pages deployment tail
 
 ## What to Build First (Order of Operations)
 
-1. `schema/d1-init.sql` — get the database schema right before anything else
-2. `wrangler.toml.example` — document all bindings so setup is reproducible
-3. `functions/_middleware.js` — auth layer everything else depends on
+1. `schema/d1-init.sql`: get the database schema right before anything else
+2. `wrangler.toml.example`: document all bindings so setup is reproducible
+3. `functions/_middleware.js`: auth layer everything else depends on
 4. Auth functions: register → login → logout → check-username
-5. `public/assets/style.css` + `public/assets/main.js` — shared design system base
-6. `public/register.html` + `public/login.html` — get a user into the system
-7. `functions/api/site/*` — upload, files, publish, delete
-8. `public/dashboard.html` — the core user experience
-9. `worker/router.js` — serve `username.myjay.net` from R2
+5. `public/assets/style.css` + `public/assets/main.js`: shared design system base
+6. `public/register.html` + `public/login.html`: get a user into the system
+7. `functions/api/site/*`: upload, files, publish, delete
+8. `public/dashboard.html`: the core user experience
+9. `worker/router.js`: serve `username.myjay.net` from R2
 10. `public/explore.html` + `functions/api/explore/index.js`
-11. `public/index.html` — marketing homepage (last, since it pulls live data)
+11. `public/index.html`: marketing homepage (last, since it pulls live data)
 12. `public/admin.html` + admin API routes
 13. `public/about.html`
 
@@ -439,7 +439,7 @@ npx wrangler pages deployment tail
 - **D1 is SQLite.** Use parameterized queries only. Never interpolate user input into SQL strings.
 - **R2 has no public access by default.** All R2 reads go through the subdomain Worker, which applies the published check. Do not enable R2 public buckets.
 - **KV is eventually consistent.** Sessions written to KV may take a moment to propagate globally. This is acceptable.
-- **File size limits:** Cloudflare Pages Functions have a 25MB request body limit. For uploads > 25MB, you'll need a pre-signed R2 URL flow — defer this to Phase 2.
+- **File size limits:** Cloudflare Pages Functions have a 25MB request body limit. For uploads > 25MB, you'll need a pre-signed R2 URL flow, defer this to Phase 2.
 - **Do not hardcode secrets.** All secrets come from environment variables or `wrangler secret put`.
 - **Subdomains are case-insensitive.** Normalize usernames to lowercase everywhere.
 

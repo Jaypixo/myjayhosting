@@ -5,7 +5,7 @@
 //
 // This only talks to Cloudflare via `wrangler` using your already-authenticated
 // account (run `npx wrangler login` first if needed). It creates real cloud
-// resources — re-running it is safe (it detects existing resources by name
+// resources, re-running it is safe (it detects existing resources by name
 // and reuses them instead of creating duplicates).
 
 import { spawnSync } from 'node:child_process';
@@ -35,7 +35,7 @@ function fail(message) {
 }
 
 function section(title) {
-  console.log(`\n— ${title} —`);
+  console.log(`\n:: ${title} ::`);
 }
 
 // --- 1. Confirm authentication ---------------------------------------------
@@ -135,7 +135,7 @@ section('Writing wrangler.toml');
   const examplePath = path.join(root, 'wrangler.toml.example');
   const outPath = path.join(root, 'wrangler.toml');
   if (existsSync(outPath)) {
-    console.log('• wrangler.toml already exists — leaving it untouched. Delete it and re-run `npm run setup` to regenerate.');
+    console.log('• wrangler.toml already exists, leaving it untouched. Delete it and re-run `npm run setup` to regenerate.');
   } else {
     let toml = readFileSync(examplePath, 'utf8');
     toml = toml
@@ -154,7 +154,7 @@ section('Writing worker/wrangler.toml');
   const examplePath = path.join(root, 'worker', 'wrangler.toml.example');
   const outPath = path.join(root, 'worker', 'wrangler.toml');
   if (existsSync(outPath)) {
-    console.log('• worker/wrangler.toml already exists — leaving it untouched.');
+    console.log('• worker/wrangler.toml already exists, leaving it untouched.');
   } else {
     let toml = readFileSync(examplePath, 'utf8');
     toml = toml

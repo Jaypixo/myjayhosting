@@ -1,6 +1,7 @@
-// Site-wide settings — a small key/value table (`settings`) managed from the
+// Site-wide settings: a small key/value table (`settings`) managed from the
 // admin panel. Used for maintenance mode, the announcement banner, and the
 // registration on/off switch.
+// Because apparently, we can't just hardcode these values like normal people.
 
 const DEFAULTS = {
   maintenance_mode: '0',
@@ -11,17 +12,21 @@ const DEFAULTS = {
 
 function toPublicShape(map) {
   return {
-    maintenanceMode: map.maintenance_mode === '1',
-    announcement: map.announcement || '',
-    announcementEnabled: map.announcement_enabled === '1',
-    registrationEnabled: map.registration_enabled !== '0',
+    maintenanceMode: map.maintenance_mode === '1', // Is the site a flaming dumpster fire right now?
+    announcement: map.announcement || '', // What fresh hell are we announcing today?
+    announcementEnabled: map.announcement_enabled === '1', // Should we even bother showing it?
+    registrationEnabled: map.registration_enabled !== '0', // Are we letting more idiots in?
   };
 }
 
 export async function getSettingsMap(env) {
+  // Fetch all the "important" settings from the DB. Hope it's not empty.
   const { results } = await env.DB.prepare('SELECT key, value FROM settings').all();
   const map = { ...DEFAULTS };
-  for (const row of results) map[row.key] = row.value;
+  for (const row of results) {
+    // Overwrite defaults with whatever garbage is in the database.
+    map[row.key] = row.value;
+  }
   return map;
 }
 
@@ -32,6 +37,8 @@ export async function getSettings(env) {
 export async function setSetting(env, key, value) {
   if (!(key in DEFAULTS)) throw new Error(`Unknown setting: ${key}`);
   await env.DB.prepare(
+    // Insert or update, because we're too lazy to check if it exists first.
     'INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value'
   ).bind(key, String(value)).run();
+  // Just pray it works.
 }

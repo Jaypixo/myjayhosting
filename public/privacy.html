@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Privacy — MyJay.net</title>
+  <title>Privacy | MyJay.net</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@1,300&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
   <link rel="icon" type="image/png" href="/assets/img/favicon.png">
@@ -14,7 +14,7 @@
     <span class="cursor"></span>
     <span class="version">myjay v0.1.0-alpha</span>
     <span class="uptime" data-uptime>uptime 0d 00:00:00</span>
-    <div class="marquee"><span>status: nominal — privacy policy — short on purpose —</span></div>
+    <div class="marquee"><span>status: nominal :: privacy policy :: short on purpose ::</span></div>
   </div>
 
   <header class="torn-header compact">
@@ -45,19 +45,19 @@
       <div class="terminal-log">
 <span class="dim">$ myjay privacy --data-collected</span>
 email:           required for login, account recovery (manual, for now)
-username:        your subdomain — public by definition
-password:        never stored in plain text — PBKDF2-SHA256, salted
-site files:      whatever you upload — public if your site is published
+username:        your subdomain, public by definition
+password:        never stored in plain text, PBKDF2-SHA256, salted
+site files:      whatever you upload, public if your site is published
 bio / site title: optional, public if you fill them in
 session cookie:  random token, HttpOnly + Secure, expires after 30 days
-ip address:      transient, in Cloudflare's request logs — we don't query these
+ip address:      transient, in Cloudflare's request logs, we don't query these
       </div>
     </section>
 
     <section>
       <h2>What we don't do.</h2>
       <ul>
-        <li>No analytics scripts on <code>myjay.net</code> or the dashboard. View counts on your published site are a single number in D1, incremented server-side — no per-visitor tracking.</li>
+        <li>No analytics scripts on <code>myjay.net</code> or the dashboard. View counts on your published site are a single number in D1, incremented server-side. No per-visitor tracking.</li>
         <li>No third-party trackers, pixels, or ad networks anywhere on the platform.</li>
         <li>No selling, renting, or sharing account data with anyone. There's no one to sell it to, and we wouldn't if there were.</li>
         <li>No reading the contents of your files except when an admin action requires it (e.g. investigating abuse reports).</li>
@@ -69,7 +69,7 @@ ip address:      transient, in Cloudflare's request logs — we don't query thes
       <p>
         If you add your own analytics, trackers, or ads to <em>your</em>
         <code>username.myjay.net</code> site, that's between you and your
-        visitors — MyJay doesn't inject anything into your pages, but it also
+        visitors. MyJay doesn't inject anything into your pages, but it also
         can't stop you from doing this, and it's on you to disclose it
         per whatever laws apply to you. See <a href="/terms.html">terms</a>.
       </p>
@@ -80,7 +80,7 @@ ip address:      transient, in Cloudflare's request logs — we don't query thes
       <p>
         One cookie: <code>session</code>, set after login, used purely to
         keep you signed in. It's <code>HttpOnly</code>, <code>Secure</code>,
-        and <code>SameSite=Lax</code> — it isn't readable by JavaScript and
+        and <code>SameSite=Lax</code>, so it isn't readable by JavaScript and
         isn't sent to third parties. No cookie banner, because there's
         nothing to consent to beyond "stay logged in."
       </p>
@@ -91,7 +91,7 @@ ip address:      transient, in Cloudflare's request logs — we don't query thes
       <p>
         Deleting your account removes your user record and every file in
         your <code>sites/{username}/</code> storage. This is permanent and
-        immediate — there's no 30-day grace period or backup to restore from.
+        immediate, there's no 30-day grace period or backup to restore from.
         Currently this is an admin action; a self-service "delete my account"
         button is on the roadmap.
       </p>
@@ -108,8 +108,8 @@ ip address:      transient, in Cloudflare's request logs — we don't query thes
   </main>
 
   <footer class="footer">
-    <span class="footnote">[1] Questions about this policy? There's no contact form yet — see <a href="/about.html">about</a>.</span>
-    <span class="footnote">[2] v0.1.0-alpha — built on Cloudflare Pages, Workers, D1, R2, KV.</span>
+    <span class="footnote">[1] Questions about this policy? There's no contact form yet, see <a href="/about.html">about</a>.</span>
+    <span class="footnote">[2] v0.1.0-alpha, built on Cloudflare Pages, Workers, D1, R2, KV.</span>
     <span class="footnote">[3] <a href="/status.html">Status</a> · <a href="/privacy.html">Privacy</a> · <a href="/terms.html">Terms</a></span>
   </footer>
 

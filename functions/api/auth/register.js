@@ -23,6 +23,8 @@ export async function onRequestPost(context) {
   const email = String(body.email || '').trim().toLowerCase();
   const password = String(body.password || '');
 
+  // admin email always gets through even if registration is closed, otherwise
+  // a "close registration" click could permanently lock me out of my own site
   const isAdminSignup = env.ADMIN_EMAIL && email === String(env.ADMIN_EMAIL).toLowerCase();
   if (!isAdminSignup) {
     const settings = await getSettings(env);

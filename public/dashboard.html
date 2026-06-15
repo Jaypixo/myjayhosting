@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard — MyJay.net</title>
+  <title>Dashboard | MyJay.net</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@1,300&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
   <link rel="icon" type="image/png" href="/assets/img/favicon.png">
@@ -14,7 +14,7 @@
     <span class="cursor"></span>
     <span class="version">myjay v0.1.0-alpha</span>
     <span class="uptime" data-uptime>uptime 0d 00:00:00</span>
-    <div class="marquee"><span>status: nominal — dashboard session active — remember to publish when you're ready — your corner of the web —</span></div>
+    <div class="marquee"><span>status: nominal :: dashboard session active :: remember to publish when you're ready :: your corner of the web ::</span></div>
   </div>
 
   <header class="torn-header compact">
@@ -117,7 +117,7 @@
 
   <footer class="footer">
     <span class="footnote">[1] Storage quota: 50MB per account. Allowed types: html, css, js, images, fonts, text.</span>
-    <span class="footnote">[2] v0.1.0-alpha — built on Cloudflare Pages, Workers, D1, R2, KV.</span>
+    <span class="footnote">[2] v0.1.0-alpha, built on Cloudflare Pages, Workers, D1, R2, KV.</span>
     <span class="footnote">[3] <a href="/status.html">Status</a> · <a href="/privacy.html">Privacy</a> · <a href="/terms.html">Terms</a></span>
   </footer>
 
@@ -214,7 +214,7 @@
         empty.className = 'empty-state';
         empty.textContent = 'No files yet. Upload an index.html to get started.';
         container.appendChild(empty);
-        document.getElementById('log-summary').textContent = '0 files — drop something onto the page above';
+        document.getElementById('log-summary').textContent = '0 files, drop something onto the page above';
         return;
       }
 
@@ -364,6 +364,7 @@
       document.getElementById('save-btn').addEventListener('click', async () => {
         if (!editingKey) return;
         const content = document.getElementById('editor-textarea').value;
+        // type here doesn't matter, the upload endpoint figures out content-type from the extension
         const file = new File([content], editingKey, { type: 'text/plain' });
         const formData = new FormData();
         formData.append('files', file);

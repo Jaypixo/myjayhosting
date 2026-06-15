@@ -1,13 +1,13 @@
 Drop PNGs in this folder. The site looks for these filenames:
 
-  logo.png              — site logo, shown in the header on every page
+  logo.png              : site logo, shown in the header on every page
                           (recommended: roughly square or slightly wide,
                           transparent background, ~128x128 or larger)
 
-  favicon.png           — browser tab icon (any size, square works best)
+  favicon.png           : browser tab icon (any size, square works best)
 
-  MyJayErrorMascot.png  — shown centered on /maintenance.html while the
+  MyJayErrorMascot.png  : shown centered on /maintenance.html while the
                           site is in maintenance mode
 
 If a file isn't here yet, the page quietly falls back to the text logo
-(or hides the image) — nothing breaks, you can add these whenever.
+(or hides the image), nothing breaks, you can add these whenever.
