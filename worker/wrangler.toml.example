@@ -1,0 +1,21 @@
+# Copy this file to worker/wrangler.toml and fill in your account/resource IDs.
+# Used only if you deploy the router with `wrangler deploy` from the worker/
+# directory — the Cloudflare dashboard flow in CLAUDE.md works without it.
+
+name = "myjay-router"
+main = "router.js"
+compatibility_date = "2024-01-01"
+
+account_id = "<your-cloudflare-account-id>"
+
+# Custom Domain *.myjay.net is configured in the dashboard under
+# Workers & Pages -> myjay-router -> Settings -> Triggers.
+
+[[d1_databases]]
+binding = "DB"
+database_name = "myjay-db"
+database_id = "<your-d1-database-id>"
+
+[[r2_buckets]]
+binding = "SITES"
+bucket_name = "myjay-sites"

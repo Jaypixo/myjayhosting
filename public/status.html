@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Status — MyJay.net</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@1,300&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="/assets/img/favicon.png">
+  <link rel="stylesheet" href="/assets/style.css">
+</head>
+<body>
+  <div class="status-bar">
+    <span class="cursor"></span>
+    <span class="version">myjay v0.1.0-alpha</span>
+    <span class="uptime" data-uptime>uptime 0d 00:00:00</span>
+    <div class="marquee"><span>status: nominal — system status — all components self-reporting fine —</span></div>
+  </div>
+
+  <header class="torn-header compact">
+    <div class="logo">
+      <img src="/assets/img/logo.png" alt="MyJay.net" onerror="var s=this.nextElementSibling; this.remove(); s.style.display=''">
+      <span class="logo-fallback" style="display:none"><span class="myjay">MyJay</span><span class="dotnet">.net</span></span>
+    </div>
+    <nav class="nav">
+      <a href="/">Home</a>
+      <a href="/explore.html">Explore</a>
+      <a href="/help.html">Help</a>
+      <a href="/about.html">About</a>
+      <a href="/login.html" data-nav-auth>Login</a>
+    </nav>
+  </header>
+
+  <main class="wrapper">
+    <section>
+      <h1>Status.</h1>
+      <p class="text-muted">
+        No incident history yet — there's only been one incident so far and
+        it was a typo. This page reflects live settings and Cloudflare's own
+        infrastructure status.
+      </p>
+      <div class="terminal-log">
+<span class="dim">$ myjay status --verbose</span>
+platform:           <span class="ok">operational</span>
+maintenance mode:   <span id="maintenance-status" class="dim">checking...</span>
+sites hosted:       <span id="stats-sites">—</span>
+page views served:  <span id="stats-views">—</span>
+      </div>
+    </section>
+
+    <section>
+      <h2>Components.</h2>
+      <table>
+        <thead>
+          <tr><th>Component</th><th>Role</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Cloudflare Pages</td>
+            <td>Serves myjay.net + the API</td>
+            <td><span class="badge badge-live">operational</span></td>
+          </tr>
+          <tr>
+            <td>myjay-router Worker</td>
+            <td>Serves <code>username.myjay.net</code> from R2</td>
+            <td><span class="badge badge-live">operational</span></td>
+          </tr>
+          <tr>
+            <td>D1 — myjay-db</td>
+            <td>Accounts, sites, settings</td>
+            <td><span class="badge badge-live">operational</span></td>
+          </tr>
+          <tr>
+            <td>R2 — myjay-sites</td>
+            <td>User file storage</td>
+            <td><span class="badge badge-live">operational</span></td>
+          </tr>
+          <tr>
+            <td>KV — myjay-sessions</td>
+            <td>Login sessions</td>
+            <td><span class="badge badge-live">operational</span></td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="text-muted mt-1">
+        These reflect Cloudflare's own infrastructure — if Cloudflare is
+        having a bad day, so are we. Check
+        <a href="https://www.cloudflarestatus.com/" target="_blank" rel="noopener">cloudflarestatus.com</a>
+        for the real source of truth.
+      </p>
+    </section>
+
+    <section>
+      <h2>Maintenance.</h2>
+      <p class="text-muted" id="maintenance-explainer">
+        Checking whether the platform is in maintenance mode...
+      </p>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <span class="footnote">[1] The uptime counter in the status bar is decorative — it counts since launch, not since the last restart (Workers don't really "restart").</span>
+    <span class="footnote">[2] v0.1.0-alpha — built on Cloudflare Pages, Workers, D1, R2, KV.</span>
+    <span class="footnote">[3] <a href="/status.html">Status</a> · <a href="/privacy.html">Privacy</a> · <a href="/terms.html">Terms</a></span>
+  </footer>
+
+  <script type="module" src="/assets/main.js"></script>
+  <script type="module">
+    import { apiFetch } from '/assets/main.js';
+
+    async function load() {
+      try {
+        const [settingsRes, exploreRes] = await Promise.all([
+          apiFetch('/api/settings'),
+          apiFetch('/api/explore'),
+        ]);
+
+        const settings = await settingsRes.json();
+        const maintenanceEl = document.getElementById('maintenance-status');
+        const explainerEl = document.getElementById('maintenance-explainer');
+        if (settings.maintenanceMode) {
+          maintenanceEl.textContent = 'ENABLED';
+          maintenanceEl.className = 'err';
+          explainerEl.textContent =
+            'The platform is currently in maintenance mode — most pages redirect to the maintenance screen until an admin turns this back off.';
+        } else {
+          maintenanceEl.textContent = 'disabled';
+          maintenanceEl.className = 'ok';
+          explainerEl.textContent = 'The platform is not in maintenance mode. Everything should be reachable normally.';
+        }
+
+        const explore = await exploreRes.json();
+        const stats = explore.stats || { totalSites: 0, totalViews: 0 };
+        document.getElementById('stats-sites').textContent = stats.totalSites;
+        document.getElementById('stats-views').textContent = stats.totalViews;
+      } catch {
+        document.getElementById('maintenance-status').textContent = 'unknown';
+        document.getElementById('maintenance-explainer').textContent = 'Could not reach the API to check.';
+      }
+    }
+
+    load();
+  </script>
+</body>
+</html>

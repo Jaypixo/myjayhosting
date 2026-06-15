@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>About — MyJay.net</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@1,300&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="/assets/img/favicon.png">
+  <link rel="stylesheet" href="/assets/style.css">
+</head>
+<body>
+  <div class="status-bar">
+    <span class="cursor"></span>
+    <span class="version">myjay v0.1.0-alpha</span>
+    <span class="uptime" data-uptime>uptime 0d 00:00:00</span>
+    <div class="marquee"><span>status: nominal — about page — read the fine print, there isn't much —</span></div>
+  </div>
+
+  <header class="torn-header compact">
+    <div class="logo">
+      <img src="/assets/img/logo.png" alt="MyJay.net" onerror="var s=this.nextElementSibling; this.remove(); s.style.display=''">
+      <span class="logo-fallback" style="display:none"><span class="myjay">MyJay</span><span class="dotnet">.net</span></span>
+    </div>
+    <nav class="nav">
+      <a href="/">Home</a>
+      <a href="/explore.html">Explore</a>
+      <a href="/help.html">Help</a>
+      <a href="/about.html">About</a>
+      <a href="/login.html" data-nav-auth>Login</a>
+    </nav>
+  </header>
+
+  <main class="wrapper">
+    <section>
+      <h1>What this is.</h1>
+      <p>
+        MyJay is free static site hosting for people who want a small place on the
+        web that's theirs. You get a subdomain — <code>username.myjay.net</code> —
+        and a place to put HTML, CSS, JS, and a few images. That's it. There's no
+        editor magic, no themes, no templates. You bring the files, we serve them.
+      </p>
+      <p>
+        It's built entirely on Cloudflare's free tier: Pages for the platform UI,
+        Workers for routing subdomains, D1 for accounts, R2 for your files, and KV
+        for sessions. No traditional server. No database for your site's content —
+        your files are your site.
+      </p>
+    </section>
+
+    <section>
+      <h2>What this isn't.</h2>
+      <ul>
+        <li>It isn't a website builder. There's no drag-and-drop editor.</li>
+        <li>It isn't a CMS. There's no server-side code running on your site.</li>
+        <li>It isn't a database host. <code>username.myjay.net</code> serves static files only.</li>
+        <li>It isn't going to track you, or your visitors, or sell anyone's data — there's nothing to sell.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>The limits.</h2>
+      <div class="terminal-log">
+<span class="dim">$ myjay limits --plan=free</span>
+storage:        50MB per account
+file types:     html, css, js, images (jpg/png/gif/webp/svg/ico), fonts, txt/md/json/xml
+server code:    <span class="err">none</span> — static files only
+databases:      <span class="err">none</span> — bring your own data as JSON/files if you need it
+upload limit:   25MB per request (Cloudflare Pages Functions hard limit)
+custom domains: <span class="warn">not yet</span> — Phase 2
+      </div>
+      <p class="text-muted mt-1">
+        50MB is small on purpose. This is for text, a handful of images, maybe a
+        font. If you need more, you're probably building something that wants a
+        real host — and that's fine, this isn't trying to be that.
+      </p>
+    </section>
+
+    <section>
+      <h2>The ethos.</h2>
+      <p>
+        The old web was messy and personal and occasionally ugly, and that was
+        good. MyJay exists because the indie web — Neocities, GeoCities before it,
+        every hand-coded "under construction" GIF — was a better place to put a
+        website than a profile on someone else's platform. No algorithm decides
+        who sees your page. No analytics script reports back on who's looking. No
+        ads, here or on your site. There's no VC money behind this, which also
+        means there's no pressure to monetize you.
+      </p>
+    </section>
+
+    <section>
+      <h2>Dev log / roadmap.</h2>
+      <p class="text-muted">Rough order, no promises on timing.</p>
+      <div class="terminal-log">
+<span class="ok">[done]</span>  v0.1.0-alpha — accounts, dashboard, file manager, publishing, explore page<br>
+<span class="warn">[next]</span>  blog tool — a simple posts list + RSS, still just static files under the hood<br>
+<span class="warn">[next]</span>  guestbook — leave a note on someone's site, the old-fashioned way<br>
+<span class="dim">[later]</span> microblog — short posts, your own little timeline<br>
+<span class="dim">[later]</span> custom domains — point your own domain at your myjay site<br>
+<span class="dim">[later]</span> pro plan — more storage, custom domains, for people who outgrow 50MB<br>
+<span class="dim">[maybe]</span> indie ad network — opt-in, between sites only, never on the platform itself
+      </div>
+    </section>
+
+    <section class="center">
+      <a class="btn" href="/register.html">Claim your subdomain →</a>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <span class="footnote">[1] Questions, bugs, or just want to say hi? There's no contact form yet — that's on the list too.</span>
+    <span class="footnote">[2] v0.1.0-alpha — built on Cloudflare Pages, Workers, D1, R2, KV.</span>
+    <span class="footnote">[3] <a href="/status.html">Status</a> · <a href="/privacy.html">Privacy</a> · <a href="/terms.html">Terms</a></span>
+  </footer>
+
+  <script type="module" src="/assets/main.js"></script>
+</body>
+</html>

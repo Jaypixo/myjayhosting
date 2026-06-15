@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MyJay.net — Your corner of the web</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@1,300&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="/assets/img/favicon.png">
+  <link rel="stylesheet" href="/assets/style.css">
+</head>
+<body>
+  <div class="status-bar">
+    <span class="cursor"></span>
+    <span class="version">myjay v0.1.0-alpha</span>
+    <span class="uptime" data-uptime>uptime 0d 00:00:00</span>
+    <div class="marquee"><span>status: nominal — no trackers, no algorithms, no VC money — free static hosting for the indie web — claim your subdomain today —</span></div>
+  </div>
+
+  <header class="torn-header">
+    <div class="logo">
+      <img src="/assets/img/logo.png" alt="MyJay.net" onerror="var s=this.nextElementSibling; this.remove(); s.style.display=''">
+      <span class="logo-fallback" style="display:none"><span class="myjay">MyJay</span><span class="dotnet">.net</span></span>
+    </div>
+    <h1><em>Your corner of the web.</em></h1>
+    <p>Free static hosting. No trackers. No algorithms. No VC money. Just your HTML.</p>
+    <nav class="nav">
+      <a href="/">Home</a>
+      <a href="/explore.html">Explore</a>
+      <a href="/help.html">Help</a>
+      <a href="/about.html">About</a>
+      <a href="/login.html" data-nav-auth>Login</a>
+    </nav>
+  </header>
+
+  <main class="wrapper">
+    <section>
+      <div class="feature-grid">
+        <div class="card">
+          <h3>1. Upload</h3>
+          <p class="text-muted">Drag your HTML, CSS, JS, images, and fonts into the dashboard. 50MB free, no build step.</p>
+        </div>
+        <div class="card">
+          <h3>2. Publish</h3>
+          <p class="text-muted">Flip one switch. Your site goes live at <code>username.myjay.net</code> instantly.</p>
+        </div>
+        <div class="card">
+          <h3>3. Done</h3>
+          <p class="text-muted">That's it. No ads, no analytics, no algorithm deciding who sees it.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="center">
+      <div class="terminal-log">
+<span class="dim">$ myjay status</span>
+<span id="stats-line">loading stats...</span>
+      </div>
+    </section>
+
+    <section>
+      <h2>Why bother?</h2>
+      <p class="text-muted">A side-by-side, for the skeptical.</p>
+      <table>
+        <thead>
+          <tr><th></th><th>MyJay</th><th>Big Platform</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Cost</td><td>Free</td><td>Free, until it isn't</td></tr>
+          <tr><td>Ads on your page</td><td>Never</td><td>Eventually</td></tr>
+          <tr><td>Algorithm deciding who sees you</td><td>No algorithm at all</td><td>Yes, tuned without telling you</td></tr>
+          <tr><td>Tracking scripts</td><td>None</td><td>Several</td></tr>
+          <tr><td>Your HTML, your way</td><td>Yes</td><td>Pick from these 12 templates</td></tr>
+          <tr><td>Uptime guarantee</td><td>"Probably fine"</td><td>99.9%, allegedly</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Recently updated</h2>
+      <p class="text-muted">A live look at what people are building.</p>
+      <div class="site-grid" id="preview-grid">
+        <div class="empty-state">loading...</div>
+      </div>
+    </section>
+
+    <section class="faq">
+      <h2>Frequently asked questions.</h2>
+      <details>
+        <summary>Do I need to know how to code?</summary>
+        <p>A little. You need at least an <code>index.html</code> file. If you've never written HTML, the <a href="/help.html">help page</a> has a five-minute starting point.</p>
+      </details>
+      <details>
+        <summary>Is it really free?</summary>
+        <p>Yes — 50MB of storage, one site per account, no credit card. See <a href="/about.html">the limits</a> for the fine print.</p>
+      </details>
+      <details>
+        <summary>Can I use my own domain?</summary>
+        <p>Not yet — that's planned for a later phase. For now every site lives at <code>username.myjay.net</code>.</p>
+      </details>
+      <details>
+        <summary>What happens if I go over 50MB?</summary>
+        <p>Uploads that would push you over quota are rejected. Delete something or trim your assets — most sites never get close.</p>
+      </details>
+      <details>
+        <summary>Will you sell my data, show ads, or add tracking later?</summary>
+        <p>No. Read <a href="/privacy.html">the privacy page</a> — it's short on purpose.</p>
+      </details>
+      <details>
+        <summary>Something's broken. Now what?</summary>
+        <p>Check <a href="/status.html">status</a> first — if maintenance mode is on, that's probably it. Otherwise, hang tight.</p>
+      </details>
+    </section>
+
+    <section class="center">
+      <a class="btn" href="/register.html">Claim your subdomain →</a>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <span class="footnote">[1] Phase 1: hosting, auth, dashboard, explore. Phase 2+: blogs, guestbooks, pro plan.</span>
+    <span class="footnote">[2] v0.1.0-alpha — built on Cloudflare Pages, Workers, D1, R2, KV.</span>
+    <span class="footnote">[3] <a href="/status.html">Status</a> · <a href="/privacy.html">Privacy</a> · <a href="/terms.html">Terms</a></span>
+  </footer>
+
+  <script type="module" src="/assets/main.js"></script>
+  <script type="module">
+    import { apiFetch } from '/assets/main.js';
+
+    function formatDate(iso) {
+      return new Date(iso).toISOString().slice(0, 10);
+    }
+
+    function renderPreviews(sites) {
+      const grid = document.getElementById('preview-grid');
+      grid.innerHTML = '';
+
+      if (sites.length === 0) {
+        grid.innerHTML = '<div class="empty-state">No published sites yet — be the first.</div>';
+        return;
+      }
+
+      for (const site of sites.slice(0, 6)) {
+        const card = document.createElement('a');
+        card.className = 'card site-card';
+        card.href = `https://${site.username}.myjay.net`;
+        card.target = '_blank';
+        card.rel = 'noopener';
+        card.style.display = 'block';
+
+        const title = document.createElement('h3');
+        title.textContent = site.siteTitle || 'untitled';
+
+        const username = document.createElement('p');
+        username.className = 'meta';
+        username.textContent = `${site.username}.myjay.net`;
+
+        const meta = document.createElement('p');
+        meta.className = 'meta';
+        meta.textContent = `updated ${formatDate(site.updatedAt)}`;
+
+        card.appendChild(title);
+        card.appendChild(username);
+        card.appendChild(meta);
+        grid.appendChild(card);
+      }
+    }
+
+    async function load() {
+      try {
+        const res = await apiFetch('/api/explore');
+        const data = await res.json();
+        const stats = data.stats || { totalSites: 0, totalViews: 0 };
+        document.getElementById('stats-line').textContent =
+          `${stats.totalSites} site(s) hosted, ${stats.totalViews} page view(s) served`;
+        renderPreviews(data.sites || []);
+      } catch {
+        document.getElementById('stats-line').textContent = 'stats unavailable';
+        document.getElementById('preview-grid').innerHTML = '<div class="empty-state">Could not load sites.</div>';
+      }
+    }
+
+    load();
+  </script>
+</body>
+</html>

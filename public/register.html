@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register — MyJay.net</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@1,300&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="/assets/img/favicon.png">
+  <link rel="stylesheet" href="/assets/style.css">
+</head>
+<body>
+  <div class="status-bar">
+    <span class="cursor"></span>
+    <span class="version">myjay v0.1.0-alpha</span>
+    <span class="uptime" data-uptime>uptime 0d 00:00:00</span>
+    <div class="marquee"><span>status: nominal — claiming subdomains since 2025 — no trackers, no algorithms, no VC money — your corner of the web —</span></div>
+  </div>
+
+  <header class="torn-header compact">
+    <div class="logo">
+      <img src="/assets/img/logo.png" alt="MyJay.net" onerror="var s=this.nextElementSibling; this.remove(); s.style.display=''">
+      <span class="logo-fallback" style="display:none"><span class="myjay">MyJay</span><span class="dotnet">.net</span></span>
+    </div>
+    <nav class="nav">
+      <a href="/">Home</a>
+      <a href="/explore.html">Explore</a>
+      <a href="/help.html">Help</a>
+      <a href="/about.html">About</a>
+      <a href="/login.html" data-nav-auth>Login</a>
+    </nav>
+  </header>
+
+  <main class="wrapper">
+    <section>
+      <h1>Claim your corner.</h1>
+      <p class="text-muted">Pick a username, set a password, and your site goes live at <code>username.myjay.net</code>.</p>
+
+      <div class="card">
+        <form id="register-form">
+          <div class="form-error" id="form-error"></div>
+
+          <div class="field">
+            <label for="username">Username</label>
+            <input type="text" id="username" name="username" autocomplete="username" required minlength="3" maxlength="32" pattern="[a-z0-9-]{3,32}">
+            <p class="field-hint" id="username-preview">your-site.myjay.net</p>
+          </div>
+
+          <div class="field">
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" autocomplete="email" required>
+          </div>
+
+          <div class="field">
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" autocomplete="new-password" required minlength="8">
+            <p class="field-hint">At least 8 characters.</p>
+          </div>
+
+          <button type="submit" class="btn" id="submit-btn">Create account →</button>
+        </form>
+      </div>
+
+      <p class="mt-1 text-muted">Already have a site? <a href="/login.html">Log in</a>.</p>
+
+      <div class="terminal-log mt-2">
+<span class="dim">$ myjay register</span>
+checking availability... <span class="ok">ok</span>
+provisioning sites/{username}/ on R2... <span class="dim">pending</span>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <span class="footnote">[1] Registration is free. One site per account in Phase 1.</span>
+    <span class="footnote">[2] v0.1.0-alpha — built on Cloudflare Pages, Workers, D1, R2, KV.</span>
+    <span class="footnote">[3] <a href="/status.html">Status</a> · <a href="/privacy.html">Privacy</a> · <a href="/terms.html">Terms</a></span>
+  </footer>
+
+  <script type="module" src="/assets/main.js"></script>
+  <script type="module">
+    import { apiFetch } from '/assets/main.js';
+
+    const usernameInput = document.getElementById('username');
+    const preview = document.getElementById('username-preview');
+    const form = document.getElementById('register-form');
+    const errorEl = document.getElementById('form-error');
+    const submitBtn = document.getElementById('submit-btn');
+
+    let checkTimer;
+    usernameInput.addEventListener('input', () => {
+      const value = usernameInput.value.trim().toLowerCase();
+      preview.textContent = value ? `${value}.myjay.net` : 'your-site.myjay.net';
+      preview.classList.remove('text-error', 'text-ok');
+
+      clearTimeout(checkTimer);
+      if (!/^[a-z0-9-]{3,32}$/.test(value)) return;
+
+      checkTimer = setTimeout(async () => {
+        try {
+          const res = await apiFetch(`/api/auth/check-username?u=${encodeURIComponent(value)}`);
+          const data = await res.json();
+          if (data.available) {
+            preview.textContent = `${value}.myjay.net — available`;
+            preview.classList.add('text-ok');
+          } else {
+            preview.textContent = `${value}.myjay.net — taken`;
+            preview.classList.add('text-error');
+          }
+        } catch {
+          /* ignore network errors during live check */
+        }
+      }, 400);
+    });
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorEl.textContent = '';
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Creating...';
+
+      try {
+        const res = await apiFetch('/api/auth/register', {
+          method: 'POST',
+          body: JSON.stringify({
+            username: usernameInput.value.trim().toLowerCase(),
+            email: document.getElementById('email').value.trim(),
+            password: document.getElementById('password').value,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          errorEl.textContent = data.error || 'Something went wrong.';
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Create account →';
+          return;
+        }
+        window.location.href = '/dashboard.html';
+      } catch {
+        errorEl.textContent = 'Network error. Please try again.';
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Create account →';
+      }
+    });
+  </script>
+</body>
+</html>

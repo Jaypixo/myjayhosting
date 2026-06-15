@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — MyJay.net</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@1,300&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="/assets/img/favicon.png">
+  <link rel="stylesheet" href="/assets/style.css">
+</head>
+<body>
+  <div class="status-bar">
+    <span class="cursor"></span>
+    <span class="version">myjay v0.1.0-alpha</span>
+    <span class="uptime" data-uptime>uptime 0d 00:00:00</span>
+    <div class="marquee"><span>status: nominal — dashboard session active — remember to publish when you're ready — your corner of the web —</span></div>
+  </div>
+
+  <header class="torn-header compact">
+    <div class="logo">
+      <img src="/assets/img/logo.png" alt="MyJay.net" onerror="var s=this.nextElementSibling; this.remove(); s.style.display=''">
+      <span class="logo-fallback" style="display:none"><span class="myjay">MyJay</span><span class="dotnet">.net</span></span>
+    </div>
+    <nav class="nav">
+      <a href="/">Home</a>
+      <a href="/explore.html">Explore</a>
+      <a href="/help.html">Help</a>
+      <a href="/about.html">About</a>
+      <a href="/dashboard.html" data-nav-auth>Dashboard</a>
+    </nav>
+  </header>
+
+  <div class="layout-grid">
+    <aside class="sidebar">
+      <div class="avatar" id="avatar">?</div>
+      <div class="username" id="username">...</div>
+      <a class="site-link" id="site-link" href="#" target="_blank" rel="noopener">username.myjay.net</a>
+
+      <div class="storage-bar"><div class="storage-bar-fill" id="storage-fill" style="width: 0%"></div></div>
+      <p class="field-hint" id="storage-text">0.00MB / 50MB</p>
+
+      <ul class="sidebar-nav">
+        <li><button class="tab-btn active" data-tab="files">Files</button></li>
+        <li><button class="tab-btn" data-tab="settings">Settings</button></li>
+        <li><a id="visit-site-link" href="#" target="_blank" rel="noopener">Visit Site →</a></li>
+        <li><button id="logout-btn">Logout</button></li>
+      </ul>
+    </aside>
+
+    <main class="main-content">
+      <div id="files-tab" class="tab-panel active">
+        <div class="publish-toggle">
+          <span class="label draft" id="publish-label">Site is DRAFT</span>
+          <button class="btn" id="publish-btn">Publish</button>
+        </div>
+
+        <div class="flex-between">
+          <h2>Files</h2>
+          <div>
+            <input type="file" id="file-input" multiple hidden>
+            <button class="btn btn-sm" id="upload-btn">Upload files</button>
+          </div>
+        </div>
+
+        <div class="drop-zone" id="drop-zone">
+          <div id="file-tree-container"></div>
+        </div>
+
+        <div id="editor-panel" class="card mt-2 hidden">
+          <div class="flex-between mt-1">
+            <h3 id="editor-filename">file.html</h3>
+            <div>
+              <button class="btn btn-sm" id="save-btn">Save</button>
+              <button class="btn btn-ghost btn-sm" id="close-editor-btn">Close</button>
+            </div>
+          </div>
+          <textarea id="editor-textarea" class="editor-textarea" spellcheck="false"></textarea>
+        </div>
+
+        <div class="terminal-log mt-2">
+<span class="dim">$ myjay files list --site=<span id="log-username">...</span></span>
+<span id="log-summary" class="dim">loading...</span>
+        </div>
+      </div>
+
+      <div id="settings-tab" class="tab-panel">
+        <h2>Settings</h2>
+        <form id="settings-form">
+          <div class="form-error" id="settings-message"></div>
+
+          <div class="field">
+            <label for="site-title-input">Site title</label>
+            <input type="text" id="site-title-input" maxlength="200" placeholder="My corner of the web">
+          </div>
+
+          <div class="field">
+            <label for="bio-input">Bio</label>
+            <textarea id="bio-input" rows="4" maxlength="1000" placeholder="A little about you and your site."></textarea>
+          </div>
+
+          <div class="field">
+            <label for="email-input">Email</label>
+            <input type="email" id="email-input" autocomplete="email">
+          </div>
+
+          <div class="field">
+            <label for="password-input">New password</label>
+            <input type="password" id="password-input" autocomplete="new-password" minlength="8" placeholder="Leave blank to keep current password">
+          </div>
+
+          <button type="submit" class="btn">Save changes</button>
+        </form>
+      </div>
+    </main>
+  </div>
+
+  <footer class="footer">
+    <span class="footnote">[1] Storage quota: 50MB per account. Allowed types: html, css, js, images, fonts, text.</span>
+    <span class="footnote">[2] v0.1.0-alpha — built on Cloudflare Pages, Workers, D1, R2, KV.</span>
+    <span class="footnote">[3] <a href="/status.html">Status</a> · <a href="/privacy.html">Privacy</a> · <a href="/terms.html">Terms</a></span>
+  </footer>
+
+  <script type="module">
+    import { apiFetch, getCurrentUser, logout } from '/assets/main.js';
+
+    const EDITABLE_EXTENSIONS = new Set(['html', 'htm', 'css', 'js', 'json', 'xml', 'txt', 'md', 'svg']);
+    const MAX_STORAGE_BYTES = 50 * 1024 * 1024;
+
+    let currentPublished = false;
+    let editingKey = null;
+
+    function formatSize(bytes) {
+      if (bytes < 1024) return `${bytes} B`;
+      if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+      return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    }
+
+    function buildTree(files) {
+      const root = { dirs: {}, files: [] };
+      for (const file of files) {
+        const parts = file.key.split('/');
+        let node = root;
+        for (let i = 0; i < parts.length - 1; i++) {
+          const part = parts[i];
+          node.dirs[part] = node.dirs[part] || { dirs: {}, files: [] };
+          node = node.dirs[part];
+        }
+        node.files.push({ ...file, name: parts[parts.length - 1] });
+      }
+      return root;
+    }
+
+    function renderTree(node) {
+      const ul = document.createElement('ul');
+      ul.className = 'file-tree';
+
+      for (const dirName of Object.keys(node.dirs).sort()) {
+        const li = document.createElement('li');
+        li.style.flexDirection = 'column';
+        li.style.alignItems = 'stretch';
+
+        const header = document.createElement('div');
+        header.className = 'file-meta';
+        header.style.fontWeight = '500';
+        header.textContent = `${dirName}/`;
+
+        li.appendChild(header);
+        li.appendChild(renderTree(node.dirs[dirName]));
+        ul.appendChild(li);
+      }
+
+      const files = [...node.files].sort((a, b) => a.name.localeCompare(b.name));
+      for (const file of files) {
+        const li = document.createElement('li');
+
+        const nameSpan = document.createElement('span');
+        nameSpan.className = 'file-name';
+        nameSpan.textContent = file.name;
+        nameSpan.addEventListener('click', () => openEditor(file));
+
+        const right = document.createElement('div');
+        right.style.display = 'flex';
+        right.style.alignItems = 'center';
+        right.style.gap = '0.75rem';
+
+        const meta = document.createElement('span');
+        meta.className = 'file-meta';
+        meta.textContent = formatSize(file.size);
+
+        const delBtn = document.createElement('button');
+        delBtn.className = 'btn btn-ghost btn-sm';
+        delBtn.textContent = 'Delete';
+        delBtn.addEventListener('click', () => deleteFile(file.key));
+
+        right.appendChild(meta);
+        right.appendChild(delBtn);
+        li.appendChild(nameSpan);
+        li.appendChild(right);
+        ul.appendChild(li);
+      }
+
+      return ul;
+    }
+
+    async function loadFiles() {
+      const res = await apiFetch('/api/site/files');
+      const data = await res.json();
+      const container = document.getElementById('file-tree-container');
+      container.innerHTML = '';
+
+      if (!data.files || data.files.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'empty-state';
+        empty.textContent = 'No files yet. Upload an index.html to get started.';
+        container.appendChild(empty);
+        document.getElementById('log-summary').textContent = '0 files — drop something onto the page above';
+        return;
+      }
+
+      container.appendChild(renderTree(buildTree(data.files)));
+      const totalBytes = data.files.reduce((sum, f) => sum + f.size, 0);
+      document.getElementById('log-summary').textContent = `${data.files.length} file(s), ${formatSize(totalBytes)} total`;
+    }
+
+    function updatePublishUI(published) {
+      currentPublished = published;
+      const label = document.getElementById('publish-label');
+      const btn = document.getElementById('publish-btn');
+      if (published) {
+        label.textContent = 'Site is LIVE';
+        label.className = 'label live';
+        btn.textContent = 'Unpublish';
+      } else {
+        label.textContent = 'Site is DRAFT';
+        label.className = 'label draft';
+        btn.textContent = 'Publish';
+      }
+    }
+
+    async function loadUser() {
+      const user = await getCurrentUser();
+      if (!user) {
+        window.location.href = '/login.html';
+        return null;
+      }
+
+      document.getElementById('avatar').textContent = user.username.charAt(0).toUpperCase();
+      document.getElementById('username').textContent = user.username;
+      document.getElementById('log-username').textContent = user.username;
+
+      const siteLink = document.getElementById('site-link');
+      siteLink.textContent = `${user.username}.myjay.net`;
+      siteLink.href = `https://${user.username}.myjay.net`;
+      document.getElementById('visit-site-link').href = `https://${user.username}.myjay.net`;
+
+      const pct = Math.min(100, (user.storageUsed / MAX_STORAGE_BYTES) * 100);
+      const fill = document.getElementById('storage-fill');
+      fill.style.width = `${pct}%`;
+      fill.classList.toggle('warn', pct >= 80 && pct < 100);
+      fill.classList.toggle('full', pct >= 100);
+      document.getElementById('storage-text').textContent =
+        `${(user.storageUsed / (1024 * 1024)).toFixed(2)}MB / 50MB`;
+
+      updatePublishUI(user.published);
+
+      document.getElementById('site-title-input').value = user.siteTitle || '';
+      document.getElementById('bio-input').value = user.bio || '';
+      document.getElementById('email-input').value = user.email || '';
+
+      return user;
+    }
+
+    async function openEditor(file) {
+      const ext = file.name.split('.').pop().toLowerCase();
+      if (!EDITABLE_EXTENSIONS.has(ext)) {
+        alert(`"${file.name}" can't be edited as text here. Delete and re-upload to replace it.`);
+        return;
+      }
+
+      const res = await apiFetch(`/api/site/file?key=${encodeURIComponent(file.key)}`);
+      if (!res.ok) {
+        alert('Could not load that file.');
+        return;
+      }
+
+      const data = await res.json();
+      editingKey = data.key;
+      document.getElementById('editor-filename').textContent = data.key;
+      document.getElementById('editor-textarea').value = data.content;
+      document.getElementById('editor-panel').classList.remove('hidden');
+    }
+
+    async function deleteFile(key) {
+      if (!confirm(`Delete "${key}"? This can't be undone.`)) return;
+
+      const res = await apiFetch('/api/site/delete', {
+        method: 'DELETE',
+        body: JSON.stringify({ key }),
+      });
+
+      if (!res.ok) {
+        alert('Delete failed.');
+        return;
+      }
+
+      if (editingKey === key) {
+        editingKey = null;
+        document.getElementById('editor-panel').classList.add('hidden');
+      }
+
+      await loadFiles();
+      await loadUser();
+    }
+
+    async function uploadFiles(fileList) {
+      if (!fileList || fileList.length === 0) return;
+
+      const formData = new FormData();
+      for (const file of fileList) formData.append('files', file);
+
+      const res = await apiFetch('/api/site/upload', { method: 'POST', body: formData });
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.error || 'Upload failed.');
+        return;
+      }
+
+      await loadFiles();
+      await loadUser();
+    }
+
+    function setupUpload() {
+      const fileInput = document.getElementById('file-input');
+      document.getElementById('upload-btn').addEventListener('click', () => fileInput.click());
+      fileInput.addEventListener('change', () => {
+        uploadFiles(fileInput.files);
+        fileInput.value = '';
+      });
+
+      const dropZone = document.getElementById('drop-zone');
+      ['dragenter', 'dragover'].forEach((evt) =>
+        dropZone.addEventListener(evt, (e) => {
+          e.preventDefault();
+          dropZone.classList.add('drag-over');
+        })
+      );
+      ['dragleave', 'drop'].forEach((evt) =>
+        dropZone.addEventListener(evt, (e) => {
+          e.preventDefault();
+          dropZone.classList.remove('drag-over');
+        })
+      );
+      dropZone.addEventListener('drop', (e) => uploadFiles(e.dataTransfer.files));
+    }
+
+    function setupEditor() {
+      document.getElementById('close-editor-btn').addEventListener('click', () => {
+        editingKey = null;
+        document.getElementById('editor-panel').classList.add('hidden');
+      });
+
+      document.getElementById('save-btn').addEventListener('click', async () => {
+        if (!editingKey) return;
+        const content = document.getElementById('editor-textarea').value;
+        const file = new File([content], editingKey, { type: 'text/plain' });
+        const formData = new FormData();
+        formData.append('files', file);
+
+        const res = await apiFetch('/api/site/upload', { method: 'POST', body: formData });
+        if (!res.ok) {
+          alert('Save failed.');
+          return;
+        }
+        await loadFiles();
+        await loadUser();
+      });
+    }
+
+    function setupPublish() {
+      document.getElementById('publish-btn').addEventListener('click', async () => {
+        const res = await apiFetch('/api/site/publish', {
+          method: 'POST',
+          body: JSON.stringify({ published: !currentPublished }),
+        });
+        if (res.ok) updatePublishUI(!currentPublished);
+      });
+    }
+
+    function setupTabs() {
+      document.querySelectorAll('.tab-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.tab-btn').forEach((b) => b.classList.remove('active'));
+          document.querySelectorAll('.tab-panel').forEach((p) => p.classList.remove('active'));
+          btn.classList.add('active');
+          document.getElementById(`${btn.dataset.tab}-tab`).classList.add('active');
+        });
+      });
+    }
+
+    function setupSettings() {
+      document.getElementById('settings-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const msgEl = document.getElementById('settings-message');
+        msgEl.textContent = '';
+
+        const body = {
+          siteTitle: document.getElementById('site-title-input').value,
+          bio: document.getElementById('bio-input').value,
+          email: document.getElementById('email-input').value,
+        };
+        const password = document.getElementById('password-input').value;
+        if (password) body.password = password;
+
+        const res = await apiFetch('/api/user/update', { method: 'PATCH', body: JSON.stringify(body) });
+        const data = await res.json();
+
+        if (!res.ok) {
+          msgEl.textContent = data.error || 'Something went wrong.';
+          msgEl.className = 'form-error';
+          return;
+        }
+
+        msgEl.textContent = 'Saved.';
+        msgEl.className = 'text-ok';
+        document.getElementById('password-input').value = '';
+      });
+    }
+
+    async function init() {
+      const user = await loadUser();
+      if (!user) return;
+      await loadFiles();
+      setupTabs();
+      setupUpload();
+      setupEditor();
+      setupPublish();
+      setupSettings();
+      document.getElementById('logout-btn').addEventListener('click', logout);
+    }
+
+    init();
+  </script>
+</body>
+</html>

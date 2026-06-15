@@ -1,0 +1,32 @@
+# Copy this file to wrangler.toml and fill in your account/resource IDs.
+# wrangler.toml is gitignored — it contains account-specific identifiers.
+
+name = "myjay"
+compatibility_date = "2024-01-01"
+pages_build_output_dir = "public"
+
+account_id = "<your-cloudflare-account-id>"
+
+# --- D1 Database -----------------------------------------------------------
+[[d1_databases]]
+binding = "DB"
+database_name = "myjay-db"
+database_id = "<your-d1-database-id>"
+
+# --- R2 Bucket ---------------------------------------------------------------
+[[r2_buckets]]
+binding = "SITES"
+bucket_name = "myjay-sites"
+
+# --- KV Namespace (sessions) -------------------------------------------------
+[[kv_namespaces]]
+binding = "SESSIONS"
+id = "<your-kv-namespace-id>"
+
+# --- Environment variables ---------------------------------------------------
+[vars]
+ADMIN_EMAIL = "<your-email@example.com>"
+MAX_UPLOAD_BYTES = "52428800"
+
+# SESSION_SECRET is sensitive — set it with:
+#   npx wrangler secret put SESSION_SECRET

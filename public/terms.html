@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Terms — MyJay.net</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@1,300&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="/assets/img/favicon.png">
+  <link rel="stylesheet" href="/assets/style.css">
+</head>
+<body>
+  <div class="status-bar">
+    <span class="cursor"></span>
+    <span class="version">myjay v0.1.0-alpha</span>
+    <span class="uptime" data-uptime>uptime 0d 00:00:00</span>
+    <div class="marquee"><span>status: nominal — terms of use — read it, it's short —</span></div>
+  </div>
+
+  <header class="torn-header compact">
+    <div class="logo">
+      <img src="/assets/img/logo.png" alt="MyJay.net" onerror="var s=this.nextElementSibling; this.remove(); s.style.display=''">
+      <span class="logo-fallback" style="display:none"><span class="myjay">MyJay</span><span class="dotnet">.net</span></span>
+    </div>
+    <nav class="nav">
+      <a href="/">Home</a>
+      <a href="/explore.html">Explore</a>
+      <a href="/help.html">Help</a>
+      <a href="/about.html">About</a>
+      <a href="/login.html" data-nav-auth>Login</a>
+    </nav>
+  </header>
+
+  <main class="wrapper">
+    <section>
+      <h1>Terms.</h1>
+      <p class="text-muted">
+        The short version: don't host anything illegal or harmful, your
+        files stay yours, this is a free hobby-scale service with no uptime
+        promises. The long version is below, and it's still pretty short.
+      </p>
+    </section>
+
+    <section>
+      <h2>Your account.</h2>
+      <ul>
+        <li>One account and one site per person, for now. Don't create multiple accounts to get around storage limits.</li>
+        <li>Keep your password reasonably secure. You're responsible for activity under your account.</li>
+        <li>Your subdomain (<code>username.myjay.net</code>) is yours as long as your account exists and stays in good standing. Reserved names (<code>www</code>, <code>api</code>, <code>admin</code>, etc.) can't be claimed.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Acceptable use.</h2>
+      <p>Your published site may not contain or link to:</p>
+      <ul>
+        <li>Illegal content under applicable law.</li>
+        <li>Malware, phishing pages, or anything designed to compromise visitors' devices or accounts.</li>
+        <li>Content that impersonates another person or organization in a misleading way.</li>
+        <li>Spam, mass-unsolicited content, or link farms.</li>
+        <li>Content that infringes someone else's copyright or other rights.</li>
+      </ul>
+      <p class="text-muted mt-1">
+        Everything else — personal sites, art, writing, weird experiments,
+        fan pages, "under construction" GIFs forever — is exactly what this
+        platform is for.
+      </p>
+    </section>
+
+    <section>
+      <h2>Limits.</h2>
+      <div class="terminal-log">
+<span class="dim">$ myjay terms --limits</span>
+storage:    50MB per account
+files:      static only — see <span class="dim">/about.html</span> for allowed types
+execution:  <span class="err">none</span> — no server-side code runs for your site
+accounts:   one per person, no automated/bot signups
+      </div>
+    </section>
+
+    <section>
+      <h2>Your content, your responsibility.</h2>
+      <p>
+        You retain ownership of whatever you upload. By publishing a site,
+        you give MyJay the (obvious, necessary) permission to store and
+        serve those files to anyone who visits
+        <code>username.myjay.net</code> — that's the whole point. You're
+        responsible for having the rights to anything you upload.
+      </p>
+    </section>
+
+    <section>
+      <h2>Enforcement.</h2>
+      <p>
+        If a site violates the acceptable-use section above, an admin may
+        unpublish it, remove the offending files, or — for repeated or
+        serious violations — ban or delete the account, without advance
+        notice. This is a small free service run without a legal team;
+        enforcement is "best judgment," not a formal process with appeals.
+      </p>
+    </section>
+
+    <section>
+      <h2>Availability.</h2>
+      <p>
+        MyJay is provided free, "as is," with no uptime guarantee. It may go
+        into <a href="/maintenance.html">maintenance mode</a> for updates, or
+        be unavailable due to upstream Cloudflare issues. Don't build
+        anything mission-critical on top of it. Back up anything you can't
+        afford to lose — you have full access to your files for that exact
+        reason.
+      </p>
+    </section>
+
+    <section>
+      <h2>Changes.</h2>
+      <p class="text-muted">
+        These terms may change as the platform grows past Phase 1.
+        Meaningful changes will be mentioned in the announcement banner and
+        <a href="/about.html">dev log</a>. Continuing to use MyJay after a
+        change means you accept the updated terms.
+      </p>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <span class="footnote">[1] Not a lawyer, not legal advice — just the rules of the house.</span>
+    <span class="footnote">[2] v0.1.0-alpha — built on Cloudflare Pages, Workers, D1, R2, KV.</span>
+    <span class="footnote">[3] <a href="/status.html">Status</a> · <a href="/privacy.html">Privacy</a> · <a href="/terms.html">Terms</a></span>
+  </footer>
+
+  <script type="module" src="/assets/main.js"></script>
+</body>
+</html>

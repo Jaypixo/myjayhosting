@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin — MyJay.net</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@1,300&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="/assets/img/favicon.png">
+  <link rel="stylesheet" href="/assets/style.css">
+</head>
+<body>
+  <div class="status-bar">
+    <span class="cursor"></span>
+    <span class="version">myjay v0.1.0-alpha</span>
+    <span class="uptime" data-uptime>uptime 0d 00:00:00</span>
+    <div class="marquee"><span>status: nominal — admin panel — owner access only — handle with care —</span></div>
+  </div>
+
+  <header class="torn-header compact">
+    <div class="logo">
+      <img src="/assets/img/logo.png" alt="MyJay.net" onerror="var s=this.nextElementSibling; this.remove(); s.style.display=''">
+      <span class="logo-fallback" style="display:none"><span class="myjay">MyJay</span><span class="dotnet">.net</span></span>
+    </div>
+    <nav class="nav">
+      <a href="/">Home</a>
+      <a href="/explore.html">Explore</a>
+      <a href="/help.html">Help</a>
+      <a href="/dashboard.html" data-nav-auth>Dashboard</a>
+    </nav>
+  </header>
+
+  <main class="wrapper-wide">
+    <section>
+      <div class="flex-between">
+        <h1>Admin <span class="badge badge-admin">owner</span></h1>
+        <button class="btn btn-ghost btn-sm" id="logout-btn">Logout</button>
+      </div>
+
+      <div class="tabs">
+        <button class="active" data-tab="users-panel">Users</button>
+        <button data-tab="sites-panel">Sites</button>
+        <button data-tab="stats-panel">Stats</button>
+        <button data-tab="settings-panel">Settings</button>
+      </div>
+
+      <div id="users-panel" class="tab-panel active">
+        <div class="field">
+          <label for="users-search">Search</label>
+          <input type="text" id="users-search" placeholder="Filter by username or email...">
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Username</th>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Status</th>
+              <th>Created</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="users-body">
+            <tr><td colspan="6" class="text-muted">loading...</td></tr>
+          </tbody>
+        </table>
+        <div class="flex-between mt-1">
+          <button class="btn btn-ghost btn-sm" id="users-prev">← Prev</button>
+          <span class="text-muted" id="users-page-info">page 1</span>
+          <button class="btn btn-ghost btn-sm" id="users-next">Next →</button>
+        </div>
+      </div>
+
+      <div id="sites-panel" class="tab-panel">
+        <table>
+          <thead>
+            <tr>
+              <th>Username</th>
+              <th>Owner</th>
+              <th>Status</th>
+              <th>Updated</th>
+              <th>Views</th>
+              <th>Storage</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="sites-body">
+            <tr><td colspan="7" class="text-muted">loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div id="stats-panel" class="tab-panel">
+        <div class="feature-grid">
+          <div class="card">
+            <h3 id="stat-users">—</h3>
+            <p class="text-muted">total users</p>
+          </div>
+          <div class="card">
+            <h3 id="stat-sites">—</h3>
+            <p class="text-muted">total sites (<span id="stat-published">—</span> published)</p>
+          </div>
+          <div class="card">
+            <h3 id="stat-storage">—</h3>
+            <p class="text-muted">total storage used</p>
+          </div>
+        </div>
+      </div>
+
+      <div id="settings-panel" class="tab-panel">
+        <h2>Maintenance mode</h2>
+        <div class="publish-toggle">
+          <span class="label" id="maintenance-label">Maintenance mode: OFF</span>
+          <button class="btn btn-danger btn-sm" id="maintenance-btn">Enable</button>
+        </div>
+        <p class="text-muted">
+          When on, every visitor except logged-in admins is redirected to
+          <code>/maintenance.html</code> — the page with
+          <code>MyJayErrorMascot.png</code> in the middle (drop that file into
+          <code>public/assets/img/</code> if you haven't). The login page stays
+          reachable so you can always get back in to flip this off.
+        </p>
+
+        <h2 class="mt-2">Registration</h2>
+        <div class="publish-toggle">
+          <span class="label" id="registration-label">Registration: OPEN</span>
+          <button class="btn btn-ghost btn-sm" id="registration-btn">Close registration</button>
+        </div>
+        <p class="text-muted">
+          When closed, new signups are rejected with a friendly error. Existing
+          accounts (and yours) can still log in.
+        </p>
+
+        <h2 class="mt-2">Announcement banner</h2>
+        <div class="card">
+          <p class="text-muted">Shown at the top of every page. Visitors can dismiss it; it reappears if you change the text.</p>
+          <div class="field">
+            <label for="announcement-input">Message</label>
+            <textarea id="announcement-input" rows="2" maxlength="280" placeholder="e.g. Scheduled maintenance Friday 10pm UTC."></textarea>
+          </div>
+          <div class="flex-between">
+            <label class="checkbox-label">
+              <input type="checkbox" id="announcement-enabled-checkbox"> Show banner
+            </label>
+            <button class="btn btn-sm" id="save-announcement-btn">Save</button>
+          </div>
+          <p class="text-ok hidden mt-1" id="settings-saved-msg">Saved.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <span class="footnote">[1] Admin actions take effect immediately. There is no undo.</span>
+    <span class="footnote">[2] v0.1.0-alpha — built on Cloudflare Pages, Workers, D1, R2, KV.</span>
+    <span class="footnote">[3] <a href="/status.html">Status</a> · <a href="/privacy.html">Privacy</a> · <a href="/terms.html">Terms</a></span>
+  </footer>
+
+  <script type="module">
+    import { apiFetch, getCurrentUser, logout } from '/assets/main.js';
+
+    let usersPage = 1;
+    let usersTotal = 0;
+    let usersQuery = '';
+    const PAGE_SIZE = 50;
+
+    function formatSize(bytes) {
+      if (bytes < 1024) return `${bytes} B`;
+      if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+      return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    }
+
+    function formatDate(iso) {
+      return new Date(iso).toISOString().slice(0, 10);
+    }
+
+    function td(text) {
+      const cell = document.createElement('td');
+      cell.textContent = text;
+      return cell;
+    }
+
+    async function loadUsers() {
+      const params = new URLSearchParams({ page: String(usersPage) });
+      if (usersQuery) params.set('q', usersQuery);
+      const res = await apiFetch(`/api/admin/users?${params}`);
+      const data = await res.json();
+      usersTotal = data.total;
+
+      const body = document.getElementById('users-body');
+      body.innerHTML = '';
+
+      if (data.users.length === 0) {
+        body.innerHTML = '<tr><td colspan="6" class="text-muted">No users.</td></tr>';
+      }
+
+      for (const u of data.users) {
+        const tr = document.createElement('tr');
+
+        const banBtn = document.createElement('button');
+        banBtn.className = 'btn btn-ghost btn-sm';
+        banBtn.textContent = u.banned ? 'Unban' : 'Ban';
+        banBtn.addEventListener('click', () => toggleBan(u.id, !u.banned));
+
+        const roleBtn = document.createElement('button');
+        roleBtn.className = 'btn btn-ghost btn-sm';
+        roleBtn.textContent = u.role === 'admin' ? 'Demote' : 'Make admin';
+        roleBtn.addEventListener('click', () => toggleRole(u.id, u.role === 'admin' ? 'user' : 'admin'));
+
+        const delBtn = document.createElement('button');
+        delBtn.className = 'btn btn-danger btn-sm';
+        delBtn.textContent = 'Delete';
+        delBtn.addEventListener('click', () => deleteUser(u.id, u.username));
+
+        const actions = document.createElement('td');
+        actions.style.display = 'flex';
+        actions.style.gap = '0.5rem';
+        actions.appendChild(banBtn);
+        actions.appendChild(roleBtn);
+        actions.appendChild(delBtn);
+
+        const statusTd = document.createElement('td');
+        const statusSpan = document.createElement('span');
+        statusSpan.className = u.banned ? 'text-error' : 'text-ok';
+        statusSpan.textContent = u.banned ? 'banned' : 'active';
+        statusTd.appendChild(statusSpan);
+
+        tr.appendChild(td(u.username));
+        tr.appendChild(td(u.email));
+        tr.appendChild(td(u.role));
+        tr.appendChild(statusTd);
+        tr.appendChild(td(formatDate(u.createdAt)));
+        tr.appendChild(actions);
+        body.appendChild(tr);
+      }
+
+      document.getElementById('users-page-info').textContent =
+        `page ${usersPage} of ${Math.max(1, Math.ceil(usersTotal / PAGE_SIZE))}`;
+      document.getElementById('users-prev').disabled = usersPage <= 1;
+      document.getElementById('users-next').disabled = usersPage * PAGE_SIZE >= usersTotal;
+    }
+
+    async function toggleBan(id, banned) {
+      await apiFetch(`/api/admin/users/${id}`, { method: 'PATCH', body: JSON.stringify({ banned }) });
+      loadUsers();
+    }
+
+    async function toggleRole(id, role) {
+      await apiFetch(`/api/admin/users/${id}`, { method: 'PATCH', body: JSON.stringify({ role }) });
+      loadUsers();
+    }
+
+    async function deleteUser(id, username) {
+      if (!confirm(`Permanently delete user "${username}" and all their files?`)) return;
+      await apiFetch(`/api/admin/users/${id}`, { method: 'DELETE' });
+      loadUsers();
+    }
+
+    async function loadSites() {
+      const res = await apiFetch('/api/admin/sites');
+      const data = await res.json();
+
+      const body = document.getElementById('sites-body');
+      body.innerHTML = '';
+
+      if (data.sites.length === 0) {
+        body.innerHTML = '<tr><td colspan="7" class="text-muted">No sites.</td></tr>';
+        return;
+      }
+
+      for (const s of data.sites) {
+        const tr = document.createElement('tr');
+
+        const toggleBtn = document.createElement('button');
+        toggleBtn.className = 'btn btn-ghost btn-sm';
+        toggleBtn.textContent = s.published ? 'Unpublish' : 'Publish';
+        toggleBtn.addEventListener('click', () => toggleSitePublished(s.id, !s.published));
+
+        const wipeBtn = document.createElement('button');
+        wipeBtn.className = 'btn btn-danger btn-sm';
+        wipeBtn.textContent = 'Wipe files';
+        wipeBtn.addEventListener('click', () => wipeSite(s.id, s.username));
+
+        const actions = document.createElement('td');
+        actions.style.display = 'flex';
+        actions.style.gap = '0.5rem';
+        actions.appendChild(toggleBtn);
+        actions.appendChild(wipeBtn);
+
+        const statusTd = document.createElement('td');
+        const badge = document.createElement('span');
+        badge.className = s.published ? 'badge badge-live' : 'badge badge-draft';
+        badge.textContent = s.published ? 'live' : 'draft';
+        statusTd.appendChild(badge);
+
+        tr.appendChild(td(`${s.username}.myjay.net`));
+        tr.appendChild(td(s.email));
+        tr.appendChild(statusTd);
+        tr.appendChild(td(formatDate(s.updatedAt)));
+        tr.appendChild(td(String(s.viewCount)));
+        tr.appendChild(td(formatSize(s.storageBytes)));
+        tr.appendChild(actions);
+        body.appendChild(tr);
+      }
+    }
+
+    async function toggleSitePublished(id, published) {
+      await apiFetch(`/api/admin/sites/${id}`, { method: 'PATCH', body: JSON.stringify({ published }) });
+      loadSites();
+    }
+
+    async function wipeSite(id, username) {
+      if (!confirm(`Delete all files for "${username}.myjay.net" and unpublish it?`)) return;
+      await apiFetch(`/api/admin/sites/${id}`, { method: 'DELETE' });
+      loadSites();
+    }
+
+    async function loadStats() {
+      const res = await apiFetch('/api/admin/stats');
+      const data = await res.json();
+      document.getElementById('stat-users').textContent = data.totalUsers;
+      document.getElementById('stat-sites').textContent = data.totalSites;
+      document.getElementById('stat-published').textContent = data.publishedSites;
+      document.getElementById('stat-storage').textContent = formatSize(data.totalStorageBytes);
+    }
+
+    function setupTabs() {
+      document.querySelectorAll('.tabs button').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.tabs button').forEach((b) => b.classList.remove('active'));
+          document.querySelectorAll('.tab-panel').forEach((p) => p.classList.remove('active'));
+          btn.classList.add('active');
+          document.getElementById(btn.dataset.tab).classList.add('active');
+        });
+      });
+    }
+
+    document.getElementById('users-prev').addEventListener('click', () => {
+      if (usersPage > 1) {
+        usersPage--;
+        loadUsers();
+      }
+    });
+
+    document.getElementById('users-next').addEventListener('click', () => {
+      if (usersPage * PAGE_SIZE < usersTotal) {
+        usersPage++;
+        loadUsers();
+      }
+    });
+
+    let usersSearchTimer;
+    document.getElementById('users-search').addEventListener('input', (e) => {
+      clearTimeout(usersSearchTimer);
+      usersSearchTimer = setTimeout(() => {
+        usersQuery = e.target.value.trim().toLowerCase();
+        usersPage = 1;
+        loadUsers();
+      }, 250);
+    });
+
+    document.getElementById('logout-btn').addEventListener('click', logout);
+
+    // --- Settings tab -----------------------------------------------------
+
+    function updateMaintenanceUI(on) {
+      const label = document.getElementById('maintenance-label');
+      const btn = document.getElementById('maintenance-btn');
+      label.textContent = `Maintenance mode: ${on ? 'ON' : 'OFF'}`;
+      label.className = on ? 'label warn' : 'label';
+      btn.textContent = on ? 'Disable' : 'Enable';
+      btn.className = on ? 'btn btn-sm' : 'btn btn-danger btn-sm';
+    }
+
+    function updateRegistrationUI(open) {
+      const label = document.getElementById('registration-label');
+      const btn = document.getElementById('registration-btn');
+      label.textContent = `Registration: ${open ? 'OPEN' : 'CLOSED'}`;
+      label.className = open ? 'label' : 'label warn';
+      btn.textContent = open ? 'Close registration' : 'Open registration';
+    }
+
+    async function loadSettings() {
+      const res = await apiFetch('/api/admin/settings');
+      const data = await res.json();
+      updateMaintenanceUI(data.maintenanceMode);
+      updateRegistrationUI(data.registrationEnabled);
+      document.getElementById('announcement-input').value = data.announcement;
+      document.getElementById('announcement-enabled-checkbox').checked = data.announcementEnabled;
+    }
+
+    document.getElementById('maintenance-btn').addEventListener('click', async () => {
+      const enabling = document.getElementById('maintenance-btn').textContent === 'Enable';
+      if (enabling && !confirm(
+        'Turn on maintenance mode? Everyone except logged-in admins will be ' +
+        'redirected to /maintenance.html until you turn this back off here.'
+      )) return;
+
+      const res = await apiFetch('/api/admin/settings', {
+        method: 'PATCH',
+        body: JSON.stringify({ maintenanceMode: enabling }),
+      });
+      const data = await res.json();
+      updateMaintenanceUI(data.maintenanceMode);
+    });
+
+    document.getElementById('registration-btn').addEventListener('click', async () => {
+      const opening = document.getElementById('registration-btn').textContent === 'Open registration';
+      const res = await apiFetch('/api/admin/settings', {
+        method: 'PATCH',
+        body: JSON.stringify({ registrationEnabled: opening }),
+      });
+      const data = await res.json();
+      updateRegistrationUI(data.registrationEnabled);
+    });
+
+    document.getElementById('save-announcement-btn').addEventListener('click', async () => {
+      await apiFetch('/api/admin/settings', {
+        method: 'PATCH',
+        body: JSON.stringify({
+          announcement: document.getElementById('announcement-input').value,
+          announcementEnabled: document.getElementById('announcement-enabled-checkbox').checked,
+        }),
+      });
+      const msg = document.getElementById('settings-saved-msg');
+      msg.classList.remove('hidden');
+      setTimeout(() => msg.classList.add('hidden'), 2000);
+    });
+
+    async function init() {
+      const user = await getCurrentUser();
+      if (!user || user.role !== 'admin') {
+        window.location.href = '/login.html';
+        return;
+      }
+      setupTabs();
+      await Promise.all([loadUsers(), loadSites(), loadStats(), loadSettings()]);
+    }
+
+    init();
+  </script>
+</body>
+</html>
