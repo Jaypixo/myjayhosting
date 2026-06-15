@@ -12,7 +12,7 @@
 <body>
   <header class="torn-header compact">
     <div class="nav-auth" data-nav-auth>
-      <a href="/login.html">Log in</a>
+      <a href="/login.html" class="btn btn-sm btn-outline">Log in</a>
       <a href="/register.html" class="btn btn-sm">Register</a>
     </div>
     <div class="logo">
@@ -219,6 +219,11 @@
         roleBtn.textContent = u.role === 'admin' ? 'Demote' : 'Make admin';
         roleBtn.addEventListener('click', () => toggleRole(u.id, u.role === 'admin' ? 'user' : 'admin'));
 
+        const resetBtn = document.createElement('button');
+        resetBtn.className = 'btn btn-ghost btn-sm';
+        resetBtn.textContent = 'Reset password';
+        resetBtn.addEventListener('click', () => resetPassword(u.id, u.username));
+
         const delBtn = document.createElement('button');
         delBtn.className = 'btn btn-danger btn-sm';
         delBtn.textContent = 'Delete';
@@ -227,8 +232,10 @@
         const actions = document.createElement('td');
         actions.style.display = 'flex';
         actions.style.gap = '0.5rem';
+        actions.style.flexWrap = 'wrap';
         actions.appendChild(banBtn);
         actions.appendChild(roleBtn);
+        actions.appendChild(resetBtn);
         actions.appendChild(delBtn);
 
         const statusTd = document.createElement('td');
@@ -266,6 +273,30 @@
       if (!confirm(`Permanently delete user "${username}" and all their files?`)) return;
       await apiFetch(`/api/admin/users/${id}`, { method: 'DELETE' });
       loadUsers();
+    }
+
+    function generatePassword() {
+      const chars = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789';
+      const bytes = crypto.getRandomValues(new Uint8Array(12));
+      return Array.from(bytes, (b) => chars[b % chars.length]).join('');
+    }
+
+    async function resetPassword(id, username) {
+      if (!confirm(`Reset the password for "${username}"? They'll need the new password to log in.`)) return;
+
+      const newPassword = generatePassword();
+      const res = await apiFetch(`/api/admin/users/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ password: newPassword }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error || 'Could not reset password.');
+        return;
+      }
+
+      alert(`New password for "${username}":\n\n${newPassword}\n\nThis is shown once. Share it with the user securely, they should change it after logging in.`);
     }
 
     async function loadSites() {

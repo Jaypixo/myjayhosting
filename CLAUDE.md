@@ -367,7 +367,7 @@ POST /api/site/publish       { published: bool } → { ok }
 GET  /api/explore            → { sites: [{ username, siteTitle, updatedAt, viewCount }] }
 
 GET  /api/admin/users        → { users: [...] }
-PATCH /api/admin/users/:id   { role?, banned? } → { ok }
+PATCH /api/admin/users/:id   { role?, banned?, password? } → { ok }
 DELETE /api/admin/users/:id  → { ok }
 GET  /api/admin/sites        → { sites: [...] }
 DELETE /api/admin/sites/:id  → { ok }

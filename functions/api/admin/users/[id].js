@@ -1,6 +1,6 @@
-// Why the fuck is this in its own file? Whatever. 
+// Why the fuck is this in its own file? Whatever.
 import { listSiteObjects } from '../../../_lib/storage.js';
-import { json, errorResponse } from '../../../_lib/auth.js';
+import { json, errorResponse, hashPassword } from '../../../_lib/auth.js';
 
 export async function onRequestPatch(context) {
   // context, request, env, params... just more shit to keep track of.
@@ -30,6 +30,14 @@ export async function onRequestPatch(context) {
   if (typeof body.banned === 'boolean') {
     updates.push('banned = ?');
     values.push(body.banned ? 1 : 0);
+  }
+
+  if (typeof body.password === 'string') {
+    if (body.password.length < 8) {
+      return errorResponse('Password must be at least 8 characters', 400);
+    }
+    updates.push('password_hash = ?');
+    values.push(await hashPassword(body.password));
   }
 
   if (updates.length === 0) {
