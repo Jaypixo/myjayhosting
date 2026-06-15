@@ -28,6 +28,19 @@ CREATE INDEX IF NOT EXISTS idx_sites_published_updated ON sites(published, updat
 CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 
+-- Per-day, per-country view counters. The router worker upserts a row for
+-- every HTML page view using Cloudflare's request.cf.country (a rough,
+-- edge-location-based guess, not real visitor tracking).
+CREATE TABLE IF NOT EXISTS site_view_stats (
+  site_id TEXT NOT NULL REFERENCES sites(id),
+  date TEXT NOT NULL,    -- YYYY-MM-DD
+  country TEXT NOT NULL, -- ISO 3166-1 alpha-2, or 'XX' if unknown
+  views INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (site_id, date, country)
+);
+
+CREATE INDEX IF NOT EXISTS idx_site_view_stats_site ON site_view_stats(site_id);
+
 -- Site-wide key/value settings, managed from the admin panel.
 CREATE TABLE IF NOT EXISTS settings (
   key TEXT PRIMARY KEY,

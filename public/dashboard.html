@@ -8,9 +8,20 @@
   <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@1,300&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
   <link rel="icon" type="image/png" href="/assets/img/favicon.png">
   <link rel="stylesheet" href="/assets/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/xml/xml.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/css/css.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/htmlmixed/htmlmixed.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/markdown/markdown.min.js"></script>
 </head>
 <body>
   <header class="torn-header compact">
+    <div class="nav-auth" data-nav-auth>
+      <a href="/login.html">Log in</a>
+      <a href="/register.html" class="btn btn-sm">Register</a>
+    </div>
     <div class="logo">
       <img src="/assets/img/logo.png" alt="MyJay.net" onerror="var s=this.nextElementSibling; this.remove(); s.style.display=''">
       <span class="logo-fallback" style="display:none"><span class="myjay">MyJay</span><span class="dotnet">.net</span></span>
@@ -20,7 +31,6 @@
       <a href="/explore.html">Explore</a>
       <a href="/help.html">Help</a>
       <a href="/about.html">About</a>
-      <a href="/dashboard.html" data-nav-auth>Dashboard</a>
     </nav>
   </header>
 
@@ -35,6 +45,7 @@
 
       <ul class="sidebar-nav">
         <li><button class="tab-btn active" data-tab="files">Files</button></li>
+        <li><button class="tab-btn" data-tab="stats">Stats</button></li>
         <li><button class="tab-btn" data-tab="settings">Settings</button></li>
         <li><a id="visit-site-link" href="#" target="_blank" rel="noopener">Visit Site →</a></li>
         <li><button id="logout-btn">Logout</button></li>
@@ -64,17 +75,53 @@
           <div class="flex-between mt-1">
             <h3 id="editor-filename">file.html</h3>
             <div>
+              <span class="text-ok hidden" id="editor-saved-msg">Saved.</span>
               <button class="btn btn-sm" id="save-btn">Save</button>
               <button class="btn btn-ghost btn-sm" id="close-editor-btn">Close</button>
             </div>
           </div>
-          <textarea id="editor-textarea" class="editor-textarea" spellcheck="false"></textarea>
+          <div id="editor-container" class="editor-container"></div>
         </div>
 
         <div class="terminal-log mt-2">
 <span class="dim">$ myjay files list --site=<span id="log-username">...</span></span>
 <span id="log-summary" class="dim">loading...</span>
         </div>
+      </div>
+
+      <div id="stats-tab" class="tab-panel">
+        <h2>Stats</h2>
+        <div class="feature-grid">
+          <div class="card">
+            <h3 id="stats-total-views">...</h3>
+            <p class="text-muted">total views</p>
+          </div>
+          <div class="card">
+            <h3 id="stats-30d-views">...</h3>
+            <p class="text-muted">views, last 30 days</p>
+          </div>
+          <div class="card">
+            <h3 id="stats-top-location">...</h3>
+            <p class="text-muted">top location</p>
+          </div>
+        </div>
+
+        <h3 class="mt-2">Last 30 days</h3>
+        <div class="chart-bars" id="stats-chart"></div>
+
+        <h3 class="mt-2">Where visitors come from</h3>
+        <p class="text-muted">
+          Rough location only, based on Cloudflare's edge location for each
+          request. Nothing per-visitor is tracked or stored.
+        </p>
+        <table>
+          <thead>
+            <tr><th>Location</th><th>Views</th><th></th></tr>
+          </thead>
+          <tbody id="stats-countries-body">
+            <tr><td colspan="3" class="text-muted">No views yet.</td></tr>
+          </tbody>
+        </table>
       </div>
 
       <div id="settings-tab" class="tab-panel">
@@ -120,8 +167,33 @@
     const EDITABLE_EXTENSIONS = new Set(['html', 'htm', 'css', 'js', 'json', 'xml', 'txt', 'md', 'svg']);
     const MAX_STORAGE_BYTES = 50 * 1024 * 1024;
 
+    const CM_MODE_BY_EXT = {
+      html: 'htmlmixed',
+      htm: 'htmlmixed',
+      svg: 'xml',
+      xml: 'xml',
+      css: 'css',
+      js: 'javascript',
+      json: { name: 'javascript', json: true },
+      md: 'markdown',
+      txt: 'null',
+    };
+
     let currentPublished = false;
     let editingKey = null;
+    let editor = null;
+
+    function getEditor() {
+      if (!editor) {
+        editor = CodeMirror(document.getElementById('editor-container'), {
+          lineNumbers: true,
+          lineWrapping: true,
+          indentUnit: 2,
+          tabSize: 2,
+        });
+      }
+      return editor;
+    }
 
     function formatSize(bytes) {
       if (bytes < 1024) return `${bytes} B`;
@@ -284,8 +356,13 @@
       const data = await res.json();
       editingKey = data.key;
       document.getElementById('editor-filename').textContent = data.key;
-      document.getElementById('editor-textarea').value = data.content;
       document.getElementById('editor-panel').classList.remove('hidden');
+
+      const cm = getEditor();
+      cm.setValue(data.content);
+      cm.setOption('mode', CM_MODE_BY_EXT[ext] || 'null');
+      cm.clearHistory();
+      setTimeout(() => { cm.refresh(); cm.focus(); }, 0);
     }
 
     async function deleteFile(key) {
@@ -360,7 +437,7 @@
 
       document.getElementById('save-btn').addEventListener('click', async () => {
         if (!editingKey) return;
-        const content = document.getElementById('editor-textarea').value;
+        const content = getEditor().getValue();
         // type here doesn't matter, the upload endpoint figures out content-type from the extension
         const file = new File([content], editingKey, { type: 'text/plain' });
         const formData = new FormData();
@@ -371,6 +448,11 @@
           alert('Save failed.');
           return;
         }
+
+        const savedMsg = document.getElementById('editor-saved-msg');
+        savedMsg.classList.remove('hidden');
+        setTimeout(() => savedMsg.classList.add('hidden'), 1500);
+
         await loadFiles();
         await loadUser();
       });
@@ -426,10 +508,84 @@
       });
     }
 
+    function countryFlag(code) {
+      if (!code || code === 'XX' || code.length !== 2) return '🌐';
+      const upper = code.toUpperCase();
+      const points = [...upper].map((c) => 127397 + c.charCodeAt(0));
+      return String.fromCodePoint(...points);
+    }
+
+    function countryName(code) {
+      if (!code || code === 'XX') return 'Unknown';
+      try {
+        return new Intl.DisplayNames(['en'], { type: 'region' }).of(code.toUpperCase());
+      } catch {
+        return code;
+      }
+    }
+
+    async function loadStats() {
+      const res = await apiFetch('/api/site/stats');
+      if (!res.ok) return;
+      const data = await res.json();
+
+      document.getElementById('stats-total-views').textContent = data.totalViews ?? 0;
+
+      const total30 = (data.last30Days || []).reduce((sum, d) => sum + d.views, 0);
+      document.getElementById('stats-30d-views').textContent = total30;
+
+      const top = (data.countries || [])[0];
+      document.getElementById('stats-top-location').textContent = top
+        ? `${countryFlag(top.country)} ${countryName(top.country)}`
+        : 'No data yet';
+
+      const chartEl = document.getElementById('stats-chart');
+      chartEl.innerHTML = '';
+      const maxViews = Math.max(1, ...(data.last30Days || []).map((d) => d.views));
+      const days = [];
+      const byDate = {};
+      (data.last30Days || []).forEach((d) => { byDate[d.date] = d.views; });
+      const start = new Date();
+      start.setUTCDate(start.getUTCDate() - 29);
+      for (let i = 0; i < 30; i++) {
+        const d = new Date(start);
+        d.setUTCDate(d.getUTCDate() + i);
+        const key = d.toISOString().slice(0, 10);
+        days.push({ date: key, views: byDate[key] || 0 });
+      }
+      days.forEach((d) => {
+        const bar = document.createElement('div');
+        bar.className = 'chart-bar';
+        bar.style.height = `${(d.views / maxViews) * 100}%`;
+        bar.title = `${d.date}: ${d.views} view${d.views === 1 ? '' : 's'}`;
+        chartEl.appendChild(bar);
+      });
+
+      const tbody = document.getElementById('stats-countries-body');
+      const countries = data.countries || [];
+      if (countries.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="3" class="text-muted">No views yet.</td></tr>';
+        return;
+      }
+      const maxCountryViews = Math.max(...countries.map((c) => c.views));
+      tbody.innerHTML = '';
+      countries.forEach((c) => {
+        const tr = document.createElement('tr');
+        const pct = (c.views / maxCountryViews) * 100;
+        tr.innerHTML = `
+          <td>${countryFlag(c.country)} ${countryName(c.country)}</td>
+          <td>${c.views}</td>
+          <td><div class="stat-bar"><div class="stat-bar-fill" style="width: ${pct}%"></div></div></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
     async function init() {
       const user = await loadUser();
       if (!user) return;
       await loadFiles();
+      await loadStats();
       setupTabs();
       setupUpload();
       setupEditor();

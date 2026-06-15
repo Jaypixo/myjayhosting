@@ -214,7 +214,6 @@ View counts: the subdomain Router Worker increments `sites.view_count` via a D1 
 
 ### All pages share:
 - Papyrus/Terminal design system (see §Design System)
-- Status bar at top (blinking cursor, uptime counter, marquee ticker)
 - Torn-paper header with MyJay logo
 - Graph paper body background
 - Footer with footnotes
@@ -326,9 +325,8 @@ Every HTML page in `public/` must implement the Papyrus/Terminal design system e
 
 ### Required Elements (every page)
 1. **Graph paper body background**: repeating-linear-gradient grid
-2. **Status bar**: 28px fixed top, paper-alt bg, blinking cursor + uptime counter + marquee ticker
-3. **Torn-paper header**: `clip-path: polygon(...)` jagged edge, ink background
-4. **Footer footnotes**: `[1]` and `[2]` in IBM Plex Mono 0.7rem muted
+2. **Torn-paper header**: `clip-path: polygon(...)` jagged edge, ink background
+3. **Footer footnotes**: `[1]` and `[2]` in IBM Plex Mono 0.7rem muted
 
 ### Logo
 `https://myjay.net/public/MyJayLogo-Transparent.png`
@@ -344,8 +342,7 @@ Every HTML page in `public/` must implement the Papyrus/Terminal design system e
 ### Tone
 - Dry, technical, slightly self-aware
 - Metadata feels like system output: `v0.1.0-alpha`, `status: nominal`
-- Include at least one terminal log block per page
-- Timestamps and uptime counters are decorative but plausible
+- Terminal log blocks are for genuinely log-like or code-like content (raw data dumps, code samples); prefer tables, lists, and badges for anything a user needs to actually read and act on
 
 ---
 

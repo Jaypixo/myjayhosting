@@ -112,7 +112,7 @@ export default {
     }
     const username = labels[0];
 
-    const site = await env.DB.prepare('SELECT published FROM sites WHERE username = ?').bind(username).first();
+    const site = await env.DB.prepare('SELECT id, published FROM sites WHERE username = ?').bind(username).first();
     if (!site || !site.published) {
       return siteNotPublishedResponse(username);
     }
@@ -141,8 +141,16 @@ export default {
     // waitUntil so the visitor gets their page immediately, the view count
     // write happens after the response is already on its way out
     if (contentType.startsWith('text/html')) {
+      const country = request.cf?.country || 'XX';
+      const date = new Date().toISOString().slice(0, 10);
       ctx.waitUntil(
-        env.DB.prepare('UPDATE sites SET view_count = view_count + 1 WHERE username = ?').bind(username).run()
+        Promise.all([
+          env.DB.prepare('UPDATE sites SET view_count = view_count + 1 WHERE id = ?').bind(site.id).run(),
+          env.DB.prepare(
+            `INSERT INTO site_view_stats (site_id, date, country, views) VALUES (?, ?, ?, 1)
+             ON CONFLICT(site_id, date, country) DO UPDATE SET views = views + 1`
+          ).bind(site.id, date, country).run(),
+        ])
       );
     }
 

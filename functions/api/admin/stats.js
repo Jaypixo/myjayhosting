@@ -7,14 +7,28 @@ export async function onRequestGet(context) {
   const siteAgg = await env.DB.prepare(
     `SELECT COUNT(*) AS count,
             COALESCE(SUM(CASE WHEN published = 1 THEN 1 ELSE 0 END), 0) AS published_count,
-            COALESCE(SUM(storage_bytes), 0) AS total_storage
+            COALESCE(SUM(storage_bytes), 0) AS total_storage,
+            COALESCE(SUM(view_count), 0) AS total_views
      FROM sites`
   ).first();
+
+  let topCountries = [];
+  try {
+    const result = await env.DB.prepare(
+      `SELECT country, SUM(views) AS views FROM site_view_stats
+       GROUP BY country ORDER BY views DESC LIMIT 10`
+    ).all();
+    topCountries = result.results;
+  } catch {
+    // site_view_stats doesn't exist yet (migration not run).
+  }
 
   return json({
     totalUsers: userCount.count,
     totalSites: siteAgg.count,
     publishedSites: siteAgg.published_count,
     totalStorageBytes: siteAgg.total_storage,
+    totalViews: siteAgg.total_views,
+    topCountries,
   });
 }

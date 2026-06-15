@@ -24,12 +24,16 @@ export async function logout() {
 }
 
 async function initNav() {
-  const loginLink = document.querySelector('[data-nav-auth]');
-  if (!loginLink) return;
+  const authEl = document.querySelector('[data-nav-auth]');
+  if (!authEl) return;
   const user = await getCurrentUser();
   if (user) {
-    loginLink.textContent = `Dashboard (${user.username})`;
-    loginLink.setAttribute('href', '/dashboard.html');
+    authEl.innerHTML = '';
+    const link = document.createElement('a');
+    link.className = 'btn btn-sm';
+    link.href = '/dashboard.html';
+    link.textContent = `Dashboard (${user.username})`;
+    authEl.appendChild(link);
   }
 }
 
