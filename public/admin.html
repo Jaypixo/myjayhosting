@@ -10,13 +10,6 @@
   <link rel="stylesheet" href="/assets/style.css">
 </head>
 <body>
-  <div class="status-bar">
-    <span class="cursor"></span>
-    <span class="version">myjay v0.1.0-alpha</span>
-    <span class="uptime" data-uptime>uptime 0d 00:00:00</span>
-    <div class="marquee"><span>status: nominal :: admin panel :: owner access only :: handle with care ::</span></div>
-  </div>
-
   <header class="torn-header compact">
     <div class="logo">
       <img src="/assets/img/logo.png" alt="MyJay.net" onerror="var s=this.nextElementSibling; this.remove(); s.style.display=''">
@@ -115,9 +108,7 @@
         </div>
         <p class="text-muted">
           When on, every visitor except logged-in admins is redirected to
-          <code>/maintenance.html</code>, the page with
-          <code>MyJayErrorMascot.png</code> in the middle (drop that file into
-          <code>public/assets/img/</code> if you haven't). The login page stays
+          <code>/maintenance.html</code>. The login page stays
           reachable so you can always get back in to flip this off.
         </p>
 

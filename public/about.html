@@ -10,13 +10,6 @@
   <link rel="stylesheet" href="/assets/style.css">
 </head>
 <body>
-  <div class="status-bar">
-    <span class="cursor"></span>
-    <span class="version">myjay v0.1.0-alpha</span>
-    <span class="uptime" data-uptime>uptime 0d 00:00:00</span>
-    <div class="marquee"><span>status: nominal :: about page :: read the fine print, there isn't much ::</span></div>
-  </div>
-
   <header class="torn-header compact">
     <div class="logo">
       <img src="/assets/img/logo.png" alt="MyJay.net" onerror="var s=this.nextElementSibling; this.remove(); s.style.display=''">
@@ -60,15 +53,37 @@
 
     <section>
       <h2>The limits.</h2>
-      <div class="terminal-log">
-<span class="dim">$ myjay limits --plan=free</span>
-storage:        50MB per account
-file types:     html, css, js, images (jpg/png/gif/webp/svg/ico), fonts, txt/md/json/xml
-server code:    <span class="err">none</span>, static files only
-databases:      <span class="err">none</span>, bring your own data as JSON/files if you need it
-upload limit:   25MB per request (Cloudflare Pages Functions hard limit)
-custom domains: <span class="warn">not yet</span>, Phase 2
-      </div>
+      <table>
+        <thead>
+          <tr><th>Resource</th><th>Limit</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Storage</td>
+            <td>50MB per account</td>
+          </tr>
+          <tr>
+            <td>File types</td>
+            <td>html, css, js, images (jpg/png/gif/webp/svg/ico), fonts, txt/md/json/xml</td>
+          </tr>
+          <tr>
+            <td>Server-side code</td>
+            <td><span class="badge badge-err">none</span> static files only</td>
+          </tr>
+          <tr>
+            <td>Databases</td>
+            <td><span class="badge badge-err">none</span> bring your own data as JSON/files if you need it</td>
+          </tr>
+          <tr>
+            <td>Upload limit</td>
+            <td>25MB per request (Cloudflare Pages Functions hard limit)</td>
+          </tr>
+          <tr>
+            <td>Custom domains</td>
+            <td><span class="badge badge-warn">not yet</span> Phase 2</td>
+          </tr>
+        </tbody>
+      </table>
       <p class="text-muted mt-1">
         50MB is small on purpose. This is for text, a handful of images, maybe a
         font. If you need more, you're probably building something that wants a
@@ -92,15 +107,25 @@ custom domains: <span class="warn">not yet</span>, Phase 2
     <section>
       <h2>Dev log / roadmap.</h2>
       <p class="text-muted">Rough order, no promises on timing.</p>
-      <div class="terminal-log">
-<span class="ok">[done]</span>  v0.1.0-alpha: accounts, dashboard, file manager, publishing, explore page<br>
-<span class="warn">[next]</span>  blog tool: a simple posts list + RSS, still just static files under the hood<br>
-<span class="warn">[next]</span>  guestbook: leave a note on someone's site, the old-fashioned way<br>
-<span class="dim">[later]</span> microblog: short posts, your own little timeline<br>
-<span class="dim">[later]</span> custom domains: point your own domain at your myjay site<br>
-<span class="dim">[later]</span> pro plan: more storage, custom domains, for people who outgrow 50MB<br>
-<span class="dim">[maybe]</span> indie ad network: opt-in, between sites only, never on the platform itself
-      </div>
+      <ul class="roadmap-list">
+        <li><span class="badge badge-live">done</span> v0.1.0-alpha: accounts, dashboard, file manager, publishing, explore page</li>
+        <li><span class="badge badge-warn">next</span> blog tool: a simple posts list + RSS, still just static files under the hood</li>
+        <li><span class="badge badge-warn">next</span> guestbook: leave a note on someone's site, the old-fashioned way</li>
+        <li><span class="badge badge-draft">later</span> microblog: short posts, your own little timeline</li>
+        <li><span class="badge badge-draft">later</span> custom domains: point your own domain at your myjay site</li>
+        <li><span class="badge badge-draft">later</span> pro plan: more storage, custom domains, for people who outgrow 50MB</li>
+        <li><span class="badge badge-draft">maybe</span> indie ad network: opt-in, between sites only, never on the platform itself</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Contact.</h2>
+      <p>
+        No contact form, no support tickets, no chatbot. Found a bug, have a
+        question, or just want to say hi? Email
+        <a href="mailto:jaypix@myjay.net">jaypix@myjay.net</a> and an actual
+        person (me) will read it.
+      </p>
     </section>
 
     <section class="center">
@@ -109,9 +134,8 @@ custom domains: <span class="warn">not yet</span>, Phase 2
   </main>
 
   <footer class="footer">
-    <span class="footnote">[1] Questions, bugs, or just want to say hi? There's no contact form yet, that's on the list too.</span>
-    <span class="footnote">[2] v0.1.0-alpha, built on Cloudflare Pages, Workers, D1, R2, KV.</span>
-    <span class="footnote">[3] <a href="/status.html">Status</a> · <a href="/privacy.html">Privacy</a> · <a href="/terms.html">Terms</a></span>
+    <span class="footnote">[1] v0.1.0-alpha, built on Cloudflare Pages, Workers, D1, R2, KV.</span>
+    <span class="footnote">[2] <a href="/status.html">Status</a> · <a href="/privacy.html">Privacy</a> · <a href="/terms.html">Terms</a></span>
   </footer>
 
   <script type="module" src="/assets/main.js"></script>
