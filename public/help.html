@@ -10,6 +10,13 @@
   <link rel="stylesheet" href="/assets/style.css">
 </head>
 <body>
+  <div class="status-bar">
+    <span class="cursor"></span>
+    <span class="version">myjay v0.1.0-alpha</span>
+    <span class="uptime" data-uptime>uptime 0d 00:00:00</span>
+    <div class="marquee"><span>status: nominal :: help &amp; getting started :: five minutes to a live page ::</span></div>
+  </div>
+
   <header class="torn-header compact">
     <div class="nav-auth" data-nav-auth>
       <a href="/login.html" class="btn btn-sm btn-outline">Log in</a>
@@ -31,12 +38,13 @@
     <section>
       <h1>Getting started.</h1>
       <p class="text-muted">From "I have an account" to "my site is live" in about five minutes.</p>
-      <ol>
-        <li><strong>Register</strong> — create an account and get <code>username.myjay.net</code>.</li>
-        <li><strong>Upload</strong> — drag an <code>index.html</code> into the dashboard.</li>
-        <li><strong>Publish</strong> — flip the toggle from DRAFT to LIVE.</li>
-        <li><strong>Done</strong> — visit <code>https://username.myjay.net</code>.</li>
-      </ol>
+      <div class="terminal-log">
+<span class="dim">$ myjay quickstart</span>
+1. <span class="ok">register</span>   : create an account, get <span class="dim">username</span>.myjay.net
+2. <span class="ok">upload</span>     : drag an index.html into the dashboard
+3. <span class="ok">publish</span>    : flip the toggle from DRAFT to LIVE
+4. <span class="ok">done</span>       : visit https://<span class="dim">username</span>.myjay.net
+      </div>
     </section>
 
     <section>
@@ -72,19 +80,15 @@
 
     <section>
       <h2>Supported file types.</h2>
-      <table>
-        <thead>
-          <tr><th>Category</th><th>Extensions</th></tr>
-        </thead>
-        <tbody>
-          <tr><td>Markup</td><td><code>html</code>, <code>htm</code>, <code>xml</code>, <code>svg</code></td></tr>
-          <tr><td>Styles</td><td><code>css</code></td></tr>
-          <tr><td>Scripts</td><td><code>js</code></td></tr>
-          <tr><td>Data</td><td><code>json</code>, <code>txt</code>, <code>md</code></td></tr>
-          <tr><td>Images</td><td><code>jpg</code>, <code>jpeg</code>, <code>png</code>, <code>gif</code>, <code>webp</code>, <code>ico</code></td></tr>
-          <tr><td>Fonts</td><td><code>woff</code>, <code>woff2</code>, <code>ttf</code></td></tr>
-        </tbody>
-      </table>
+      <div class="terminal-log">
+<span class="dim">$ myjay filetypes --allowed</span>
+markup:   html, htm, xml, svg
+styles:   css
+scripts:  js
+data:     json, txt, md
+images:   jpg, jpeg, png, gif, webp, ico
+fonts:    woff, woff2, ttf
+      </div>
       <p class="text-muted mt-1">
         Anything else (executables, archives, video, etc.) is rejected by the
         upload endpoint. See <a href="/about.html">the limits</a> for the
@@ -132,7 +136,7 @@
   </main>
 
   <footer class="footer">
-    <span class="footnote">[1] Still stuck? Email <a href="mailto:jaypix@myjay.net">jaypix@myjay.net</a> and I'll do what I can.</span>
+    <span class="footnote">[1] Still stuck? There's no support ticket system yet, that's on the roadmap.</span>
     <span class="footnote">[2] v0.1.0-alpha, built on Cloudflare Pages, Workers, D1, R2, KV.</span>
     <span class="footnote">[3] <a href="/status.html">Status</a> · <a href="/privacy.html">Privacy</a> · <a href="/terms.html">Terms</a></span>
   </footer>

@@ -17,6 +17,13 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/markdown/markdown.min.js"></script>
 </head>
 <body>
+  <div class="status-bar">
+    <span class="cursor"></span>
+    <span class="version">myjay v0.1.0-alpha</span>
+    <span class="uptime" data-uptime>uptime 0d 00:00:00</span>
+    <div class="marquee"><span>status: nominal :: dashboard session active :: remember to publish when you're ready :: your corner of the web ::</span></div>
+  </div>
+
   <header class="torn-header compact">
     <div class="nav-auth" data-nav-auth>
       <a href="/login.html" class="btn btn-sm btn-outline">Log in</a>
@@ -319,11 +326,7 @@
       siteLink.href = `https://${user.username}.myjay.net`;
       document.getElementById('visit-site-link').href = `https://${user.username}.myjay.net`;
 
-      // tiny sites round down to ~0% and the bar looks empty/broken, so floor it
-      // at 1% once they've actually uploaded something
-      const pct = user.storageUsed > 0
-        ? Math.max(1, Math.min(100, (user.storageUsed / MAX_STORAGE_BYTES) * 100))
-        : 0;
+      const pct = Math.min(100, (user.storageUsed / MAX_STORAGE_BYTES) * 100);
       const fill = document.getElementById('storage-fill');
       fill.style.width = `${pct}%`;
       fill.classList.toggle('warn', pct >= 80 && pct < 100);

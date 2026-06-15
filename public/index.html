@@ -10,6 +10,13 @@
   <link rel="stylesheet" href="/assets/style.css">
 </head>
 <body>
+  <div class="status-bar">
+    <span class="cursor"></span>
+    <span class="version">myjay v0.1.0-alpha</span>
+    <span class="uptime" data-uptime>uptime 0d 00:00:00</span>
+    <div class="marquee"><span>status: nominal :: no trackers, no algorithms, no VC money :: free static hosting for the indie web :: claim your subdomain today ::</span></div>
+  </div>
+
   <header class="torn-header">
     <div class="nav-auth" data-nav-auth>
       <a href="/login.html" class="btn btn-sm btn-outline">Log in</a>
@@ -115,7 +122,8 @@
 
   <footer class="footer">
     <span class="footnote">[1] Phase 1: hosting, auth, dashboard, explore. Phase 2+: blogs, guestbooks, pro plan.</span>
-    <span class="footnote">[2] <a href="/status.html">Status</a> · <a href="/privacy.html">Privacy</a> · <a href="/terms.html">Terms</a></span>
+    <span class="footnote">[2] v0.1.0-alpha, built on Cloudflare Pages, Workers, D1, R2, KV.</span>
+    <span class="footnote">[3] <a href="/status.html">Status</a> · <a href="/privacy.html">Privacy</a> · <a href="/terms.html">Terms</a></span>
   </footer>
 
   <script type="module" src="/assets/main.js"></script>
