@@ -1,0 +1,94 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+		<!--	created with www.mysitemapgenerator.com	-->
+		<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+<url>
+	<loc>https://myjay.net/</loc>
+	<lastmod>2026-06-16T17:33:21+01:00</lastmod>
+	<changefreq>daily</changefreq>
+	<priority>1.0</priority>
+	<image:image>
+			<image:loc>https://myjay.net/assets/img/logo.png</image:loc>
+	</image:image>
+</url>
+<url>
+	<loc>https://myjay.net/login</loc>
+	<lastmod>2026-06-16T17:33:21+01:00</lastmod>
+	<changefreq>always</changefreq>
+	<priority>1.0</priority>
+	<image:image>
+			<image:loc>https://myjay.net/assets/img/logo.png</image:loc>
+	</image:image>
+</url>
+<url>
+	<loc>https://myjay.net/explore</loc>
+	<lastmod>2026-06-16T17:33:22+01:00</lastmod>
+	<changefreq>always</changefreq>
+	<priority>1.0</priority>
+	<image:image>
+			<image:loc>https://myjay.net/assets/img/logo.png</image:loc>
+	</image:image>
+</url>
+<url>
+	<loc>https://myjay.net/register</loc>
+	<lastmod>2026-06-16T17:33:23+01:00</lastmod>
+	<changefreq>always</changefreq>
+	<priority>1.0</priority>
+	<image:image>
+			<image:loc>https://myjay.net/assets/img/logo.png</image:loc>
+	</image:image>
+</url>
+<url>
+	<loc>https://myjay.net/privacy</loc>
+	<lastmod>2026-06-16T17:33:23+01:00</lastmod>
+	<changefreq>always</changefreq>
+	<priority>1.0</priority>
+	<image:image>
+			<image:loc>https://myjay.net/assets/img/logo.png</image:loc>
+	</image:image>
+</url>
+<url>
+	<loc>https://myjay.net/help</loc>
+	<lastmod>2026-06-16T17:33:24+01:00</lastmod>
+	<changefreq>always</changefreq>
+	<priority>1.0</priority>
+	<image:image>
+			<image:loc>https://myjay.net/assets/img/logo.png</image:loc>
+	</image:image>
+</url>
+<url>
+	<loc>https://myjay.net/about</loc>
+	<lastmod>2026-06-16T17:33:25+01:00</lastmod>
+	<changefreq>always</changefreq>
+	<priority>1.0</priority>
+	<image:image>
+			<image:loc>https://myjay.net/assets/img/logo.png</image:loc>
+	</image:image>
+</url>
+<url>
+	<loc>https://myjay.net/status</loc>
+	<lastmod>2026-06-16T17:33:25+01:00</lastmod>
+	<changefreq>always</changefreq>
+	<priority>1.0</priority>
+	<image:image>
+			<image:loc>https://myjay.net/assets/img/logo.png</image:loc>
+	</image:image>
+</url>
+<url>
+	<loc>https://myjay.net/terms</loc>
+	<lastmod>2026-06-16T17:33:26+01:00</lastmod>
+	<changefreq>always</changefreq>
+	<priority>1.0</priority>
+	<image:image>
+			<image:loc>https://myjay.net/assets/img/logo.png</image:loc>
+	</image:image>
+</url>
+<url>
+	<loc>https://myjay.net/dashboard</loc>
+	<lastmod>2026-06-16T17:33:27+01:00</lastmod>
+	<changefreq>always</changefreq>
+	<priority>1.0</priority>
+	<image:image>
+			<image:loc>https://myjay.net/assets/img/logo.png</image:loc>
+	</image:image>
+</url>
+</urlset>

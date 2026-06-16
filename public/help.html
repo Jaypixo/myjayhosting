@@ -10,13 +10,6 @@
   <link rel="stylesheet" href="/assets/style.css">
 </head>
 <body>
-  <div class="status-bar">
-    <span class="cursor"></span>
-    <span class="version">myjay v0.1.0-alpha</span>
-    <span class="uptime" data-uptime>uptime 0d 00:00:00</span>
-    <div class="marquee"><span>status: nominal :: help &amp; getting started :: five minutes to a live page ::</span></div>
-  </div>
-
   <header class="torn-header compact">
     <div class="nav-auth" data-nav-auth>
       <a href="/login.html" class="btn btn-sm btn-outline">Log in</a>
@@ -35,25 +28,37 @@
   </header>
 
   <main class="wrapper">
+
     <section>
-      <h1>Getting started.</h1>
-      <p class="text-muted">From "I have an account" to "my site is live" in about five minutes.</p>
-      <div class="terminal-log">
-<span class="dim">$ myjay quickstart</span>
-1. <span class="ok">register</span>   : create an account, get <span class="dim">username</span>.myjay.net
-2. <span class="ok">upload</span>     : drag an index.html into the dashboard
-3. <span class="ok">publish</span>    : flip the toggle from DRAFT to LIVE
-4. <span class="ok">done</span>       : visit https://<span class="dim">username</span>.myjay.net
+      <span class="section-label">// getting started</span>
+      <h1>From signup to live site.</h1>
+      <p class="text-muted">About five minutes, start to finish.</p>
+      <div class="feature-grid">
+        <div class="card step-card">
+          <span class="step-num">01</span>
+          <h3>Register</h3>
+          <p class="text-muted">Pick a username (3–32 chars, lowercase, hyphens ok). That becomes <code>username.myjay.net</code>.</p>
+        </div>
+        <div class="card step-card">
+          <span class="step-num">02</span>
+          <h3>Upload</h3>
+          <p class="text-muted">Drag an <code>index.html</code> (and any CSS/images) into the Files tab of your dashboard.</p>
+        </div>
+        <div class="card step-card">
+          <span class="step-num">03</span>
+          <h3>Publish</h3>
+          <p class="text-muted">Flip the publish toggle from <strong>DRAFT</strong> to <strong>LIVE</strong>. Your site is instantly on the internet.</p>
+        </div>
       </div>
     </section>
 
     <section>
+      <span class="section-label">// the basics</span>
       <h2>You need an <code>index.html</code>.</h2>
       <p>
-        When someone visits <code>username.myjay.net</code> (or any folder
-        inside it), MyJay looks for an <code>index.html</code> in that
-        location. If your site is one page, that one file at the root of your
-        upload is enough:
+        When someone visits <code>username.myjay.net</code> (or any subfolder),
+        MyJay looks for <code>index.html</code> in that location. If your site is
+        one page, one file at the root is enough:
       </p>
       <div class="terminal-log">
 &lt;!DOCTYPE html&gt;
@@ -63,81 +68,86 @@
 &lt;/html&gt;
       </div>
       <p class="text-muted mt-1">
-        Folders work too. <code>username.myjay.net/blog/</code> serves
-        <code>sites/username/blog/index.html</code> if it exists.
+        Folders work too: <code>username.myjay.net/blog/</code> serves
+        <code>blog/index.html</code> from your uploads if it exists.
       </p>
     </section>
 
     <section>
-      <h2>Uploading &amp; editing files.</h2>
+      <span class="section-label">// files</span>
+      <h2>Uploading &amp; editing.</h2>
       <ul>
-        <li>Drag and drop files (or whole folder structures) onto the Files tab in your <a href="/dashboard.html">dashboard</a>, or click "Upload files".</li>
-        <li>Click any text file (<code>html</code>, <code>css</code>, <code>js</code>, <code>json</code>, <code>xml</code>, <code>txt</code>, <code>md</code>, <code>svg</code>) in the tree to open it in the built-in editor. Edit, then hit Save.</li>
-        <li>Images and fonts can't be edited in-browser, delete and re-upload to replace them.</li>
-        <li>Deleting a file is permanent. There's no trash, no undo.</li>
+        <li>Drag files (or folders) onto the <strong>Files</strong> tab in your <a href="/dashboard.html">dashboard</a>, or click "Upload files".</li>
+        <li>Click any text file in the tree to edit it live in the built-in code editor. Save with the Save button.</li>
+        <li>Images and fonts can't be edited in-browser — delete and re-upload to replace them.</li>
+        <li>Deleting a file is permanent. No trash, no undo.</li>
       </ul>
-    </section>
 
-    <section>
-      <h2>Supported file types.</h2>
-      <div class="terminal-log">
-<span class="dim">$ myjay filetypes --allowed</span>
-markup:   html, htm, xml, svg
-styles:   css
-scripts:  js
-data:     json, txt, md
-images:   jpg, jpeg, png, gif, webp, ico
-fonts:    woff, woff2, ttf
-      </div>
+      <h3 class="mt-2">Allowed file types.</h3>
+      <table>
+        <thead><tr><th>Category</th><th>Extensions</th></tr></thead>
+        <tbody>
+          <tr><td>Markup</td><td><code>html htm xml svg</code></td></tr>
+          <tr><td>Styles</td><td><code>css</code></td></tr>
+          <tr><td>Scripts</td><td><code>js</code></td></tr>
+          <tr><td>Data</td><td><code>json txt md</code></td></tr>
+          <tr><td>Images</td><td><code>jpg jpeg png gif webp ico</code></td></tr>
+          <tr><td>Fonts</td><td><code>woff woff2 ttf</code></td></tr>
+        </tbody>
+      </table>
       <p class="text-muted mt-1">
-        Anything else (executables, archives, video, etc.) is rejected by the
-        upload endpoint. See <a href="/about.html">the limits</a> for the
-        50MB storage cap.
+        Executables, archives, video, and anything not on this list are rejected.
+        Total storage cap is 50MB per account.
       </p>
     </section>
 
     <section>
-      <h2>Publishing.</h2>
+      <span class="section-label">// publishing</span>
+      <h2>Going live.</h2>
       <p>
-        New sites start as <strong>DRAFT</strong>, only you can preview them
-        by signing in. Flip the toggle in the dashboard to go
-        <strong>LIVE</strong>; the change is immediate. Flip it back to take
-        your site offline without deleting anything.
+        New sites start as <strong>DRAFT</strong> — only you can see them while signed in.
+        Flip the publish toggle to go <strong>LIVE</strong>. The change is instant.
+        Flip it back at any time to take the site offline without deleting anything.
       </p>
     </section>
 
     <section class="faq">
-      <h2>Troubleshooting.</h2>
+      <span class="section-label">// troubleshooting</span>
+      <h2>Common issues.</h2>
       <details>
-        <summary>I get a "this site doesn't exist yet" page.</summary>
-        <p>Your site is either unpublished (DRAFT) or you haven't uploaded anything yet. Check the publish toggle in your dashboard.</p>
+        <summary>I get "this site doesn't exist yet."</summary>
+        <p>Your site is unpublished (DRAFT) or nothing has been uploaded yet. Check the publish toggle in your dashboard.</p>
       </details>
       <details>
         <summary>I get a 404 on a page that should exist.</summary>
-        <p>Check the exact filename and path. Keys are case-sensitive, so <code>/About.html</code> and <code>/about.html</code> are different files. Folder URLs need an <code>index.html</code> inside them.</p>
+        <p>Filenames are case-sensitive. <code>/About.html</code> and <code>/about.html</code> are different files. Folder URLs (<code>/blog/</code>) need an <code>index.html</code> inside the folder.</p>
       </details>
       <details>
-        <summary>My CSS/JS isn't loading.</summary>
-        <p>Use relative paths (<code>style.css</code> or <code>/style.css</code> from your site's root), not absolute paths to <code>myjay.net</code>. Your site is served from <code>username.myjay.net</code>, a different origin.</p>
+        <summary>My CSS or JS isn't loading.</summary>
+        <p>Use relative paths (<code>style.css</code> or <code>/style.css</code>) rather than hardcoding <code>myjay.net</code>. Your site lives on <code>username.myjay.net</code>, a different origin.</p>
       </details>
       <details>
         <summary>Can I run a database, PHP, or a Node server?</summary>
-        <p>No, see <a href="/about.html">what this isn't</a>. Static files only: HTML, CSS, JS, images, fonts.</p>
+        <p>No. Static files only — HTML, CSS, JS, images, fonts. See <a href="/about.html">what this isn't</a>.</p>
       </details>
       <details>
         <summary>The whole site shows a maintenance page.</summary>
-        <p>The admin has switched on maintenance mode platform-wide. It's temporary and unrelated to your site. Check <a href="/status.html">status</a>.</p>
+        <p>The admin switched on maintenance mode platform-wide. Temporary and unrelated to your site. Check <a href="/status.html">status</a>.</p>
       </details>
     </section>
 
-    <section class="center">
+    <section class="cta-band">
+      <span class="section-label">// ready?</span>
+      <h2><em>Get your site up.</em></h2>
+      <p class="sub">Registration is free and takes about a minute.</p>
       <a class="btn" href="/register.html">Claim your subdomain →</a>
     </section>
+
   </main>
 
   <footer class="footer">
-    <span class="footnote">[1] Still stuck? There's no support ticket system yet, that's on the roadmap.</span>
-    <span class="footnote">[2] v0.1.0-alpha, built on Cloudflare Pages, Workers, D1, R2, KV.</span>
+    <span class="footnote">[1] Still stuck? Email <a href="mailto:jaypix@myjay.net">jaypix@myjay.net</a>.</span>
+    <span class="footnote">[2] v0.1.0-alpha · built on Cloudflare Pages, Workers, D1, R2, KV</span>
     <span class="footnote">[3] <a href="/status.html">Status</a> · <a href="/privacy.html">Privacy</a> · <a href="/terms.html">Terms</a></span>
   </footer>
 

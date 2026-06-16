@@ -896,22 +896,218 @@ th {
 }
 
 /* ---------------------------------------------------------------------
-   FAQ
+   Section label (small mono pre-heading: // section name)
    --------------------------------------------------------------------- */
 
-.faq details {
-  border: 1px solid var(--border);
-  background: var(--paper-alt);
-  padding: 0.75rem 1rem;
+.section-label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--primary);
   margin-bottom: 0.5rem;
 }
 
+/* ---------------------------------------------------------------------
+   Hero stats (inside torn-header, shown on the dark background)
+   --------------------------------------------------------------------- */
+
+.hero-stats {
+  display: flex;
+  justify-content: center;
+  gap: 2.5rem;
+  margin-top: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.hero-stat {
+  text-align: center;
+}
+
+.hero-stat-num {
+  display: block;
+  font-family: var(--font-heading);
+  font-style: italic;
+  font-weight: 300;
+  font-size: 2.2rem;
+  color: var(--paper);
+  line-height: 1;
+}
+
+.hero-stat-label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(232, 226, 217, 0.5);
+  margin-top: 0.2rem;
+}
+
+/* ---------------------------------------------------------------------
+   Step cards (numbered feature strip on homepage)
+   --------------------------------------------------------------------- */
+
+.step-card {
+  border-top: 3px solid var(--primary) !important;
+}
+
+.step-num {
+  display: block;
+  font-family: var(--font-heading);
+  font-style: italic;
+  font-weight: 300;
+  font-size: 3rem;
+  color: var(--primary);
+  opacity: 0.3;
+  line-height: 1;
+  margin-bottom: 0.5rem;
+  user-select: none;
+}
+
+/* ---------------------------------------------------------------------
+   Site cards (explore + homepage preview grid, with avatar)
+   --------------------------------------------------------------------- */
+
+.site-card {
+  display: flex !important;
+  flex-direction: column;
+  text-decoration: none;
+  border-bottom: none !important;
+  transition: border-color 0.12s;
+}
+
+.site-card:hover {
+  border-color: var(--secondary);
+}
+
+.site-card-head {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.site-avatar {
+  width: 2.4rem;
+  height: 2.4rem;
+  background: var(--secondary);
+  color: var(--paper);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-heading);
+  font-style: italic;
+  font-size: 1.25rem;
+  font-weight: 300;
+  flex-shrink: 0;
+}
+
+.site-card-name {
+  font-family: var(--font-heading);
+  font-style: italic;
+  font-weight: 300;
+  font-size: 1.05rem;
+  color: var(--ink);
+  line-height: 1.2;
+}
+
+.site-card-url {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--primary);
+  margin-top: 0.1rem;
+}
+
+.site-card-meta {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--muted);
+  border-top: 1px solid var(--border);
+  padding-top: 0.5rem;
+  margin-top: auto;
+  padding-top: 0.5rem;
+}
+
+/* ---------------------------------------------------------------------
+   CTA band (big call-to-action section at bottom of homepage)
+   --------------------------------------------------------------------- */
+
+.cta-band {
+  background: var(--paper-alt);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--primary);
+  padding: 3rem 2rem;
+  text-align: center;
+  margin-top: 1rem;
+}
+
+.cta-band h2 {
+  font-size: 2.6rem;
+  margin-bottom: 0.4rem;
+}
+
+.cta-band .sub {
+  color: var(--muted);
+  margin-bottom: 1.75rem;
+}
+
+/* ---------------------------------------------------------------------
+   Compare table (MyJay vs Big Platform, homepage)
+   --------------------------------------------------------------------- */
+
+.compare-yes { color: var(--tertiary); }
+.compare-no  { color: var(--error); }
+.compare-myjay { background: rgba(59, 110, 143, 0.06); }
+
+/* ---------------------------------------------------------------------
+   FAQ overhaul — left-border accent, custom summary indicator
+   --------------------------------------------------------------------- */
+
+.faq details {
+  border-top: none;
+  border-right: none;
+  border-bottom: 1px solid var(--border);
+  border-left: 3px solid transparent;
+  background: transparent;
+  padding: 0.9rem 1rem;
+  margin-bottom: 0;
+  transition: border-left-color 0.15s;
+}
+
+.faq details:hover,
+.faq details[open] {
+  border-left-color: var(--primary);
+  background: var(--paper-alt);
+}
+
 .faq summary {
+  list-style: none;
   cursor: pointer;
   font-family: var(--font-ui);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   font-size: 0.8rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.faq summary::-webkit-details-marker { display: none; }
+
+.faq summary::after {
+  content: '+';
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  color: var(--primary);
+  opacity: 0.6;
+  flex-shrink: 0;
+  margin-left: 1rem;
+}
+
+.faq details[open] summary::after {
+  content: '−';
 }
 
 .faq details[open] summary {

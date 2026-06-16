@@ -10,12 +10,6 @@
   <link rel="stylesheet" href="/assets/style.css">
 </head>
 <body>
-  <div class="status-bar">
-    <span class="cursor"></span>
-    <span class="version">myjay v0.1.0-alpha</span>
-    <span class="uptime" data-uptime>uptime 0d 00:00:00</span>
-    <div class="marquee"><span>status: nominal :: no trackers, no algorithms, no VC money :: free static hosting for the indie web :: claim your subdomain today ::</span></div>
-  </div>
 
   <header class="torn-header">
     <div class="nav-auth" data-nav-auth>
@@ -27,7 +21,21 @@
       <span class="logo-fallback" style="display:none"><span class="myjay">MyJay</span><span class="dotnet">.net</span></span>
     </div>
     <h1><em>Your corner of the web.</em></h1>
-    <p>Free static hosting. No trackers. No algorithms. No VC money. Just your HTML.</p>
+    <p>Free static hosting. No trackers. No algorithms. No VC money.<br>Just your HTML, at <code style="color:var(--primary);background:transparent">username.myjay.net</code>.</p>
+    <div class="hero-stats">
+      <div class="hero-stat">
+        <span class="hero-stat-num" id="stat-sites-num">—</span>
+        <span class="hero-stat-label">sites hosted</span>
+      </div>
+      <div class="hero-stat">
+        <span class="hero-stat-num" id="stat-views-num">—</span>
+        <span class="hero-stat-label">page views served</span>
+      </div>
+      <div class="hero-stat">
+        <span class="hero-stat-num">50MB</span>
+        <span class="hero-stat-label">free storage</span>
+      </div>
+    </div>
     <nav class="nav">
       <a href="/">Home</a>
       <a href="/explore.html">Explore</a>
@@ -37,58 +45,90 @@
   </header>
 
   <main class="wrapper">
+
     <section>
+      <span class="section-label">// how it works</span>
       <div class="feature-grid">
-        <div class="card">
-          <h3>1. Upload</h3>
-          <p class="text-muted">Drag your HTML, CSS, JS, images, and fonts into the dashboard. 50MB free, no build step.</p>
+        <div class="card step-card">
+          <span class="step-num">01</span>
+          <h3>Upload</h3>
+          <p class="text-muted">Drag your HTML, CSS, JS, images, and fonts into the dashboard. 50MB free. No build step, no framework, no opinions.</p>
         </div>
-        <div class="card">
-          <h3>2. Publish</h3>
-          <p class="text-muted">Flip one switch. Your site goes live at <code>username.myjay.net</code> instantly.</p>
+        <div class="card step-card">
+          <span class="step-num">02</span>
+          <h3>Publish</h3>
+          <p class="text-muted">Flip one toggle. Your site goes live at <code>username.myjay.net</code> instantly — no deploy queue, no waiting.</p>
         </div>
-        <div class="card">
-          <h3>3. Done</h3>
-          <p class="text-muted">That's it. No ads, no analytics, no algorithm deciding who sees it.</p>
+        <div class="card step-card">
+          <span class="step-num">03</span>
+          <h3>Done</h3>
+          <p class="text-muted">That's it. No ads. No analytics reporting back to someone else. No algorithm deciding who sees it.</p>
         </div>
-      </div>
-    </section>
-
-    <section class="center">
-      <div class="terminal-log">
-<span class="dim">$ myjay status</span>
-<span id="stats-line">loading stats...</span>
       </div>
     </section>
 
     <section>
+      <span class="section-label">// the case for it</span>
       <h2>Why bother?</h2>
       <p class="text-muted">A side-by-side, for the skeptical.</p>
       <table>
         <thead>
-          <tr><th></th><th>MyJay</th><th>Big Platform</th></tr>
+          <tr>
+            <th></th>
+            <th class="compare-myjay">MyJay</th>
+            <th>Big Platform</th>
+          </tr>
         </thead>
         <tbody>
-          <tr><td>Cost</td><td>Free</td><td>Free, until it isn't</td></tr>
-          <tr><td>Ads on your page</td><td>Never</td><td>Eventually</td></tr>
-          <tr><td>Algorithm deciding who sees you</td><td>No algorithm at all</td><td>Yes, tuned without telling you</td></tr>
-          <tr><td>Tracking scripts</td><td>None</td><td>Several</td></tr>
-          <tr><td>Your HTML, your way</td><td>Yes</td><td>Pick from these 12 templates</td></tr>
-          <tr><td>Uptime guarantee</td><td>"Probably fine"</td><td>99.9%, allegedly</td></tr>
+          <tr>
+            <td>Cost</td>
+            <td class="compare-myjay compare-yes">Free, no card ever</td>
+            <td class="compare-no">Free, until it isn't</td>
+          </tr>
+          <tr>
+            <td>Ads on your page</td>
+            <td class="compare-myjay compare-yes">Never, not even later</td>
+            <td class="compare-no">Eventually, for sure</td>
+          </tr>
+          <tr>
+            <td>Algorithm visibility</td>
+            <td class="compare-myjay compare-yes">No algorithm at all</td>
+            <td class="compare-no">Yes, tuned without telling you</td>
+          </tr>
+          <tr>
+            <td>Tracking scripts</td>
+            <td class="compare-myjay compare-yes">None</td>
+            <td class="compare-no">Several</td>
+          </tr>
+          <tr>
+            <td>Your HTML, your way</td>
+            <td class="compare-myjay compare-yes">Yes, anything static</td>
+            <td class="compare-no">Pick from these 12 templates</td>
+          </tr>
+          <tr>
+            <td>Uptime</td>
+            <td class="compare-myjay">"Probably fine"</td>
+            <td>99.9%, allegedly</td>
+          </tr>
         </tbody>
       </table>
     </section>
 
     <section>
-      <h2>Recently updated</h2>
-      <p class="text-muted">A live look at what people are building.</p>
+      <span class="section-label">// recently updated</span>
+      <h2>What people are building.</h2>
+      <p class="text-muted">The newest sites on MyJay, in chronological order. No ranking, no algorithm — just the clock.</p>
       <div class="site-grid" id="preview-grid">
         <div class="empty-state">loading...</div>
       </div>
+      <p class="mt-1" style="text-align:right">
+        <a href="/explore.html">See all sites →</a>
+      </p>
     </section>
 
     <section class="faq">
-      <h2>Frequently asked questions.</h2>
+      <span class="section-label">// faq</span>
+      <h2>Common questions.</h2>
       <details>
         <summary>Do I need to know how to code?</summary>
         <p>A little. You need at least an <code>index.html</code> file. If you've never written HTML, the <a href="/help.html">help page</a> has a five-minute starting point.</p>
@@ -99,39 +139,51 @@
       </details>
       <details>
         <summary>Can I use my own domain?</summary>
-        <p>Not yet, that's planned for a later phase. For now every site lives at <code>username.myjay.net</code>.</p>
+        <p>Not yet — custom domains are planned for a later phase. For now every site lives at <code>username.myjay.net</code>.</p>
       </details>
       <details>
         <summary>What happens if I go over 50MB?</summary>
-        <p>Uploads that would push you over quota get rejected. In practice, delete something or trim your assets. Most sites never get close anyway.</p>
+        <p>Uploads that would push you over quota are rejected. Delete something or trim your assets. Most sites never get close anyway — 50MB is a lot of HTML.</p>
       </details>
       <details>
         <summary>Will you sell my data, show ads, or add tracking later?</summary>
-        <p>No. Read <a href="/privacy.html">the privacy page</a>, it's short on purpose.</p>
+        <p>No. Read <a href="/privacy.html">the privacy page</a> — it's short on purpose.</p>
       </details>
       <details>
         <summary>Something's broken. Now what?</summary>
-        <p>Check <a href="/status.html">status</a> first, if maintenance mode is on, that's probably it. Otherwise, hang tight.</p>
+        <p>Check <a href="/status.html">status.myjay.net</a> first. If maintenance mode is on, that's probably it. Otherwise, hang tight.</p>
       </details>
     </section>
 
-    <section class="center">
+    <section class="cta-band">
+      <span class="section-label">// ready?</span>
+      <h2><em>Make something.</em></h2>
+      <p class="sub">Two minutes to a live site. No credit card. No fine print.<br>Just claim a name and start uploading.</p>
       <a class="btn" href="/register.html">Claim your subdomain →</a>
     </section>
+
   </main>
 
   <footer class="footer">
-    <span class="footnote">[1] Phase 1: hosting, auth, dashboard, explore. Phase 2+: blogs, guestbooks, pro plan.</span>
-    <span class="footnote">[2] v0.1.0-alpha, built on Cloudflare Pages, Workers, D1, R2, KV.</span>
-    <span class="footnote">[3] <a href="/status.html">Status</a> · <a href="/privacy.html">Privacy</a> · <a href="/terms.html">Terms</a></span>
+    <span class="footnote">[1] Phase 1: hosting, auth, dashboard, explore. Phase 2+: blog tool, guestbook, custom domains, pro plan.</span>
+    <span class="footnote">[2] v0.1.0-alpha · built on Cloudflare Pages, Workers, D1, R2, KV · no traditional servers</span>
+    <span class="footnote">[3] <a href="/status.html">Status</a> · <a href="/privacy.html">Privacy</a> · <a href="/terms.html">Terms</a> · <a href="/about.html">About</a></span>
   </footer>
 
   <script type="module" src="/assets/main.js"></script>
   <script type="module">
     import { apiFetch } from '/assets/main.js';
 
+    function avatarLetter(username) {
+      return (username || '?')[0].toUpperCase();
+    }
+
+    // Cycle through secondary/tertiary/primary for avatar colour variety
+    const AVATAR_COLORS = ['var(--secondary)', 'var(--tertiary)', 'var(--primary)'];
+
     function formatDate(iso) {
-      return new Date(iso).toISOString().slice(0, 10);
+      const d = new Date(iso);
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     }
 
     function renderPreviews(sites) {
@@ -143,30 +195,42 @@
         return;
       }
 
-      for (const site of sites.slice(0, 6)) {
+      sites.slice(0, 6).forEach((site, i) => {
         const card = document.createElement('a');
         card.className = 'card site-card';
         card.href = `https://${site.username}.myjay.net`;
         card.target = '_blank';
         card.rel = 'noopener';
-        card.style.display = 'block';
 
-        const title = document.createElement('h3');
-        title.textContent = site.siteTitle || 'untitled';
+        const head = document.createElement('div');
+        head.className = 'site-card-head';
 
-        const username = document.createElement('p');
-        username.className = 'meta';
-        username.textContent = `${site.username}.myjay.net`;
+        const avatar = document.createElement('div');
+        avatar.className = 'site-avatar';
+        avatar.style.background = AVATAR_COLORS[i % AVATAR_COLORS.length];
+        avatar.textContent = avatarLetter(site.username);
 
-        const meta = document.createElement('p');
-        meta.className = 'meta';
+        const info = document.createElement('div');
+        const name = document.createElement('div');
+        name.className = 'site-card-name';
+        name.textContent = site.siteTitle || 'untitled';
+        const url = document.createElement('div');
+        url.className = 'site-card-url';
+        url.textContent = `${site.username}.myjay.net`;
+        info.appendChild(name);
+        info.appendChild(url);
+
+        head.appendChild(avatar);
+        head.appendChild(info);
+
+        const meta = document.createElement('div');
+        meta.className = 'site-card-meta';
         meta.textContent = `updated ${formatDate(site.updatedAt)}`;
 
-        card.appendChild(title);
-        card.appendChild(username);
+        card.appendChild(head);
         card.appendChild(meta);
         grid.appendChild(card);
-      }
+      });
     }
 
     async function load() {
@@ -174,12 +238,12 @@
         const res = await apiFetch('/api/explore');
         const data = await res.json();
         const stats = data.stats || { totalSites: 0, totalViews: 0 };
-        document.getElementById('stats-line').textContent =
-          `${stats.totalSites} site(s) hosted, ${stats.totalViews} page view(s) served`;
+        document.getElementById('stat-sites-num').textContent = stats.totalSites.toLocaleString();
+        document.getElementById('stat-views-num').textContent = stats.totalViews.toLocaleString();
         renderPreviews(data.sites || []);
       } catch {
-        // API's down or D1 is sulking again. Don't let it take the homepage with it.
-        document.getElementById('stats-line').textContent = 'stats unavailable';
+        document.getElementById('stat-sites-num').textContent = '?';
+        document.getElementById('stat-views-num').textContent = '?';
         document.getElementById('preview-grid').innerHTML = '<div class="empty-state">Could not load sites.</div>';
       }
     }
