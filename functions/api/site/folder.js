@@ -1,5 +1,5 @@
-import { sanitizeFilePath } from '../../../_lib/storage.js';
-import { json, errorResponse } from '../../../_lib/auth.js';
+import { sanitizeFilePath } from '../../_lib/storage.js';
+import { json, errorResponse } from '../../_lib/auth.js';
 
 export async function onRequestPost(context) {
   const { request, env, data } = context;

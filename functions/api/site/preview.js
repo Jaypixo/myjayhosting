@@ -1,5 +1,5 @@
-import { sanitizeFilePath, isAllowedFile } from '../../../_lib/storage.js';
-import { errorResponse } from '../../../_lib/auth.js';
+import { sanitizeFilePath, isAllowedFile } from '../../_lib/storage.js';
+import { errorResponse } from '../../_lib/auth.js';
 
 export async function onRequestGet(context) {
   const { request, env, data } = context;
