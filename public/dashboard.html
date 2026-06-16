@@ -66,50 +66,55 @@
           <button class="btn" id="publish-btn">Publish</button>
         </div>
 
-        <div class="drop-zone" id="drop-zone">
-          <div class="fm-toolbar">
-            <nav class="fm-breadcrumb" id="fm-breadcrumb" aria-label="File path">
-              <button class="fm-crumb-btn">root</button>
-            </nav>
-            <div class="fm-toolbar-actions">
-              <button class="btn btn-ghost btn-sm" id="fm-new-folder-btn">+ Folder</button>
-              <input type="file" id="file-input" multiple hidden>
-              <button class="btn btn-ghost btn-sm" id="upload-btn">Upload</button>
-              <input type="file" id="folder-input" webkitdirectory multiple hidden>
-              <button class="btn btn-sm" id="upload-folder-btn">Upload Folder</button>
+        <div class="fm-container" id="fm-container">
+
+          <!-- Left: file explorer -->
+          <div class="fm-left">
+            <div class="fm-toolbar">
+              <nav class="fm-breadcrumb" id="fm-breadcrumb" aria-label="File path">
+                <button class="fm-crumb-btn">root</button>
+              </nav>
+              <div class="fm-toolbar-actions">
+                <button class="btn btn-ghost btn-sm" id="fm-new-folder-btn">New folder</button>
+                <input type="file" id="file-input" multiple hidden>
+                <button class="btn btn-ghost btn-sm" id="upload-btn">Upload</button>
+                <input type="file" id="folder-input" webkitdirectory multiple hidden>
+                <button class="btn btn-sm" id="upload-folder-btn">Upload folder</button>
+              </div>
             </div>
-          </div>
-          <div id="fm-list"></div>
-          <div class="empty-state hidden" id="fm-empty">No files here. Upload something to get started.</div>
-        </div>
-
-        <!-- Image/GIF viewer -->
-        <div id="viewer-panel" class="card mt-2 hidden">
-          <div class="panel-header">
-            <span class="panel-fname" id="viewer-filename"></span>
-            <button class="btn btn-ghost btn-sm" id="close-viewer-btn">Close</button>
-          </div>
-          <div class="viewer-container">
-            <img id="viewer-img" src="" alt="">
-          </div>
-        </div>
-
-        <!-- Code editor -->
-        <div id="editor-panel" class="card mt-2 hidden">
-          <div class="panel-header">
-            <span class="panel-fname" id="editor-filename"></span>
-            <div style="display:flex;gap:0.4rem;align-items:center;flex-shrink:0">
-              <span class="text-ok hidden" id="editor-saved-msg">Saved.</span>
-              <button class="btn btn-sm" id="save-btn">Save</button>
-              <button class="btn btn-ghost btn-sm" id="close-editor-btn">Close</button>
+            <div class="fm-file-list" id="fm-file-list">
+              <div id="fm-list"></div>
+              <div class="empty-state hidden" id="fm-empty">No files here. Drop files to upload.</div>
             </div>
+            <div class="fm-status" id="log-summary">loading...</div>
           </div>
-          <div id="editor-container" class="editor-container"></div>
-        </div>
 
-        <div class="terminal-log mt-2">
-<span class="dim">$ myjay files --site=<span id="log-username">...</span></span>
-<span id="log-summary" class="dim">loading...</span>
+          <!-- Right: editor or image viewer -->
+          <div class="fm-right" id="fm-right">
+
+            <div id="viewer-panel" class="fm-panel hidden">
+              <div class="fm-panel-header">
+                <span class="fm-panel-fname" id="viewer-filename"></span>
+                <button class="btn btn-ghost btn-sm" id="close-viewer-btn">Close</button>
+              </div>
+              <div class="fm-viewer">
+                <img id="viewer-img" src="" alt="">
+              </div>
+            </div>
+
+            <div id="editor-panel" class="fm-panel hidden">
+              <div class="fm-panel-header">
+                <span class="fm-panel-fname" id="editor-filename"></span>
+                <div style="display:flex;gap:0.4rem;align-items:center;flex-shrink:0">
+                  <span class="text-ok hidden" id="editor-saved-msg">Saved.</span>
+                  <button class="btn btn-sm" id="save-btn">Save</button>
+                  <button class="btn btn-ghost btn-sm" id="close-editor-btn">Close</button>
+                </div>
+              </div>
+              <div id="editor-container" class="editor-container"></div>
+            </div>
+
+          </div>
         </div>
       </div>
 
@@ -202,10 +207,20 @@
       txt: null,
     };
 
+    // SVG icon strings (Feather icon paths, currentColor, 16×16 display)
+    const ICON = {
+      folder: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>`,
+      file:   `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>`,
+      code:   `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>`,
+      image:  `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>`,
+      font:   `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>`,
+    };
+
     let allFiles = [];
     let currentPath = '';
     let currentPublished = false;
     let editingKey = null;
+    let viewingKey = null;
     let editor = null;
 
     // ── CodeMirror ──────────────────────────────────────────────────────────
@@ -238,17 +253,24 @@
 
     function getTypeInfo(name) {
       const ext = extOf(name);
-      if (EDITABLE_EXTENSIONS.has(ext)) {
-        if (ext === 'html' || ext === 'htm') return { label: 'HTML', cls: 'fm-type-html', kind: 'text' };
-        if (ext === 'css')  return { label: 'CSS',  cls: 'fm-type-code', kind: 'text' };
-        if (ext === 'js')   return { label: 'JS',   cls: 'fm-type-code', kind: 'text' };
-        if (ext === 'json') return { label: 'JSON', cls: 'fm-type-code', kind: 'text' };
-        return { label: ext.toUpperCase() || 'FILE', cls: 'fm-type-text', kind: 'text' };
-      }
-      if (IMAGE_EXTENSIONS.has(ext)) {
-        return { label: ext.toUpperCase(), cls: 'fm-type-img', kind: 'image' };
-      }
-      return { label: ext.toUpperCase() || 'FILE', cls: 'fm-type-text', kind: 'binary' };
+      if (ext === 'html' || ext === 'htm') return { icon: 'code', rowCls: 'fm-row-html', kind: 'text' };
+      if (['css', 'js', 'json', 'xml', 'svg', 'md', 'txt'].includes(ext)) return { icon: 'code', rowCls: 'fm-row-code', kind: 'text' };
+      if (IMAGE_EXTENSIONS.has(ext)) return { icon: 'image', rowCls: 'fm-row-img', kind: 'image' };
+      if (['woff', 'woff2', 'ttf'].includes(ext)) return { icon: 'font', rowCls: '', kind: 'binary' };
+      return { icon: 'file', rowCls: '', kind: 'binary' };
+    }
+
+    // ── Panel open/close ────────────────────────────────────────────────────
+
+    function setPanelOpen(open) {
+      document.getElementById('fm-container').classList.toggle('panel-open', open);
+    }
+
+    function refreshActiveRow() {
+      document.querySelectorAll('.fm-row').forEach((r) => {
+        const key = r.dataset.key;
+        r.classList.toggle('fm-active', !!key && (key === editingKey || key === viewingKey));
+      });
     }
 
     // ── File manager ────────────────────────────────────────────────────────
@@ -273,7 +295,6 @@
         sep.className = 'fm-crumb-sep';
         sep.textContent = '/';
         nav.appendChild(sep);
-
         const btn = document.createElement('button');
         btn.className = 'fm-crumb-btn';
         btn.textContent = part;
@@ -310,85 +331,94 @@
 
       if (sortedFolders.length === 0 && sortedFiles.length === 0) {
         emptyEl.classList.remove('hidden');
-        const totalBytes = allFiles.reduce((sum, f) => sum + f.size, 0);
         document.getElementById('log-summary').textContent = allFiles.length
-          ? `${allFiles.length} file(s) total, ${formatSize(totalBytes)} — folder empty`
-          : '0 files — drop something here to get started';
+          ? `${allFiles.length} file(s) total — this folder is empty`
+          : 'No files yet — drop files here to upload';
         return;
       }
 
       emptyEl.classList.add('hidden');
 
+      // Folder rows
       for (const dirName of sortedFolders) {
         const row = document.createElement('div');
         row.className = 'fm-row fm-row-dir';
 
-        const badge = document.createElement('span');
-        badge.className = 'fm-type-badge fm-type-dir';
-        badge.textContent = 'DIR';
+        const icon = document.createElement('span');
+        icon.className = 'fm-row-icon';
+        icon.innerHTML = ICON.folder;
 
         const name = document.createElement('span');
-        name.className = 'fm-name clickable';
-        name.textContent = dirName + '/';
+        name.className = 'fm-row-name';
+        name.textContent = dirName;
+        name.style.cursor = 'pointer';
         name.addEventListener('click', () => navigateTo(currentPath + dirName + '/'));
+        row.addEventListener('click', (e) => {
+          if (!e.target.closest('button')) navigateTo(currentPath + dirName + '/');
+        });
 
         const actions = document.createElement('div');
-        actions.className = 'fm-actions';
+        actions.className = 'fm-row-actions';
         const delBtn = document.createElement('button');
         delBtn.className = 'btn btn-ghost btn-sm';
         delBtn.textContent = 'Delete all';
-        delBtn.addEventListener('click', () => deleteFolder(currentPath + dirName + '/'));
+        delBtn.addEventListener('click', (e) => { e.stopPropagation(); deleteFolder(currentPath + dirName + '/'); });
         actions.appendChild(delBtn);
 
-        row.appendChild(badge);
+        row.appendChild(icon);
         row.appendChild(name);
         row.appendChild(actions);
         listEl.appendChild(row);
       }
 
+      // File rows
       for (const file of sortedFiles) {
-        const { label, cls, kind } = getTypeInfo(file.name);
+        const { icon: iconKey, rowCls, kind } = getTypeInfo(file.name);
         const row = document.createElement('div');
-        row.className = 'fm-row';
+        row.className = `fm-row${rowCls ? ' ' + rowCls : ''}`;
+        row.dataset.key = file.key;
+        if (file.key === editingKey || file.key === viewingKey) row.classList.add('fm-active');
 
-        const badge = document.createElement('span');
-        badge.className = `fm-type-badge ${cls}`;
-        badge.textContent = label;
+        const icon = document.createElement('span');
+        icon.className = 'fm-row-icon';
+        icon.innerHTML = ICON[iconKey] || ICON.file;
 
         const name = document.createElement('span');
-        name.className = kind !== 'binary' ? 'fm-name clickable' : 'fm-name';
+        name.className = 'fm-row-name';
         name.textContent = file.name;
 
         const size = document.createElement('span');
-        size.className = 'fm-size';
+        size.className = 'fm-row-size';
         size.textContent = formatSize(file.size);
 
         const actions = document.createElement('div');
-        actions.className = 'fm-actions';
+        actions.className = 'fm-row-actions';
 
         if (kind === 'text') {
-          name.addEventListener('click', () => openEditor(file));
+          name.style.cursor = 'pointer';
+          row.addEventListener('click', (e) => { if (!e.target.closest('button')) openEditor(file); });
           const editBtn = document.createElement('button');
           editBtn.className = 'btn btn-ghost btn-sm';
           editBtn.textContent = 'Edit';
-          editBtn.addEventListener('click', () => openEditor(file));
+          editBtn.addEventListener('click', (e) => { e.stopPropagation(); openEditor(file); });
           actions.appendChild(editBtn);
         } else if (kind === 'image') {
-          name.addEventListener('click', () => openViewer(file));
+          name.style.cursor = 'pointer';
+          row.addEventListener('click', (e) => { if (!e.target.closest('button')) openViewer(file); });
           const viewBtn = document.createElement('button');
           viewBtn.className = 'btn btn-ghost btn-sm';
           viewBtn.textContent = 'View';
-          viewBtn.addEventListener('click', () => openViewer(file));
+          viewBtn.addEventListener('click', (e) => { e.stopPropagation(); openViewer(file); });
           actions.appendChild(viewBtn);
         }
 
         const delBtn = document.createElement('button');
         delBtn.className = 'btn btn-ghost btn-sm';
         delBtn.textContent = 'Del';
-        delBtn.addEventListener('click', () => deleteFile(file.key));
+        delBtn.addEventListener('click', (e) => { e.stopPropagation(); deleteFile(file.key); });
         actions.appendChild(delBtn);
 
-        row.appendChild(badge);
+        row.appendChild(icon);
         row.appendChild(name);
         row.appendChild(size);
         row.appendChild(actions);
@@ -397,13 +427,13 @@
 
       const totalBytes = allFiles.reduce((sum, f) => sum + f.size, 0);
       document.getElementById('log-summary').textContent =
-        `${allFiles.length} file(s), ${formatSize(totalBytes)} total — ${currentPath || 'root'}`;
+        `${sortedFolders.length} folder(s), ${sortedFiles.length} file(s) · ${formatSize(totalBytes)} total`;
     }
 
     function navigateTo(path) {
       currentPath = path;
-      closeEditor();
-      closeViewer();
+      closeEditor(false);
+      closeViewer(false);
       renderFileManager();
     }
 
@@ -418,24 +448,19 @@
 
     async function deleteFile(key) {
       if (!confirm(`Delete "${key}"? This can't be undone.`)) return;
-      const res = await apiFetch('/api/site/delete', {
-        method: 'DELETE',
-        body: JSON.stringify({ key }),
-      });
+      const res = await apiFetch('/api/site/delete', { method: 'DELETE', body: JSON.stringify({ key }) });
       if (!res.ok) { alert('Delete failed.'); return; }
       if (editingKey === key) closeEditor();
+      if (viewingKey === key) closeViewer();
       await loadFiles();
       await loadUser();
     }
 
     async function deleteFolder(prefix) {
-      const count = allFiles.filter((f) => f.key.startsWith(prefix)).length;
-      if (!confirm(`Delete all ${count} file(s) in "${prefix}"? This can't be undone.`)) return;
-      for (const f of allFiles.filter((f) => f.key.startsWith(prefix))) {
-        await apiFetch('/api/site/delete', {
-          method: 'DELETE',
-          body: JSON.stringify({ key: f.key }),
-        });
+      const targets = allFiles.filter((f) => f.key.startsWith(prefix));
+      if (!confirm(`Delete all ${targets.length} file(s) in "${prefix}"? This can't be undone.`)) return;
+      for (const f of targets) {
+        await apiFetch('/api/site/delete', { method: 'DELETE', body: JSON.stringify({ key: f.key }) });
       }
       await loadFiles();
       await loadUser();
@@ -460,24 +485,36 @@
     // ── Editor ──────────────────────────────────────────────────────────────
 
     async function openEditor(file) {
-      closeViewer();
+      if (editingKey === file.key) return;
       const res = await apiFetch(`/api/site/file?key=${encodeURIComponent(file.key)}`);
       if (!res.ok) { alert('Could not load that file.'); return; }
       const data = await res.json();
+
+      viewingKey = null;
+      document.getElementById('viewer-panel').classList.add('hidden');
+      document.getElementById('viewer-img').src = '';
+
       editingKey = data.key;
       document.getElementById('editor-filename').textContent = data.key;
       document.getElementById('editor-panel').classList.remove('hidden');
+      setPanelOpen(true);
+
       const cm = getEditor();
       const ext = extOf(file.name);
       cm.setValue(data.content);
       cm.setOption('mode', CM_MODE_BY_EXT[ext] ?? null);
       cm.clearHistory();
-      setTimeout(() => { cm.refresh(); cm.focus(); }, 0);
+      setTimeout(() => { cm.refresh(); cm.focus(); }, 50);
+
+      refreshActiveRow();
     }
 
-    function closeEditor() {
+    function closeEditor(closePanelIfEmpty = true) {
       editingKey = null;
       document.getElementById('editor-panel').classList.add('hidden');
+      document.getElementById('editor-saved-msg').classList.add('hidden');
+      if (closePanelIfEmpty && !viewingKey) setPanelOpen(false);
+      refreshActiveRow();
     }
 
     async function saveFile() {
@@ -498,15 +535,26 @@
     // ── Image viewer ─────────────────────────────────────────────────────────
 
     function openViewer(file) {
-      closeEditor();
+      if (viewingKey === file.key) return;
+
+      editingKey = null;
+      document.getElementById('editor-panel').classList.add('hidden');
+
+      viewingKey = file.key;
       document.getElementById('viewer-filename').textContent = file.key;
       document.getElementById('viewer-img').src = `/api/site/preview?key=${encodeURIComponent(file.key)}`;
       document.getElementById('viewer-panel').classList.remove('hidden');
+      setPanelOpen(true);
+
+      refreshActiveRow();
     }
 
-    function closeViewer() {
+    function closeViewer(closePanelIfEmpty = true) {
+      viewingKey = null;
       document.getElementById('viewer-panel').classList.add('hidden');
       document.getElementById('viewer-img').src = '';
+      if (closePanelIfEmpty && !editingKey) setPanelOpen(false);
+      refreshActiveRow();
     }
 
     // ── Publish ──────────────────────────────────────────────────────────────
@@ -534,7 +582,6 @@
 
       document.getElementById('avatar').textContent = user.username.charAt(0).toUpperCase();
       document.getElementById('username').textContent = user.username;
-      document.getElementById('log-username').textContent = user.username;
 
       const siteLink = document.getElementById('site-link');
       siteLink.textContent = `${user.username}.myjay.net`;
@@ -563,26 +610,20 @@
     function setupUpload() {
       const fileInput = document.getElementById('file-input');
       document.getElementById('upload-btn').addEventListener('click', () => fileInput.click());
-      fileInput.addEventListener('change', () => {
-        uploadFiles(fileInput.files, false);
-        fileInput.value = '';
-      });
+      fileInput.addEventListener('change', () => { uploadFiles(fileInput.files, false); fileInput.value = ''; });
 
       const folderInput = document.getElementById('folder-input');
       document.getElementById('upload-folder-btn').addEventListener('click', () => folderInput.click());
-      folderInput.addEventListener('change', () => {
-        uploadFiles(folderInput.files, true);
-        folderInput.value = '';
-      });
+      folderInput.addEventListener('change', () => { uploadFiles(folderInput.files, true); folderInput.value = ''; });
 
-      const dropZone = document.getElementById('drop-zone');
+      const dropEl = document.getElementById('fm-file-list');
       ['dragenter', 'dragover'].forEach((evt) =>
-        dropZone.addEventListener(evt, (e) => { e.preventDefault(); dropZone.classList.add('drag-over'); })
+        dropEl.addEventListener(evt, (e) => { e.preventDefault(); dropEl.classList.add('drag-over'); })
       );
       ['dragleave', 'drop'].forEach((evt) =>
-        dropZone.addEventListener(evt, (e) => { e.preventDefault(); dropZone.classList.remove('drag-over'); })
+        dropEl.addEventListener(evt, (e) => { e.preventDefault(); dropEl.classList.remove('drag-over'); })
       );
-      dropZone.addEventListener('drop', (e) => uploadFiles(e.dataTransfer.files, false));
+      dropEl.addEventListener('drop', (e) => uploadFiles(e.dataTransfer.files, false));
     }
 
     function setupNewFolder() {
@@ -607,12 +648,12 @@
     }
 
     function setupEditor() {
-      document.getElementById('close-editor-btn').addEventListener('click', closeEditor);
+      document.getElementById('close-editor-btn').addEventListener('click', () => closeEditor());
       document.getElementById('save-btn').addEventListener('click', saveFile);
     }
 
     function setupViewer() {
-      document.getElementById('close-viewer-btn').addEventListener('click', closeViewer);
+      document.getElementById('close-viewer-btn').addEventListener('click', () => closeViewer());
     }
 
     function setupPublish() {
@@ -632,6 +673,9 @@
           document.querySelectorAll('.tab-panel').forEach((p) => p.classList.remove('active'));
           btn.classList.add('active');
           document.getElementById(`${btn.dataset.tab}-tab`).classList.add('active');
+          if (btn.dataset.tab === 'files' && editingKey) {
+            setTimeout(() => { if (editor) editor.refresh(); }, 50);
+          }
         });
       });
     }
@@ -692,7 +736,7 @@
         chartEl.innerHTML = '';
         const byDate = {};
         (data.last30Days || []).forEach((d) => { byDate[d.date] = d.views; });
-        const maxViews = Math.max(1, ...Object.values(byDate));
+        const maxViews = Math.max(1, ...Object.values(byDate).concat([0]));
         const start = new Date();
         start.setUTCDate(start.getUTCDate() - 29);
         for (let i = 0; i < 30; i++) {
