@@ -66,22 +66,39 @@
           <button class="btn" id="publish-btn">Publish</button>
         </div>
 
-        <div class="flex-between">
-          <h2>Files</h2>
-          <div>
-            <input type="file" id="file-input" multiple hidden>
-            <button class="btn btn-sm" id="upload-btn">Upload files</button>
+        <div class="drop-zone" id="drop-zone">
+          <div class="fm-toolbar">
+            <nav class="fm-breadcrumb" id="fm-breadcrumb" aria-label="File path">
+              <button class="fm-crumb-btn">root</button>
+            </nav>
+            <div class="fm-toolbar-actions">
+              <button class="btn btn-ghost btn-sm" id="fm-new-folder-btn">+ Folder</button>
+              <input type="file" id="file-input" multiple hidden>
+              <button class="btn btn-ghost btn-sm" id="upload-btn">Upload</button>
+              <input type="file" id="folder-input" webkitdirectory multiple hidden>
+              <button class="btn btn-sm" id="upload-folder-btn">Upload Folder</button>
+            </div>
+          </div>
+          <div id="fm-list"></div>
+          <div class="empty-state hidden" id="fm-empty">No files here. Upload something to get started.</div>
+        </div>
+
+        <!-- Image/GIF viewer -->
+        <div id="viewer-panel" class="card mt-2 hidden">
+          <div class="panel-header">
+            <span class="panel-fname" id="viewer-filename"></span>
+            <button class="btn btn-ghost btn-sm" id="close-viewer-btn">Close</button>
+          </div>
+          <div class="viewer-container">
+            <img id="viewer-img" src="" alt="">
           </div>
         </div>
 
-        <div class="drop-zone" id="drop-zone">
-          <div id="file-tree-container"></div>
-        </div>
-
+        <!-- Code editor -->
         <div id="editor-panel" class="card mt-2 hidden">
-          <div class="flex-between mt-1">
-            <h3 id="editor-filename">file.html</h3>
-            <div>
+          <div class="panel-header">
+            <span class="panel-fname" id="editor-filename"></span>
+            <div style="display:flex;gap:0.4rem;align-items:center;flex-shrink:0">
               <span class="text-ok hidden" id="editor-saved-msg">Saved.</span>
               <button class="btn btn-sm" id="save-btn">Save</button>
               <button class="btn btn-ghost btn-sm" id="close-editor-btn">Close</button>
@@ -91,7 +108,7 @@
         </div>
 
         <div class="terminal-log mt-2">
-<span class="dim">$ myjay files list --site=<span id="log-username">...</span></span>
+<span class="dim">$ myjay files --site=<span id="log-username">...</span></span>
 <span id="log-summary" class="dim">loading...</span>
         </div>
       </div>
@@ -171,24 +188,27 @@
   <script type="module">
     import { apiFetch, getCurrentUser, logout } from '/assets/main.js';
 
-    const EDITABLE_EXTENSIONS = new Set(['html', 'htm', 'css', 'js', 'json', 'xml', 'txt', 'md', 'svg']);
+    const IMAGE_EXTENSIONS  = new Set(['jpg', 'jpeg', 'png', 'gif', 'webp']);
+    const EDITABLE_EXTENSIONS = new Set(['html', 'htm', 'css', 'js', 'json', 'xml', 'svg', 'txt', 'md']);
     const MAX_STORAGE_BYTES = 50 * 1024 * 1024;
 
     const CM_MODE_BY_EXT = {
-      html: 'htmlmixed',
-      htm: 'htmlmixed',
-      svg: 'xml',
-      xml: 'xml',
+      html: 'htmlmixed', htm: 'htmlmixed',
+      svg: 'xml', xml: 'xml',
       css: 'css',
       js: 'javascript',
       json: { name: 'javascript', json: true },
       md: 'markdown',
-      txt: 'null',
+      txt: null,
     };
 
+    let allFiles = [];
+    let currentPath = '';
     let currentPublished = false;
     let editingKey = null;
     let editor = null;
+
+    // ── CodeMirror ──────────────────────────────────────────────────────────
 
     function getEditor() {
       if (!editor) {
@@ -197,10 +217,13 @@
           lineWrapping: true,
           indentUnit: 2,
           tabSize: 2,
+          extraKeys: { 'Ctrl-S': saveFile, 'Cmd-S': saveFile },
         });
       }
       return editor;
     }
+
+    // ── Utilities ───────────────────────────────────────────────────────────
 
     function formatSize(bytes) {
       if (bytes < 1024) return `${bytes} B`;
@@ -208,92 +231,285 @@
       return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
     }
 
-    function buildTree(files) {
-      const root = { dirs: {}, files: [] };
-      for (const file of files) {
-        const parts = file.key.split('/');
-        let node = root;
-        for (let i = 0; i < parts.length - 1; i++) {
-          const part = parts[i];
-          node.dirs[part] = node.dirs[part] || { dirs: {}, files: [] };
-          node = node.dirs[part];
-        }
-        node.files.push({ ...file, name: parts[parts.length - 1] });
-      }
-      return root;
+    function extOf(name) {
+      const idx = name.lastIndexOf('.');
+      return idx === -1 ? '' : name.slice(idx + 1).toLowerCase();
     }
 
-    function renderTree(node) {
-      const ul = document.createElement('ul');
-      ul.className = 'file-tree';
+    function getTypeInfo(name) {
+      const ext = extOf(name);
+      if (EDITABLE_EXTENSIONS.has(ext)) {
+        if (ext === 'html' || ext === 'htm') return { label: 'HTML', cls: 'fm-type-html', kind: 'text' };
+        if (ext === 'css')  return { label: 'CSS',  cls: 'fm-type-code', kind: 'text' };
+        if (ext === 'js')   return { label: 'JS',   cls: 'fm-type-code', kind: 'text' };
+        if (ext === 'json') return { label: 'JSON', cls: 'fm-type-code', kind: 'text' };
+        return { label: ext.toUpperCase() || 'FILE', cls: 'fm-type-text', kind: 'text' };
+      }
+      if (IMAGE_EXTENSIONS.has(ext)) {
+        return { label: ext.toUpperCase(), cls: 'fm-type-img', kind: 'image' };
+      }
+      return { label: ext.toUpperCase() || 'FILE', cls: 'fm-type-text', kind: 'binary' };
+    }
 
-      for (const dirName of Object.keys(node.dirs).sort()) {
-        const li = document.createElement('li');
-        li.style.flexDirection = 'column';
-        li.style.alignItems = 'stretch';
+    // ── File manager ────────────────────────────────────────────────────────
 
-        const header = document.createElement('div');
-        header.className = 'file-meta';
-        header.style.fontWeight = '500';
-        header.textContent = `${dirName}/`;
+    function buildBreadcrumb() {
+      const nav = document.getElementById('fm-breadcrumb');
+      nav.innerHTML = '';
 
-        li.appendChild(header);
-        li.appendChild(renderTree(node.dirs[dirName]));
-        ul.appendChild(li);
+      const rootBtn = document.createElement('button');
+      rootBtn.className = 'fm-crumb-btn';
+      rootBtn.textContent = 'root';
+      rootBtn.addEventListener('click', () => navigateTo(''));
+      nav.appendChild(rootBtn);
+
+      if (!currentPath) return;
+
+      const parts = currentPath.replace(/\/$/, '').split('/');
+      let built = '';
+      parts.forEach((part) => {
+        built += part + '/';
+        const sep = document.createElement('span');
+        sep.className = 'fm-crumb-sep';
+        sep.textContent = '/';
+        nav.appendChild(sep);
+
+        const btn = document.createElement('button');
+        btn.className = 'fm-crumb-btn';
+        btn.textContent = part;
+        const snap = built;
+        btn.addEventListener('click', () => navigateTo(snap));
+        nav.appendChild(btn);
+      });
+    }
+
+    function renderFileManager() {
+      buildBreadcrumb();
+
+      const listEl = document.getElementById('fm-list');
+      const emptyEl = document.getElementById('fm-empty');
+      listEl.innerHTML = '';
+
+      const folders = new Set();
+      const files = [];
+
+      for (const f of allFiles) {
+        if (!f.key.startsWith(currentPath)) continue;
+        const rest = f.key.slice(currentPath.length);
+        const slash = rest.indexOf('/');
+        if (slash === -1) {
+          if (rest && rest !== '.keep') files.push({ ...f, name: rest });
+        } else {
+          const dir = rest.slice(0, slash);
+          if (dir) folders.add(dir);
+        }
       }
 
-      const files = [...node.files].sort((a, b) => a.name.localeCompare(b.name));
-      for (const file of files) {
-        const li = document.createElement('li');
+      const sortedFolders = [...folders].sort();
+      const sortedFiles = files.sort((a, b) => a.name.localeCompare(b.name));
 
-        const nameSpan = document.createElement('span');
-        nameSpan.className = 'file-name';
-        nameSpan.textContent = file.name;
-        nameSpan.addEventListener('click', () => openEditor(file));
+      if (sortedFolders.length === 0 && sortedFiles.length === 0) {
+        emptyEl.classList.remove('hidden');
+        const totalBytes = allFiles.reduce((sum, f) => sum + f.size, 0);
+        document.getElementById('log-summary').textContent = allFiles.length
+          ? `${allFiles.length} file(s) total, ${formatSize(totalBytes)} — folder empty`
+          : '0 files — drop something here to get started';
+        return;
+      }
 
-        const right = document.createElement('div');
-        right.style.display = 'flex';
-        right.style.alignItems = 'center';
-        right.style.gap = '0.75rem';
+      emptyEl.classList.add('hidden');
 
-        const meta = document.createElement('span');
-        meta.className = 'file-meta';
-        meta.textContent = formatSize(file.size);
+      for (const dirName of sortedFolders) {
+        const row = document.createElement('div');
+        row.className = 'fm-row fm-row-dir';
+
+        const badge = document.createElement('span');
+        badge.className = 'fm-type-badge fm-type-dir';
+        badge.textContent = 'DIR';
+
+        const name = document.createElement('span');
+        name.className = 'fm-name clickable';
+        name.textContent = dirName + '/';
+        name.addEventListener('click', () => navigateTo(currentPath + dirName + '/'));
+
+        const actions = document.createElement('div');
+        actions.className = 'fm-actions';
+        const delBtn = document.createElement('button');
+        delBtn.className = 'btn btn-ghost btn-sm';
+        delBtn.textContent = 'Delete all';
+        delBtn.addEventListener('click', () => deleteFolder(currentPath + dirName + '/'));
+        actions.appendChild(delBtn);
+
+        row.appendChild(badge);
+        row.appendChild(name);
+        row.appendChild(actions);
+        listEl.appendChild(row);
+      }
+
+      for (const file of sortedFiles) {
+        const { label, cls, kind } = getTypeInfo(file.name);
+        const row = document.createElement('div');
+        row.className = 'fm-row';
+
+        const badge = document.createElement('span');
+        badge.className = `fm-type-badge ${cls}`;
+        badge.textContent = label;
+
+        const name = document.createElement('span');
+        name.className = kind !== 'binary' ? 'fm-name clickable' : 'fm-name';
+        name.textContent = file.name;
+
+        const size = document.createElement('span');
+        size.className = 'fm-size';
+        size.textContent = formatSize(file.size);
+
+        const actions = document.createElement('div');
+        actions.className = 'fm-actions';
+
+        if (kind === 'text') {
+          name.addEventListener('click', () => openEditor(file));
+          const editBtn = document.createElement('button');
+          editBtn.className = 'btn btn-ghost btn-sm';
+          editBtn.textContent = 'Edit';
+          editBtn.addEventListener('click', () => openEditor(file));
+          actions.appendChild(editBtn);
+        } else if (kind === 'image') {
+          name.addEventListener('click', () => openViewer(file));
+          const viewBtn = document.createElement('button');
+          viewBtn.className = 'btn btn-ghost btn-sm';
+          viewBtn.textContent = 'View';
+          viewBtn.addEventListener('click', () => openViewer(file));
+          actions.appendChild(viewBtn);
+        }
 
         const delBtn = document.createElement('button');
         delBtn.className = 'btn btn-ghost btn-sm';
-        delBtn.textContent = 'Delete';
+        delBtn.textContent = 'Del';
         delBtn.addEventListener('click', () => deleteFile(file.key));
+        actions.appendChild(delBtn);
 
-        right.appendChild(meta);
-        right.appendChild(delBtn);
-        li.appendChild(nameSpan);
-        li.appendChild(right);
-        ul.appendChild(li);
+        row.appendChild(badge);
+        row.appendChild(name);
+        row.appendChild(size);
+        row.appendChild(actions);
+        listEl.appendChild(row);
       }
 
-      return ul;
+      const totalBytes = allFiles.reduce((sum, f) => sum + f.size, 0);
+      document.getElementById('log-summary').textContent =
+        `${allFiles.length} file(s), ${formatSize(totalBytes)} total — ${currentPath || 'root'}`;
     }
+
+    function navigateTo(path) {
+      currentPath = path;
+      closeEditor();
+      closeViewer();
+      renderFileManager();
+    }
+
+    // ── File operations ─────────────────────────────────────────────────────
 
     async function loadFiles() {
       const res = await apiFetch('/api/site/files');
       const data = await res.json();
-      const container = document.getElementById('file-tree-container');
-      container.innerHTML = '';
-
-      if (!data.files || data.files.length === 0) {
-        const empty = document.createElement('div');
-        empty.className = 'empty-state';
-        empty.textContent = 'No files yet. Upload an index.html to get started.';
-        container.appendChild(empty);
-        document.getElementById('log-summary').textContent = '0 files, drop something onto the page above';
-        return;
-      }
-
-      container.appendChild(renderTree(buildTree(data.files)));
-      const totalBytes = data.files.reduce((sum, f) => sum + f.size, 0);
-      document.getElementById('log-summary').textContent = `${data.files.length} file(s), ${formatSize(totalBytes)} total`;
+      allFiles = data.files || [];
+      renderFileManager();
     }
+
+    async function deleteFile(key) {
+      if (!confirm(`Delete "${key}"? This can't be undone.`)) return;
+      const res = await apiFetch('/api/site/delete', {
+        method: 'DELETE',
+        body: JSON.stringify({ key }),
+      });
+      if (!res.ok) { alert('Delete failed.'); return; }
+      if (editingKey === key) closeEditor();
+      await loadFiles();
+      await loadUser();
+    }
+
+    async function deleteFolder(prefix) {
+      const count = allFiles.filter((f) => f.key.startsWith(prefix)).length;
+      if (!confirm(`Delete all ${count} file(s) in "${prefix}"? This can't be undone.`)) return;
+      for (const f of allFiles.filter((f) => f.key.startsWith(prefix))) {
+        await apiFetch('/api/site/delete', {
+          method: 'DELETE',
+          body: JSON.stringify({ key: f.key }),
+        });
+      }
+      await loadFiles();
+      await loadUser();
+    }
+
+    async function uploadFiles(fileList, useRelativePath = false) {
+      if (!fileList || fileList.length === 0) return;
+      const formData = new FormData();
+      for (const file of fileList) {
+        const path = useRelativePath && file.webkitRelativePath
+          ? currentPath + file.webkitRelativePath
+          : currentPath + file.name;
+        formData.append('files', file, path);
+      }
+      const res = await apiFetch('/api/site/upload', { method: 'POST', body: formData });
+      const data = await res.json();
+      if (!res.ok) { alert(data.error || 'Upload failed.'); return; }
+      await loadFiles();
+      await loadUser();
+    }
+
+    // ── Editor ──────────────────────────────────────────────────────────────
+
+    async function openEditor(file) {
+      closeViewer();
+      const res = await apiFetch(`/api/site/file?key=${encodeURIComponent(file.key)}`);
+      if (!res.ok) { alert('Could not load that file.'); return; }
+      const data = await res.json();
+      editingKey = data.key;
+      document.getElementById('editor-filename').textContent = data.key;
+      document.getElementById('editor-panel').classList.remove('hidden');
+      const cm = getEditor();
+      const ext = extOf(file.name);
+      cm.setValue(data.content);
+      cm.setOption('mode', CM_MODE_BY_EXT[ext] ?? null);
+      cm.clearHistory();
+      setTimeout(() => { cm.refresh(); cm.focus(); }, 0);
+    }
+
+    function closeEditor() {
+      editingKey = null;
+      document.getElementById('editor-panel').classList.add('hidden');
+    }
+
+    async function saveFile() {
+      if (!editingKey) return;
+      const content = getEditor().getValue();
+      const file = new File([content], editingKey, { type: 'text/plain' });
+      const formData = new FormData();
+      formData.append('files', file, editingKey);
+      const res = await apiFetch('/api/site/upload', { method: 'POST', body: formData });
+      if (!res.ok) { alert('Save failed.'); return; }
+      const msg = document.getElementById('editor-saved-msg');
+      msg.classList.remove('hidden');
+      setTimeout(() => msg.classList.add('hidden'), 1500);
+      await loadFiles();
+      await loadUser();
+    }
+
+    // ── Image viewer ─────────────────────────────────────────────────────────
+
+    function openViewer(file) {
+      closeEditor();
+      document.getElementById('viewer-filename').textContent = file.key;
+      document.getElementById('viewer-img').src = `/api/site/preview?key=${encodeURIComponent(file.key)}`;
+      document.getElementById('viewer-panel').classList.remove('hidden');
+    }
+
+    function closeViewer() {
+      document.getElementById('viewer-panel').classList.add('hidden');
+      document.getElementById('viewer-img').src = '';
+    }
+
+    // ── Publish ──────────────────────────────────────────────────────────────
 
     function updatePublishUI(published) {
       currentPublished = published;
@@ -310,12 +526,11 @@
       }
     }
 
+    // ── User / settings ──────────────────────────────────────────────────────
+
     async function loadUser() {
       const user = await getCurrentUser();
-      if (!user) {
-        window.location.href = '/login.html';
-        return null;
-      }
+      if (!user) { window.location.href = '/login.html'; return null; }
 
       document.getElementById('avatar').textContent = user.username.charAt(0).toUpperCase();
       document.getElementById('username').textContent = user.username;
@@ -343,122 +558,61 @@
       return user;
     }
 
-    async function openEditor(file) {
-      const ext = file.name.split('.').pop().toLowerCase();
-      if (!EDITABLE_EXTENSIONS.has(ext)) {
-        alert(`"${file.name}" can't be edited as text here. Delete and re-upload to replace it.`);
-        return;
-      }
-
-      const res = await apiFetch(`/api/site/file?key=${encodeURIComponent(file.key)}`);
-      if (!res.ok) {
-        alert('Could not load that file.');
-        return;
-      }
-
-      const data = await res.json();
-      editingKey = data.key;
-      document.getElementById('editor-filename').textContent = data.key;
-      document.getElementById('editor-panel').classList.remove('hidden');
-
-      const cm = getEditor();
-      cm.setValue(data.content);
-      cm.setOption('mode', CM_MODE_BY_EXT[ext] || 'null');
-      cm.clearHistory();
-      setTimeout(() => { cm.refresh(); cm.focus(); }, 0);
-    }
-
-    async function deleteFile(key) {
-      if (!confirm(`Delete "${key}"? This can't be undone.`)) return;
-
-      const res = await apiFetch('/api/site/delete', {
-        method: 'DELETE',
-        body: JSON.stringify({ key }),
-      });
-
-      if (!res.ok) {
-        alert('Delete failed.');
-        return;
-      }
-
-      if (editingKey === key) {
-        editingKey = null;
-        document.getElementById('editor-panel').classList.add('hidden');
-      }
-
-      await loadFiles();
-      await loadUser();
-    }
-
-    async function uploadFiles(fileList) {
-      if (!fileList || fileList.length === 0) return;
-
-      const formData = new FormData();
-      for (const file of fileList) formData.append('files', file);
-
-      const res = await apiFetch('/api/site/upload', { method: 'POST', body: formData });
-      const data = await res.json();
-
-      if (!res.ok) {
-        alert(data.error || 'Upload failed.');
-        return;
-      }
-
-      await loadFiles();
-      await loadUser();
-    }
+    // ── Setup ────────────────────────────────────────────────────────────────
 
     function setupUpload() {
       const fileInput = document.getElementById('file-input');
       document.getElementById('upload-btn').addEventListener('click', () => fileInput.click());
       fileInput.addEventListener('change', () => {
-        uploadFiles(fileInput.files);
+        uploadFiles(fileInput.files, false);
         fileInput.value = '';
+      });
+
+      const folderInput = document.getElementById('folder-input');
+      document.getElementById('upload-folder-btn').addEventListener('click', () => folderInput.click());
+      folderInput.addEventListener('change', () => {
+        uploadFiles(folderInput.files, true);
+        folderInput.value = '';
       });
 
       const dropZone = document.getElementById('drop-zone');
       ['dragenter', 'dragover'].forEach((evt) =>
-        dropZone.addEventListener(evt, (e) => {
-          e.preventDefault();
-          dropZone.classList.add('drag-over');
-        })
+        dropZone.addEventListener(evt, (e) => { e.preventDefault(); dropZone.classList.add('drag-over'); })
       );
       ['dragleave', 'drop'].forEach((evt) =>
-        dropZone.addEventListener(evt, (e) => {
-          e.preventDefault();
-          dropZone.classList.remove('drag-over');
-        })
+        dropZone.addEventListener(evt, (e) => { e.preventDefault(); dropZone.classList.remove('drag-over'); })
       );
-      dropZone.addEventListener('drop', (e) => uploadFiles(e.dataTransfer.files));
+      dropZone.addEventListener('drop', (e) => uploadFiles(e.dataTransfer.files, false));
+    }
+
+    function setupNewFolder() {
+      document.getElementById('fm-new-folder-btn').addEventListener('click', async () => {
+        const name = prompt('New folder name:');
+        if (!name) return;
+        if (!/^[a-zA-Z0-9._-]+$/.test(name)) {
+          alert('Folder name can only contain letters, numbers, hyphens, underscores, and dots.');
+          return;
+        }
+        const res = await apiFetch('/api/site/folder', {
+          method: 'POST',
+          body: JSON.stringify({ name, path: currentPath }),
+        });
+        if (!res.ok) {
+          const d = await res.json().catch(() => ({}));
+          alert(d.error || 'Could not create folder.');
+          return;
+        }
+        await loadFiles();
+      });
     }
 
     function setupEditor() {
-      document.getElementById('close-editor-btn').addEventListener('click', () => {
-        editingKey = null;
-        document.getElementById('editor-panel').classList.add('hidden');
-      });
+      document.getElementById('close-editor-btn').addEventListener('click', closeEditor);
+      document.getElementById('save-btn').addEventListener('click', saveFile);
+    }
 
-      document.getElementById('save-btn').addEventListener('click', async () => {
-        if (!editingKey) return;
-        const content = getEditor().getValue();
-        // type here doesn't matter, the upload endpoint figures out content-type from the extension
-        const file = new File([content], editingKey, { type: 'text/plain' });
-        const formData = new FormData();
-        formData.append('files', file);
-
-        const res = await apiFetch('/api/site/upload', { method: 'POST', body: formData });
-        if (!res.ok) {
-          alert('Save failed.');
-          return;
-        }
-
-        const savedMsg = document.getElementById('editor-saved-msg');
-        savedMsg.classList.remove('hidden');
-        setTimeout(() => savedMsg.classList.add('hidden'), 1500);
-
-        await loadFiles();
-        await loadUser();
-      });
+    function setupViewer() {
+      document.getElementById('close-viewer-btn').addEventListener('click', closeViewer);
     }
 
     function setupPublish() {
@@ -487,7 +641,6 @@
         e.preventDefault();
         const msgEl = document.getElementById('settings-message');
         msgEl.textContent = '';
-
         const body = {
           siteTitle: document.getElementById('site-title-input').value,
           bio: document.getElementById('bio-input').value,
@@ -495,94 +648,85 @@
         };
         const password = document.getElementById('password-input').value;
         if (password) body.password = password;
-
         const res = await apiFetch('/api/user/update', { method: 'PATCH', body: JSON.stringify(body) });
         const data = await res.json();
-
         if (!res.ok) {
           msgEl.textContent = data.error || 'Something went wrong.';
           msgEl.className = 'form-error';
           return;
         }
-
         msgEl.textContent = 'Saved.';
         msgEl.className = 'text-ok';
         document.getElementById('password-input').value = '';
       });
     }
 
+    // ── Stats ────────────────────────────────────────────────────────────────
+
     function countryFlag(code) {
       if (!code || code === 'XX' || code.length !== 2) return '🌐';
       const upper = code.toUpperCase();
-      const points = [...upper].map((c) => 127397 + c.charCodeAt(0));
-      return String.fromCodePoint(...points);
+      return String.fromCodePoint(...[...upper].map((c) => 127397 + c.charCodeAt(0)));
     }
 
     function countryName(code) {
       if (!code || code === 'XX') return 'Unknown';
-      try {
-        return new Intl.DisplayNames(['en'], { type: 'region' }).of(code.toUpperCase());
-      } catch {
-        return code;
-      }
+      try { return new Intl.DisplayNames(['en'], { type: 'region' }).of(code.toUpperCase()); }
+      catch { return code; }
     }
 
     async function loadStats() {
-      const res = await apiFetch('/api/site/stats');
-      if (!res.ok) return;
-      const data = await res.json();
+      try {
+        const res = await apiFetch('/api/site/stats');
+        if (!res.ok) return;
+        const data = await res.json();
 
-      document.getElementById('stats-total-views').textContent = data.totalViews ?? 0;
+        document.getElementById('stats-total-views').textContent = data.totalViews ?? 0;
+        const total30 = (data.last30Days || []).reduce((sum, d) => sum + d.views, 0);
+        document.getElementById('stats-30d-views').textContent = total30;
+        const top = (data.countries || [])[0];
+        document.getElementById('stats-top-location').textContent = top
+          ? `${countryFlag(top.country)} ${countryName(top.country)}` : 'No data yet';
 
-      const total30 = (data.last30Days || []).reduce((sum, d) => sum + d.views, 0);
-      document.getElementById('stats-30d-views').textContent = total30;
+        const chartEl = document.getElementById('stats-chart');
+        chartEl.innerHTML = '';
+        const byDate = {};
+        (data.last30Days || []).forEach((d) => { byDate[d.date] = d.views; });
+        const maxViews = Math.max(1, ...Object.values(byDate));
+        const start = new Date();
+        start.setUTCDate(start.getUTCDate() - 29);
+        for (let i = 0; i < 30; i++) {
+          const d = new Date(start);
+          d.setUTCDate(d.getUTCDate() + i);
+          const key = d.toISOString().slice(0, 10);
+          const bar = document.createElement('div');
+          bar.className = 'chart-bar';
+          bar.style.height = `${((byDate[key] || 0) / maxViews) * 100}%`;
+          bar.title = `${key}: ${byDate[key] || 0} view(s)`;
+          chartEl.appendChild(bar);
+        }
 
-      const top = (data.countries || [])[0];
-      document.getElementById('stats-top-location').textContent = top
-        ? `${countryFlag(top.country)} ${countryName(top.country)}`
-        : 'No data yet';
-
-      const chartEl = document.getElementById('stats-chart');
-      chartEl.innerHTML = '';
-      const maxViews = Math.max(1, ...(data.last30Days || []).map((d) => d.views));
-      const days = [];
-      const byDate = {};
-      (data.last30Days || []).forEach((d) => { byDate[d.date] = d.views; });
-      const start = new Date();
-      start.setUTCDate(start.getUTCDate() - 29);
-      for (let i = 0; i < 30; i++) {
-        const d = new Date(start);
-        d.setUTCDate(d.getUTCDate() + i);
-        const key = d.toISOString().slice(0, 10);
-        days.push({ date: key, views: byDate[key] || 0 });
-      }
-      days.forEach((d) => {
-        const bar = document.createElement('div');
-        bar.className = 'chart-bar';
-        bar.style.height = `${(d.views / maxViews) * 100}%`;
-        bar.title = `${d.date}: ${d.views} view${d.views === 1 ? '' : 's'}`;
-        chartEl.appendChild(bar);
-      });
-
-      const tbody = document.getElementById('stats-countries-body');
-      const countries = data.countries || [];
-      if (countries.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="3" class="text-muted">No views yet.</td></tr>';
-        return;
-      }
-      const maxCountryViews = Math.max(...countries.map((c) => c.views));
-      tbody.innerHTML = '';
-      countries.forEach((c) => {
-        const tr = document.createElement('tr');
-        const pct = (c.views / maxCountryViews) * 100;
-        tr.innerHTML = `
-          <td>${countryFlag(c.country)} ${countryName(c.country)}</td>
-          <td>${c.views}</td>
-          <td><div class="stat-bar"><div class="stat-bar-fill" style="width: ${pct}%"></div></div></td>
-        `;
-        tbody.appendChild(tr);
-      });
+        const tbody = document.getElementById('stats-countries-body');
+        const countries = data.countries || [];
+        if (!countries.length) {
+          tbody.innerHTML = '<tr><td colspan="3" class="text-muted">No views yet.</td></tr>';
+          return;
+        }
+        const maxC = Math.max(...countries.map((c) => c.views));
+        tbody.innerHTML = '';
+        countries.forEach((c) => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${countryFlag(c.country)} ${countryName(c.country)}</td>
+            <td>${c.views}</td>
+            <td><div class="stat-bar"><div class="stat-bar-fill" style="width:${(c.views/maxC)*100}%"></div></div></td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } catch { /* stats are non-critical */ }
     }
+
+    // ── Init ─────────────────────────────────────────────────────────────────
 
     async function init() {
       const user = await loadUser();
@@ -591,7 +735,9 @@
       await loadStats();
       setupTabs();
       setupUpload();
+      setupNewFolder();
       setupEditor();
+      setupViewer();
       setupPublish();
       setupSettings();
       document.getElementById('logout-btn').addEventListener('click', logout);

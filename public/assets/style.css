@@ -633,43 +633,152 @@ input:focus, textarea:focus, select:focus {
 }
 
 /* ---------------------------------------------------------------------
-   File tree
+   File manager (dashboard)
    --------------------------------------------------------------------- */
 
-.file-tree {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  border: 1px solid var(--border);
-}
-
-.file-tree li {
+.fm-toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  padding: 0.5rem 0.8rem;
+  flex-wrap: wrap;
+  padding: 0.5rem 0.75rem;
   border-bottom: 1px solid var(--border);
-  font-size: 0.85rem;
+  background: var(--paper-alt);
 }
 
-.file-tree li:last-child {
-  border-bottom: none;
+.fm-breadcrumb {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  min-width: 0;
 }
 
-.file-tree .file-name {
+.fm-crumb-btn {
+  background: none;
+  border: none;
+  color: var(--primary);
   cursor: pointer;
-  word-break: break-all;
+  padding: 0 0.1rem;
+  font-family: inherit;
+  font-size: inherit;
 }
 
-.file-tree .file-name:hover {
-  border-bottom: 1px solid var(--primary);
-}
+.fm-crumb-btn:hover { color: var(--ink); text-decoration: underline; }
 
-.file-tree .file-meta {
+.fm-crumb-sep {
   color: var(--muted);
-  font-size: 0.7rem;
+  padding: 0 0.25rem;
+  user-select: none;
+}
+
+.fm-toolbar-actions {
+  display: flex;
+  gap: 0.4rem;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.fm-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.45rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  transition: background 0.1s;
+}
+
+.fm-row:last-child { border-bottom: none; }
+.fm-row:hover { background: var(--paper-alt); }
+
+.fm-type-badge {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.15em 0.35em;
+  border: 1px solid currentColor;
   white-space: nowrap;
+  min-width: 3.2rem;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.fm-type-dir  { color: var(--secondary); }
+.fm-type-img  { color: var(--tertiary); }
+.fm-type-html { color: var(--primary); }
+.fm-type-code { color: var(--muted); }
+.fm-type-text { color: var(--muted); }
+
+.fm-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fm-name.clickable { cursor: pointer; }
+.fm-name.clickable:hover { color: var(--primary); }
+.fm-row-dir .fm-name { color: var(--secondary); }
+
+.fm-size {
+  color: var(--muted);
+  font-size: 0.72rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-width: 4rem;
+  text-align: right;
+}
+
+.fm-actions {
+  display: flex;
+  gap: 0.3rem;
+  flex-shrink: 0;
+}
+
+/* Panel header (editor + viewer) */
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 1rem;
+  border-bottom: 1px solid var(--border);
+  gap: 1rem;
+}
+
+.panel-fname {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+/* Image/GIF viewer */
+.viewer-container {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 1.5rem;
+  background: var(--paper-alt);
+  min-height: 160px;
+  max-height: 60vh;
+  overflow: auto;
+}
+
+.viewer-container img {
+  max-width: 100%;
+  max-height: 55vh;
+  object-fit: contain;
+  display: block;
 }
 
 /* ---------------------------------------------------------------------
@@ -778,14 +887,14 @@ th {
 }
 
 .drop-zone {
-  border: 1px dashed var(--border);
-  padding: 0.5rem;
+  border: 1px solid var(--border);
   transition: border-color 0.15s ease, background-color 0.15s ease;
 }
 
 .drop-zone.drag-over {
   border-color: var(--primary);
-  background: var(--paper-alt);
+  border-style: dashed;
+  background: rgba(199, 82, 42, 0.03);
 }
 
 .empty-state {
