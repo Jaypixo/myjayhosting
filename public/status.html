@@ -30,70 +30,52 @@
 
   <main class="wrapper">
     <section>
+      <span class="section-label">// live status</span>
       <h1>Status.</h1>
       <p class="text-muted">
-        No real incident history yet. There's only been one so far and it
-        was a typo. This page reflects live platform settings.
+        A live check of the systems this platform depends on, run when this
+        page loads. Nothing here is hardcoded, if a check fails, it shows.
       </p>
-      <div class="terminal-log">
-<span class="dim">$ myjay status --verbose</span>
-platform:           <span class="ok">operational</span>
-maintenance mode:   <span id="maintenance-status" class="dim">checking...</span>
-sites hosted:       <span id="stats-sites">...</span>
-page views served:  <span id="stats-views">...</span>
-      </div>
     </section>
 
     <section>
-      <h2>Components.</h2>
+      <div class="flex-between">
+        <h2>System checks <span class="badge" id="health-summary">checking...</span></h2>
+        <button class="btn btn-ghost btn-sm" id="refresh-btn">Refresh</button>
+      </div>
       <table>
         <thead>
-          <tr><th>Component</th><th>Role</th><th>Status</th></tr>
+          <tr><th>System</th><th>Status</th><th>Response time</th></tr>
         </thead>
-        <tbody>
-          <tr>
-            <td>Web frontend</td>
-            <td>Serves myjay.net and the dashboard</td>
-            <td><span class="badge badge-live">operational</span></td>
-          </tr>
-          <tr>
-            <td>Subdomain router</td>
-            <td>Serves <code>username.myjay.net</code></td>
-            <td><span class="badge badge-live">operational</span></td>
-          </tr>
-          <tr>
-            <td>Account database</td>
-            <td>Accounts, sites, settings</td>
-            <td><span class="badge badge-live">operational</span></td>
-          </tr>
-          <tr>
-            <td>File storage</td>
-            <td>User uploaded site files</td>
-            <td><span class="badge badge-live">operational</span></td>
-          </tr>
-          <tr>
-            <td>Session store</td>
-            <td>Login sessions</td>
-            <td><span class="badge badge-live">operational</span></td>
-          </tr>
+        <tbody id="health-body">
+          <tr><td colspan="3" class="text-muted">Running checks...</td></tr>
         </tbody>
       </table>
-      <p class="text-muted mt-1">
-        This table is a manual read, not a live health check. If something
-        upstream of us has a bad day, this site usually does too.
-      </p>
+      <p class="text-muted mt-1" id="health-checked-at"></p>
     </section>
 
     <section>
-      <h2>Maintenance.</h2>
-      <p class="text-muted" id="maintenance-explainer">
-        Checking whether the platform is in maintenance mode...
-      </p>
+      <h2>Platform</h2>
+      <div class="feature-grid">
+        <div class="card">
+          <h3 id="maintenance-status">...</h3>
+          <p class="text-muted">maintenance mode</p>
+        </div>
+        <div class="card">
+          <h3 id="stats-sites">...</h3>
+          <p class="text-muted">sites hosted</p>
+        </div>
+        <div class="card">
+          <h3 id="stats-views">...</h3>
+          <p class="text-muted">page views served</p>
+        </div>
+      </div>
+      <p class="text-muted mt-1" id="maintenance-explainer"></p>
     </section>
   </main>
 
   <footer class="footer">
-    <span class="footnote">[1] This page reflects platform settings, checked by hand. There's no automated incident detection here.</span>
+    <span class="footnote">[1] System checks run live against the database, file storage, and session store. The platform numbers above come from the same data the dashboard and admin panel use.</span>
     <span class="footnote">[2] v0.1.0-alpha, independently run.</span>
     <span class="footnote">[3] <a href="/status.html">Status</a> · <a href="/privacy.html">Privacy</a> · <a href="/terms.html">Terms</a></span>
   </footer>
@@ -102,7 +84,73 @@ page views served:  <span id="stats-views">...</span>
   <script type="module">
     import { apiFetch } from '/assets/main.js';
 
-    async function load() {
+    const LABELS = {
+      database: 'Account database',
+      storage: 'File storage',
+      sessions: 'Session store',
+    };
+
+    const SLOW_THRESHOLD_MS = 800;
+
+    function statusFor(result) {
+      if (!result.ok) return { label: 'down', cls: 'badge-error' };
+      if (result.ms > SLOW_THRESHOLD_MS) return { label: 'slow', cls: 'badge-warn' };
+      return { label: 'operational', cls: 'badge-live' };
+    }
+
+    async function loadHealth() {
+      const body = document.getElementById('health-body');
+      const summary = document.getElementById('health-summary');
+      const checkedAt = document.getElementById('health-checked-at');
+
+      body.innerHTML = '<tr><td colspan="3" class="text-muted">Running checks...</td></tr>';
+      summary.textContent = 'checking...';
+      summary.className = 'badge';
+
+      try {
+        const res = await apiFetch('/api/health');
+        if (!res.ok) throw new Error('health endpoint failed');
+        const data = await res.json();
+
+        const rows = ['database', 'storage', 'sessions'].map((key) => {
+          const result = data[key];
+          const status = statusFor(result);
+          return `
+            <tr>
+              <td>${LABELS[key]}</td>
+              <td><span class="badge ${status.cls}">${status.label}</span></td>
+              <td>${result.ms}ms</td>
+            </tr>
+          `;
+        });
+        body.innerHTML = rows.join('');
+
+        const allOk = ['database', 'storage', 'sessions'].every((key) => data[key].ok);
+        const anySlow = ['database', 'storage', 'sessions'].some((key) => data[key].ok && data[key].ms > SLOW_THRESHOLD_MS);
+        if (!allOk) {
+          summary.textContent = 'degraded';
+          summary.className = 'badge badge-error';
+        } else if (anySlow) {
+          summary.textContent = 'running slow';
+          summary.className = 'badge badge-warn';
+        } else {
+          summary.textContent = 'all operational';
+          summary.className = 'badge badge-live';
+        }
+
+        checkedAt.textContent = `Last checked ${new Date(data.checkedAt).toLocaleTimeString()}.`;
+      } catch {
+        body.innerHTML = '<tr><td colspan="3" class="text-error">Could not run checks. The platform itself may be unreachable.</td></tr>';
+        summary.textContent = 'unknown';
+        summary.className = 'badge badge-error';
+        checkedAt.textContent = '';
+      }
+    }
+
+    async function loadPlatform() {
+      const maintenanceEl = document.getElementById('maintenance-status');
+      const explainerEl = document.getElementById('maintenance-explainer');
+
       try {
         const [settingsRes, exploreRes] = await Promise.all([
           apiFetch('/api/settings'),
@@ -110,16 +158,14 @@ page views served:  <span id="stats-views">...</span>
         ]);
 
         const settings = await settingsRes.json();
-        const maintenanceEl = document.getElementById('maintenance-status');
-        const explainerEl = document.getElementById('maintenance-explainer');
         if (settings.maintenanceMode) {
-          maintenanceEl.textContent = 'ENABLED';
-          maintenanceEl.className = 'err';
+          maintenanceEl.textContent = 'ON';
+          maintenanceEl.className = 'text-error';
           explainerEl.textContent =
-            'The platform is currently in maintenance mode. Most pages redirect to the maintenance screen until an admin turns this back off.';
+            'The platform is in maintenance mode right now. Most pages redirect visitors to a maintenance screen until this is turned back off.';
         } else {
-          maintenanceEl.textContent = 'disabled';
-          maintenanceEl.className = 'ok';
+          maintenanceEl.textContent = 'OFF';
+          maintenanceEl.className = 'text-ok';
           explainerEl.textContent = 'The platform is not in maintenance mode. Everything should be reachable normally.';
         }
 
@@ -128,13 +174,18 @@ page views served:  <span id="stats-views">...</span>
         document.getElementById('stats-sites').textContent = stats.totalSites;
         document.getElementById('stats-views').textContent = stats.totalViews;
       } catch {
-        // if even this fails, things are *really* on fire. say so and move on.
-        document.getElementById('maintenance-status').textContent = 'unknown';
-        document.getElementById('maintenance-explainer').textContent = 'Could not reach the API to check.';
+        maintenanceEl.textContent = 'unknown';
+        maintenanceEl.className = 'text-error';
+        explainerEl.textContent = 'Could not reach the API to check.';
+        document.getElementById('stats-sites').textContent = '?';
+        document.getElementById('stats-views').textContent = '?';
       }
     }
 
-    load();
+    document.getElementById('refresh-btn').addEventListener('click', loadHealth);
+
+    loadHealth();
+    loadPlatform();
   </script>
 </body>
 </html>

@@ -527,6 +527,7 @@ input:focus, textarea:focus, select:focus {
 .badge-draft { color: var(--muted); }
 .badge-admin { color: var(--primary); border-color: var(--primary); }
 .badge-warn  { color: var(--warning); border-color: var(--warning); }
+.badge-error { color: var(--error); border-color: var(--error); }
 
 /* ---------------------------------------------------------------------
    Dashboard / admin layout

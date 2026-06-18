@@ -21,6 +21,7 @@ const PUBLIC_API_PATHS = new Set([
   '/api/explore',
   '/api/settings',
   '/api/contact',
+  '/api/health',
 ]);
 
 // Paths that must stay reachable even while maintenance mode is on: the

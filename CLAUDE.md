@@ -367,6 +367,7 @@ DELETE /api/site/delete      { key } → { ok }
 POST /api/site/publish       { published: bool } → { ok }
 
 GET  /api/explore            → { sites: [{ username, siteTitle, updatedAt, viewCount }] }
+GET  /api/health             → { checkedAt, database: {ok,ms}, storage: {ok,ms}, sessions: {ok,ms} }  (public, no session)
 
 POST /api/contact            { category, username?, email, message } → { ok }  (public, no session)
 
@@ -392,6 +393,12 @@ the original message quoted, it does not send anything server-side. If real serv
 email sending is wanted later, that needs server-side email routing (or a third-party SMTP/API
 provider) configured against the `myjay.net` domain, which touches DNS and isn't something to
 wire up casually.
+
+`public/status.html` is powered entirely by `/api/health`, `/api/settings`, and `/api/explore`.
+There is no hardcoded "everything is operational" table on that page anymore, every row is a
+real, live check (a trivial query against the database, a 1-item list against file storage,
+a get against the session store). If a check can't be made real with what's actually available,
+don't add a fake row for it, leave it out instead.
 
 ---
 
