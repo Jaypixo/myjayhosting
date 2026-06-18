@@ -192,11 +192,12 @@
   </footer>
 
   <script type="module">
-    import { apiFetch, getCurrentUser, logout } from '/assets/main.js';
+    import { apiFetch, getCurrentUser, logout, showAlert, showConfirm } from '/assets/main.js';
 
     let usersPage = 1;
     let usersTotal = 0;
     let usersQuery = '';
+    let viewerIsRootAdmin = false;
     const PAGE_SIZE = 50;
 
     function formatSize(bytes) {
@@ -231,35 +232,45 @@
 
       for (const u of data.users) {
         const tr = document.createElement('tr');
-
-        const banBtn = document.createElement('button');
-        banBtn.className = 'btn btn-ghost btn-sm';
-        banBtn.textContent = u.banned ? 'Unban' : 'Ban';
-        banBtn.addEventListener('click', () => toggleBan(u.id, !u.banned));
-
-        const roleBtn = document.createElement('button');
-        roleBtn.className = 'btn btn-ghost btn-sm';
-        roleBtn.textContent = u.role === 'admin' ? 'Demote' : 'Make admin';
-        roleBtn.addEventListener('click', () => toggleRole(u.id, u.role === 'admin' ? 'user' : 'admin'));
-
-        const resetBtn = document.createElement('button');
-        resetBtn.className = 'btn btn-ghost btn-sm';
-        resetBtn.textContent = 'Reset password';
-        resetBtn.addEventListener('click', () => resetPassword(u.id, u.username));
-
-        const delBtn = document.createElement('button');
-        delBtn.className = 'btn btn-danger btn-sm';
-        delBtn.textContent = 'Delete';
-        delBtn.addEventListener('click', () => deleteUser(u.id, u.username));
+        const locked = u.isRootAdmin && !viewerIsRootAdmin;
 
         const actions = document.createElement('td');
         actions.style.display = 'flex';
         actions.style.gap = '0.5rem';
         actions.style.flexWrap = 'wrap';
-        actions.appendChild(banBtn);
-        actions.appendChild(roleBtn);
-        actions.appendChild(resetBtn);
-        actions.appendChild(delBtn);
+
+        if (locked) {
+          const protectedNote = document.createElement('span');
+          protectedNote.className = 'badge';
+          protectedNote.textContent = 'protected';
+          protectedNote.title = "The original admin account can't be modified by other admins.";
+          actions.appendChild(protectedNote);
+        } else {
+          const banBtn = document.createElement('button');
+          banBtn.className = 'btn btn-ghost btn-sm';
+          banBtn.textContent = u.banned ? 'Unban' : 'Ban';
+          banBtn.addEventListener('click', () => toggleBan(u.id, !u.banned));
+
+          const roleBtn = document.createElement('button');
+          roleBtn.className = 'btn btn-ghost btn-sm';
+          roleBtn.textContent = u.role === 'admin' ? 'Demote' : 'Make admin';
+          roleBtn.addEventListener('click', () => toggleRole(u.id, u.role === 'admin' ? 'user' : 'admin'));
+
+          const resetBtn = document.createElement('button');
+          resetBtn.className = 'btn btn-ghost btn-sm';
+          resetBtn.textContent = 'Reset password';
+          resetBtn.addEventListener('click', () => resetPassword(u.id, u.username));
+
+          const delBtn = document.createElement('button');
+          delBtn.className = 'btn btn-danger btn-sm';
+          delBtn.textContent = 'Delete';
+          delBtn.addEventListener('click', () => deleteUser(u.id, u.username));
+
+          actions.appendChild(banBtn);
+          actions.appendChild(roleBtn);
+          actions.appendChild(resetBtn);
+          actions.appendChild(delBtn);
+        }
 
         const statusTd = document.createElement('td');
         const statusSpan = document.createElement('span');
@@ -267,7 +278,17 @@
         statusSpan.textContent = u.banned ? 'banned' : 'active';
         statusTd.appendChild(statusSpan);
 
-        tr.appendChild(td(u.username));
+        const usernameTd = document.createElement('td');
+        usernameTd.textContent = u.username;
+        if (u.isRootAdmin) {
+          const ownerBadge = document.createElement('span');
+          ownerBadge.className = 'badge badge-admin';
+          ownerBadge.textContent = 'owner';
+          ownerBadge.style.marginLeft = '0.4rem';
+          usernameTd.appendChild(ownerBadge);
+        }
+
+        tr.appendChild(usernameTd);
         tr.appendChild(td(u.email));
         tr.appendChild(td(u.role));
         tr.appendChild(statusTd);
@@ -283,18 +304,31 @@
     }
 
     async function toggleBan(id, banned) {
-      await apiFetch(`/api/admin/users/${id}`, { method: 'PATCH', body: JSON.stringify({ banned }) });
+      const res = await apiFetch(`/api/admin/users/${id}`, { method: 'PATCH', body: JSON.stringify({ banned }) });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        await showAlert(data.error || 'Could not update that user.');
+      }
       loadUsers();
     }
 
     async function toggleRole(id, role) {
-      await apiFetch(`/api/admin/users/${id}`, { method: 'PATCH', body: JSON.stringify({ role }) });
+      const res = await apiFetch(`/api/admin/users/${id}`, { method: 'PATCH', body: JSON.stringify({ role }) });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        await showAlert(data.error || 'Could not update that user.');
+      }
       loadUsers();
     }
 
     async function deleteUser(id, username) {
-      if (!confirm(`Permanently delete user "${username}" and all their files?`)) return;
-      await apiFetch(`/api/admin/users/${id}`, { method: 'DELETE' });
+      const ok = await showConfirm(`Permanently delete user "${username}" and all their files?`, { title: 'Delete user', confirmText: 'Delete', danger: true });
+      if (!ok) return;
+      const res = await apiFetch(`/api/admin/users/${id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        await showAlert(data.error || 'Could not delete that user.');
+      }
       loadUsers();
     }
 
@@ -305,7 +339,8 @@
     }
 
     async function resetPassword(id, username) {
-      if (!confirm(`Reset the password for "${username}"? They'll need the new password to log in.`)) return;
+      const ok = await showConfirm(`Reset the password for "${username}"? They'll need the new password to log in.`, { title: 'Reset password', confirmText: 'Reset' });
+      if (!ok) return;
 
       const newPassword = generatePassword();
       const res = await apiFetch(`/api/admin/users/${id}`, {
@@ -315,11 +350,14 @@
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        alert(data.error || 'Could not reset password.');
+        await showAlert(data.error || 'Could not reset password.');
         return;
       }
 
-      alert(`New password for "${username}":\n\n${newPassword}\n\nThis is shown once. Share it with the user securely, they should change it after logging in.`);
+      await showAlert(
+        `New password for "${username}":\n\n${newPassword}\n\nThis is shown once. Share it with the user securely, they should change it after logging in.`,
+        { title: 'Password reset' }
+      );
     }
 
     async function loadSites() {
@@ -376,7 +414,8 @@
     }
 
     async function wipeSite(id, username) {
-      if (!confirm(`Delete all files for "${username}.myjay.net" and unpublish it?`)) return;
+      const ok = await showConfirm(`Delete all files for "${username}.myjay.net" and unpublish it?`, { title: 'Wipe site', confirmText: 'Wipe files', danger: true });
+      if (!ok) return;
       await apiFetch(`/api/admin/sites/${id}`, { method: 'DELETE' });
       loadSites();
     }
@@ -395,7 +434,8 @@
     }
 
     async function deleteContact(id) {
-      if (!confirm('Delete this message permanently?')) return;
+      const ok = await showConfirm('Delete this message permanently?', { title: 'Delete message', confirmText: 'Delete', danger: true });
+      if (!ok) return;
       await apiFetch(`/api/admin/contact/${id}`, { method: 'DELETE' });
       loadContact();
     }
@@ -599,10 +639,13 @@
 
     document.getElementById('maintenance-btn').addEventListener('click', async () => {
       const enabling = document.getElementById('maintenance-btn').textContent === 'Enable';
-      if (enabling && !confirm(
-        'Turn on maintenance mode? Everyone except logged-in admins will be ' +
-        'redirected to /maintenance.html until you turn this back off here.'
-      )) return;
+      if (enabling) {
+        const ok = await showConfirm(
+          'Turn on maintenance mode? Everyone except logged-in admins will be redirected to /maintenance.html until you turn this back off here.',
+          { title: 'Enable maintenance mode', confirmText: 'Enable', danger: true }
+        );
+        if (!ok) return;
+      }
 
       const res = await apiFetch('/api/admin/settings', {
         method: 'PATCH',
@@ -641,6 +684,7 @@
         window.location.href = '/login.html';
         return;
       }
+      viewerIsRootAdmin = Boolean(user.isRootAdmin);
       setupTabs();
       await Promise.all([loadUsers(), loadSites(), loadContact(), loadStats(), loadSettings()]);
     }

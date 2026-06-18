@@ -149,7 +149,7 @@
 
       <div id="settings-tab" class="tab-panel">
         <h2>Settings</h2>
-        <form id="settings-form">
+        <form id="settings-form" novalidate>
           <div class="form-error" id="settings-message"></div>
 
           <div class="field">
@@ -185,7 +185,11 @@
   </footer>
 
   <script type="module">
-    import { apiFetch, getCurrentUser, logout } from '/assets/main.js';
+    import {
+      apiFetch, getCurrentUser, logout,
+      showAlert, showConfirm, showPrompt,
+      setFieldError, clearFieldError, clearFormErrors,
+    } from '/assets/main.js';
 
     const IMAGE_EXTENSIONS  = new Set(['jpg', 'jpeg', 'png', 'gif', 'webp']);
     const EDITABLE_EXTENSIONS = new Set(['html', 'htm', 'css', 'js', 'json', 'xml', 'svg', 'txt', 'md']);
@@ -441,9 +445,10 @@
     }
 
     async function deleteFile(key) {
-      if (!confirm(`Delete "${key}"? This can't be undone.`)) return;
+      const ok = await showConfirm(`Delete "${key}"? This can't be undone.`, { title: 'Delete file', confirmText: 'Delete', danger: true });
+      if (!ok) return;
       const res = await apiFetch('/api/site/delete', { method: 'DELETE', body: JSON.stringify({ key }) });
-      if (!res.ok) { alert('Delete failed.'); return; }
+      if (!res.ok) { await showAlert('Delete failed.'); return; }
       if (editingKey === key) closeEditor();
       if (viewingKey === key) closeViewer();
       await loadFiles();
@@ -452,7 +457,8 @@
 
     async function deleteFolder(prefix) {
       const targets = allFiles.filter((f) => f.key.startsWith(prefix));
-      if (!confirm(`Delete all ${targets.length} file(s) in "${prefix}"? This can't be undone.`)) return;
+      const ok = await showConfirm(`Delete all ${targets.length} file(s) in "${prefix}"? This can't be undone.`, { title: 'Delete folder', confirmText: 'Delete all', danger: true });
+      if (!ok) return;
       for (const f of targets) {
         await apiFetch('/api/site/delete', { method: 'DELETE', body: JSON.stringify({ key: f.key }) });
       }
@@ -471,7 +477,7 @@
       }
       const res = await apiFetch('/api/site/upload', { method: 'POST', body: formData });
       const data = await res.json();
-      if (!res.ok) { alert(data.error || 'Upload failed.'); return; }
+      if (!res.ok) { await showAlert(data.error || 'Upload failed.'); return; }
       await loadFiles();
       await loadUser();
     }
@@ -481,7 +487,7 @@
     async function openEditor(file) {
       if (editingKey === file.key) return;
       const res = await apiFetch(`/api/site/file?key=${encodeURIComponent(file.key)}`);
-      if (!res.ok) { alert('Could not load that file.'); return; }
+      if (!res.ok) { await showAlert('Could not load that file.'); return; }
       const data = await res.json();
 
       viewingKey = null;
@@ -518,7 +524,7 @@
       const formData = new FormData();
       formData.append('files', file, editingKey);
       const res = await apiFetch('/api/site/upload', { method: 'POST', body: formData });
-      if (!res.ok) { alert('Save failed.'); return; }
+      if (!res.ok) { await showAlert('Save failed.'); return; }
       const msg = document.getElementById('editor-saved-msg');
       msg.classList.remove('hidden');
       setTimeout(() => msg.classList.add('hidden'), 1500);
@@ -622,10 +628,10 @@
 
     function setupNewFolder() {
       document.getElementById('fm-new-folder-btn').addEventListener('click', async () => {
-        const name = prompt('New folder name:');
+        const name = await showPrompt('Folder name:', { title: 'New folder', placeholder: 'blog' });
         if (!name) return;
         if (!/^[a-zA-Z0-9._-]+$/.test(name)) {
-          alert('Folder name can only contain letters, numbers, hyphens, underscores, and dots.');
+          await showAlert('Folder name can only contain letters, numbers, hyphens, underscores, and dots.');
           return;
         }
         const res = await apiFetch('/api/site/folder', {
@@ -634,7 +640,7 @@
         });
         if (!res.ok) {
           const d = await res.json().catch(() => ({}));
-          alert(d.error || 'Could not create folder.');
+          await showAlert(d.error || 'Could not create folder.');
           return;
         }
         await loadFiles();
@@ -675,27 +681,62 @@
     }
 
     function setupSettings() {
-      document.getElementById('settings-form').addEventListener('submit', async (e) => {
+      const form = document.getElementById('settings-form');
+      const emailInput = document.getElementById('email-input');
+      const passwordInput = document.getElementById('password-input');
+      const FIELD_INPUTS = { email: emailInput, password: passwordInput };
+      const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+      [emailInput, passwordInput].forEach((input) => {
+        input.addEventListener('input', () => clearFieldError(input));
+      });
+
+      form.addEventListener('submit', async (e) => {
         e.preventDefault();
         const msgEl = document.getElementById('settings-message');
         msgEl.textContent = '';
+        clearFormErrors(form);
+
+        let firstInvalid = null;
+        const email = emailInput.value.trim();
+        if (!email) {
+          setFieldError(emailInput, 'Email cannot be empty.');
+          firstInvalid = firstInvalid || emailInput;
+        } else if (!EMAIL_RE.test(email)) {
+          setFieldError(emailInput, 'That doesn\'t look like a valid email address.');
+          firstInvalid = firstInvalid || emailInput;
+        }
+
+        const password = passwordInput.value;
+        if (password && password.length < 8) {
+          setFieldError(passwordInput, 'Password must be at least 8 characters.');
+          firstInvalid = firstInvalid || passwordInput;
+        }
+
+        if (firstInvalid) { firstInvalid.focus(); return; }
+
         const body = {
           siteTitle: document.getElementById('site-title-input').value,
           bio: document.getElementById('bio-input').value,
-          email: document.getElementById('email-input').value,
+          email,
         };
-        const password = document.getElementById('password-input').value;
         if (password) body.password = password;
+
         const res = await apiFetch('/api/user/update', { method: 'PATCH', body: JSON.stringify(body) });
         const data = await res.json();
         if (!res.ok) {
-          msgEl.textContent = data.error || 'Something went wrong.';
-          msgEl.className = 'form-error';
+          if (data.field && FIELD_INPUTS[data.field]) {
+            setFieldError(FIELD_INPUTS[data.field], data.error);
+            FIELD_INPUTS[data.field].focus();
+          } else {
+            msgEl.textContent = data.error || 'Something went wrong.';
+            msgEl.className = 'form-error';
+          }
           return;
         }
         msgEl.textContent = 'Saved.';
         msgEl.className = 'text-ok';
-        document.getElementById('password-input').value = '';
+        passwordInput.value = '';
       });
     }
 

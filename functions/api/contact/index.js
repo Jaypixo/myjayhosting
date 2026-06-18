@@ -26,19 +26,19 @@ export async function onRequestPost(context) {
   const message = String(body.message || '').trim();
 
   if (!CATEGORIES.has(category)) {
-    return errorResponse('Please pick a valid category', 400);
+    return errorResponse('Please pick a category', 400, 'category');
   }
   if (!isValidEmail(email)) {
-    return errorResponse('Please enter a valid email address', 400);
+    return errorResponse('Please enter a valid email address', 400, 'email');
   }
   if (!message) {
-    return errorResponse('Message cannot be empty', 400);
+    return errorResponse('Write a message before sending', 400, 'message');
   }
   if (message.length > MAX_MESSAGE_LENGTH) {
-    return errorResponse(`Message must be under ${MAX_MESSAGE_LENGTH} characters`, 400);
+    return errorResponse(`Message must be under ${MAX_MESSAGE_LENGTH} characters`, 400, 'message');
   }
   if (username.length > MAX_USERNAME_LENGTH) {
-    return errorResponse('Username is too long', 400);
+    return errorResponse('Username is too long', 400, 'username');
   }
 
   const id = crypto.randomUUID();

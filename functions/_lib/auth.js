@@ -26,6 +26,14 @@ export function isValidUsername(username) {
   return typeof username === 'string' && USERNAME_RE.test(username) && !RESERVED_USERNAMES.has(username);
 }
 
+// The one account that can't be touched by any other admin: ban, demote,
+// reset, delete, none of it. Identified by env.ADMIN_EMAIL, the same value
+// used at registration time to grant the first admin role. If ADMIN_EMAIL
+// isn't set, nobody is protected, there's nothing to compare against.
+export function isRootAdmin(env, email) {
+  return Boolean(env.ADMIN_EMAIL) && String(email || '').toLowerCase() === String(env.ADMIN_EMAIL).toLowerCase();
+}
+
 export function isValidEmail(email) {
   // You want a "full" RFC regex? Are you high? That thing is like 6KB of 
   // pure concentrated misery. This is the HTML5-ish version. It handles dots in the local part
@@ -161,7 +169,9 @@ export function json(data, init = {}) {
   });
 }
 
-export function errorResponse(message, status = 400) {
+export function errorResponse(message, status = 400, field) {
   // Stop doing stupid shit and maybe you won't get a 400.
-  return json({ error: message }, { status });
+  // `field` is optional: when set, the frontend can attach this error to the
+  // specific input instead of dumping it in a generic banner.
+  return json(field ? { error: message, field } : { error: message }, { status });
 }

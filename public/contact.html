@@ -41,7 +41,7 @@
       <div class="contact-layout">
         <div>
           <div class="card contact-card" id="contact-card">
-            <form id="contact-form">
+            <form id="contact-form" novalidate>
               <div class="form-error" id="form-error"></div>
 
               <div class="field">
@@ -120,15 +120,56 @@
 
   <script type="module" src="/assets/main.js"></script>
   <script type="module">
-    import { apiFetch } from '/assets/main.js';
+    import { apiFetch, setFieldError, clearFieldError, clearFormErrors } from '/assets/main.js';
 
+    const categoryInput = document.getElementById('category');
+    const usernameInput = document.getElementById('username');
+    const emailInput = document.getElementById('email');
+    const messageInput = document.getElementById('message');
     const form = document.getElementById('contact-form');
     const errorEl = document.getElementById('form-error');
     const submitBtn = document.getElementById('submit-btn');
 
+    const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const FIELD_INPUTS = { category: categoryInput, username: usernameInput, email: emailInput, message: messageInput };
+
+    function validate() {
+      clearFormErrors(form);
+      let firstInvalid = null;
+
+      if (!categoryInput.value) {
+        setFieldError(categoryInput, 'Choose a category.');
+        firstInvalid = firstInvalid || categoryInput;
+      }
+
+      const email = emailInput.value.trim();
+      if (!email) {
+        setFieldError(emailInput, 'Enter your email address.');
+        firstInvalid = firstInvalid || emailInput;
+      } else if (!EMAIL_RE.test(email)) {
+        setFieldError(emailInput, 'That doesn\'t look like a valid email address.');
+        firstInvalid = firstInvalid || emailInput;
+      }
+
+      if (!messageInput.value.trim()) {
+        setFieldError(messageInput, 'Write a message before sending.');
+        firstInvalid = firstInvalid || messageInput;
+      }
+
+      if (firstInvalid) firstInvalid.focus();
+      return !firstInvalid;
+    }
+
+    [categoryInput, usernameInput, emailInput, messageInput].forEach((input) => {
+      input.addEventListener('input', () => clearFieldError(input));
+      input.addEventListener('change', () => clearFieldError(input));
+    });
+
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       errorEl.textContent = '';
+      if (!validate()) return;
+
       submitBtn.disabled = true;
       submitBtn.textContent = 'Sending...';
 
@@ -136,16 +177,21 @@
         const res = await apiFetch('/api/contact', {
           method: 'POST',
           body: JSON.stringify({
-            category: document.getElementById('category').value,
-            username: document.getElementById('username').value.trim(),
-            email: document.getElementById('email').value.trim(),
-            message: document.getElementById('message').value.trim(),
+            category: categoryInput.value,
+            username: usernameInput.value.trim(),
+            email: emailInput.value.trim(),
+            message: messageInput.value.trim(),
           }),
         });
         const data = await res.json();
 
         if (!res.ok) {
-          errorEl.textContent = data.error || 'Something went wrong.';
+          if (data.field && FIELD_INPUTS[data.field]) {
+            setFieldError(FIELD_INPUTS[data.field], data.error);
+            FIELD_INPUTS[data.field].focus();
+          } else {
+            errorEl.textContent = data.error || 'Something went wrong.';
+          }
           submitBtn.disabled = false;
           submitBtn.textContent = 'Send message →';
           return;

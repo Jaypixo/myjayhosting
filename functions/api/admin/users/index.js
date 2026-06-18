@@ -1,4 +1,4 @@
-import { json } from '../../../_lib/auth.js';
+import { json, isRootAdmin } from '../../../_lib/auth.js';
 
 const PAGE_SIZE = 50;
 
@@ -30,6 +30,7 @@ export async function onRequestGet(context) {
       role: u.role,
       banned: Boolean(u.banned),
       createdAt: u.created_at,
+      isRootAdmin: isRootAdmin(env, u.email),
     })),
     total: total.count,
     page,

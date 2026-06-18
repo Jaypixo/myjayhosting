@@ -4,6 +4,7 @@ import {
   sessionCookie,
   isValidUsername,
   isValidEmail,
+  isRootAdmin,
   json,
   errorResponse,
 } from '../../_lib/auth.js';
@@ -25,7 +26,7 @@ export async function onRequestPost(context) {
 
   // admin email always gets through even if registration is closed, otherwise
   // a "close registration" click could permanently lock me out of my own site
-  const isAdminSignup = env.ADMIN_EMAIL && email === String(env.ADMIN_EMAIL).toLowerCase();
+  const isAdminSignup = isRootAdmin(env, email);
   if (!isAdminSignup) {
     const settings = await getSettings(env);
     if (!settings.registrationEnabled) {
@@ -34,30 +35,30 @@ export async function onRequestPost(context) {
   }
 
   if (!isValidUsername(username)) {
-    return errorResponse('Username must be 3-32 characters, lowercase letters, numbers, and hyphens only', 400);
+    return errorResponse('Username must be 3-32 characters, lowercase letters, numbers, and hyphens only', 400, 'username');
   }
   if (!isValidEmail(email)) {
-    return errorResponse('Please enter a valid email address', 400);
+    return errorResponse('Please enter a valid email address', 400, 'email');
   }
   if (password.length < 8) {
-    return errorResponse('Password must be at least 8 characters', 400);
+    return errorResponse('Password must be at least 8 characters', 400, 'password');
   }
 
   const existingUsername = await env.DB.prepare('SELECT id FROM users WHERE username = ?').bind(username).first();
   if (existingUsername) {
-    return errorResponse('That username is already taken', 409);
+    return errorResponse('That username is already taken', 409, 'username');
   }
 
   const existingEmail = await env.DB.prepare('SELECT id FROM users WHERE email = ?').bind(email).first();
   if (existingEmail) {
-    return errorResponse('An account with that email already exists', 409);
+    return errorResponse('An account with that email already exists', 409, 'email');
   }
 
   const userId = crypto.randomUUID();
   const siteId = crypto.randomUUID();
   const now = new Date().toISOString();
   const passwordHash = await hashPassword(password);
-  const role = env.ADMIN_EMAIL && email === String(env.ADMIN_EMAIL).toLowerCase() ? 'admin' : 'user';
+  const role = isAdminSignup ? 'admin' : 'user';
 
   await env.DB.batch([
     env.DB.prepare(

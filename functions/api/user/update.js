@@ -27,12 +27,12 @@ export async function onRequestPatch(context) {
   if (typeof body.email === 'string' && body.email.trim()) {
     const email = body.email.trim().toLowerCase();
     if (!isValidEmail(email)) {
-      return errorResponse('Please enter a valid email address', 400);
+      return errorResponse('Please enter a valid email address', 400, 'email');
     }
     if (email !== user.email) {
       const existing = await env.DB.prepare('SELECT id FROM users WHERE email = ?').bind(email).first();
       if (existing) {
-        return errorResponse('An account with that email already exists', 409);
+        return errorResponse('An account with that email already exists', 409, 'email');
       }
     }
     updates.push('email = ?');
@@ -41,7 +41,7 @@ export async function onRequestPatch(context) {
 
   if (typeof body.password === 'string' && body.password) {
     if (body.password.length < 8) {
-      return errorResponse('Password must be at least 8 characters', 400);
+      return errorResponse('Password must be at least 8 characters', 400, 'password');
     }
     updates.push('password_hash = ?');
     values.push(await hashPassword(body.password));

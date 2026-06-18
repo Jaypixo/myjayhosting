@@ -33,7 +33,7 @@
       <p class="text-muted">Pick a username, set a password, and your site goes live at <code>username.myjay.net</code>.</p>
 
       <div class="card">
-        <form id="register-form">
+        <form id="register-form" novalidate>
           <div class="form-error" id="form-error"></div>
 
           <div class="field">
@@ -69,13 +69,50 @@
 
   <script type="module" src="/assets/main.js"></script>
   <script type="module">
-    import { apiFetch } from '/assets/main.js';
+    import { apiFetch, setFieldError, clearFieldError, clearFormErrors } from '/assets/main.js';
 
     const usernameInput = document.getElementById('username');
+    const emailInput = document.getElementById('email');
+    const passwordInput = document.getElementById('password');
     const preview = document.getElementById('username-preview');
     const form = document.getElementById('register-form');
     const errorEl = document.getElementById('form-error');
     const submitBtn = document.getElementById('submit-btn');
+
+    const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    function validate() {
+      clearFormErrors(form);
+      let firstInvalid = null;
+
+      const username = usernameInput.value.trim().toLowerCase();
+      if (!/^[a-z0-9-]{3,32}$/.test(username)) {
+        setFieldError(usernameInput, 'Must be 3 to 32 characters: lowercase letters, numbers, and hyphens only.');
+        firstInvalid = firstInvalid || usernameInput;
+      }
+
+      const email = emailInput.value.trim();
+      if (!email) {
+        setFieldError(emailInput, 'Enter your email address.');
+        firstInvalid = firstInvalid || emailInput;
+      } else if (!EMAIL_RE.test(email)) {
+        setFieldError(emailInput, 'That doesn\'t look like a valid email address.');
+        firstInvalid = firstInvalid || emailInput;
+      }
+
+      const password = passwordInput.value;
+      if (password.length < 8) {
+        setFieldError(passwordInput, 'Password must be at least 8 characters.');
+        firstInvalid = firstInvalid || passwordInput;
+      }
+
+      if (firstInvalid) firstInvalid.focus();
+      return !firstInvalid;
+    }
+
+    [usernameInput, emailInput, passwordInput].forEach((input) => {
+      input.addEventListener('input', () => clearFieldError(input));
+    });
 
     let checkTimer;
     usernameInput.addEventListener('input', () => {
@@ -103,9 +140,13 @@
       }, 400);
     });
 
+    const FIELD_INPUTS = { username: usernameInput, email: emailInput, password: passwordInput };
+
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       errorEl.textContent = '';
+      if (!validate()) return;
+
       submitBtn.disabled = true;
       submitBtn.textContent = 'Creating...';
 
@@ -114,13 +155,18 @@
           method: 'POST',
           body: JSON.stringify({
             username: usernameInput.value.trim().toLowerCase(),
-            email: document.getElementById('email').value.trim(),
-            password: document.getElementById('password').value,
+            email: emailInput.value.trim(),
+            password: passwordInput.value,
           }),
         });
         const data = await res.json();
         if (!res.ok) {
-          errorEl.textContent = data.error || 'Something went wrong.';
+          if (data.field && FIELD_INPUTS[data.field]) {
+            setFieldError(FIELD_INPUTS[data.field], data.error);
+            FIELD_INPUTS[data.field].focus();
+          } else {
+            errorEl.textContent = data.error || 'Something went wrong.';
+          }
           submitBtn.disabled = false;
           submitBtn.textContent = 'Create account →';
           return;

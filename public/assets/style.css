@@ -373,6 +373,74 @@ input:focus, textarea:focus, select:focus {
   min-height: 1.2em;
 }
 
+.field-invalid input,
+.field-invalid select,
+.field-invalid textarea {
+  border-color: var(--error);
+}
+
+.field-error {
+  color: var(--error);
+  font-size: 0.75rem;
+  margin: 0.35rem 0 0;
+  font-family: var(--font-mono);
+}
+
+/* ---------------------------------------------------------------------
+   Modal dialogs (replaces native alert/confirm/prompt)
+   --------------------------------------------------------------------- */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(26, 23, 22, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  z-index: 1000;
+}
+
+.modal-box {
+  background: var(--paper);
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--primary);
+  max-width: 420px;
+  width: 100%;
+  padding: 1.5rem;
+}
+
+.modal-box.modal-danger {
+  border-top-color: var(--error);
+}
+
+.modal-title {
+  margin: 0 0 0.6rem;
+  font-family: var(--font-heading);
+  font-style: italic;
+  font-weight: 300;
+  font-size: 1.3rem;
+}
+
+.modal-message {
+  margin: 0 0 1.25rem;
+  font-size: 0.9rem;
+  color: var(--ink);
+  line-height: 1.5;
+  white-space: pre-line;
+}
+
+.modal-input {
+  width: 100%;
+  margin-bottom: 1.25rem;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+}
+
 /* ---------------------------------------------------------------------
    Cards
    --------------------------------------------------------------------- */

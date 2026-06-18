@@ -411,6 +411,15 @@ don't add a fake row for it, leave it out instead.
 - File uploads: validate Content-Type on the server. Reject executables. Reject files > `MAX_UPLOAD_BYTES` per file. Enforce total quota per user.
 - Admin routes: middleware must verify `user.role === 'admin'`. Do not rely on client-side role checks.
 - CORS: API routes should only accept requests from `myjay.net` origin.
+- **The root admin is untouchable by other admins.** The account whose email matches `env.ADMIN_EMAIL` (see `isRootAdmin()` in `_lib/auth.js`) can't be banned, demoted, password-reset, or deleted by any other admin. This is enforced in `functions/api/admin/users/[id].js` (PATCH and DELETE both check it server-side, first, before touching anything) and mirrored in `public/admin.html`'s UI (the row shows a "protected" badge instead of action buttons for everyone except the root admin themself). The root admin can still do all of this to other admins, and to themself. If `ADMIN_EMAIL` isn't set, this protection is a no-op, there's no root to protect. Never weaken or bypass this check "to make testing easier."
+
+---
+
+## UI Conventions
+
+- **No native `alert()` / `confirm()` / `prompt()`.** Use `showAlert()`, `showConfirm()`, `showPrompt()` from `public/assets/main.js` instead, they render an in-page modal styled to match the design system (all async, all return Promises, `await` them). Pass `{ danger: true }` to `showConfirm` for destructive actions (delete, wipe, ban), it swaps the confirm button and top border to the error color.
+- **No native HTML5 validation bubbles.** Every `<form>` should have `novalidate`, then do its own validation in JS on submit using `setFieldError(input, message)` / `clearFieldError(input)` / `clearFormErrors(form)` from `main.js`. These add/remove a red border and a red message paragraph directly under the offending input, they don't touch the generic `.form-error` banner. Keep the HTML `required`/`pattern`/`minlength` attributes for semantics and accessibility, `novalidate` just stops the browser from popping up its own bubble over them.
+- **Server errors should carry a `field` hint when they map to one input.** `errorResponse(message, status, field)` in `_lib/auth.js` takes an optional third argument; when present, the JSON body includes `{ error, field }`. The frontend checks `data.field` and routes the message to that specific input via `setFieldError`, falling back to the `.form-error` banner when there's no field (or when attributing the error to a field would leak information, e.g. login intentionally never says whether the email or the password was wrong).
 
 ---
 

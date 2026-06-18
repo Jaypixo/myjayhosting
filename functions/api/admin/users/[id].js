@@ -1,12 +1,22 @@
 // Why the fuck is this in its own file? Whatever.
 import { listSiteObjects } from '../../../_lib/storage.js';
-import { json, errorResponse, hashPassword } from '../../../_lib/auth.js';
+import { json, errorResponse, hashPassword, isRootAdmin } from '../../../_lib/auth.js';
 
 export async function onRequestPatch(context) {
   // context, request, env, params... just more shit to keep track of.
-  const { request, env, params } = context;
+  const { request, env, params, data } = context;
   const { id } = params;
   // If id is null here, I'm quitting.
+
+  // The original admin is untouchable by anyone except themselves. No demoting,
+  // no banning, no password resets from a promoted admin who got curious.
+  const target = await env.DB.prepare('SELECT email FROM users WHERE id = ?').bind(id).first();
+  if (!target) {
+    return errorResponse('User not found', 404);
+  }
+  if (isRootAdmin(env, target.email) && !isRootAdmin(env, data.user.email)) {
+    return errorResponse("The original admin account can't be modified by other admins", 403);
+  }
 
   let body;
   try {
@@ -62,9 +72,14 @@ export async function onRequestDelete(context) {
     return errorResponse("You can't delete your own account", 400);
   }
 
-  const target = await env.DB.prepare('SELECT username FROM users WHERE id = ?').bind(id).first();
+  const target = await env.DB.prepare('SELECT username, email FROM users WHERE id = ?').bind(id).first();
   if (!target) {
     return errorResponse('User not found', 404);
+  }
+
+  // Same deal as PATCH: the original admin can't be deleted by anyone else.
+  if (isRootAdmin(env, target.email) && !isRootAdmin(env, data.user.email)) {
+    return errorResponse("The original admin account can't be deleted by other admins", 403);
   }
 
   // R2 is basically a black hole for data. Let's hope this cleanup actually works.
