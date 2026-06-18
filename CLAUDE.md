@@ -423,6 +423,16 @@ don't add a fake row for it, leave it out instead.
 
 ---
 
+## SEO Conventions
+
+- **Internal links use clean URLs, never `.html`.** Cloudflare Pages auto-strips the extension and 308-redirects `/foo.html` → `/foo`. Every `href`, `window.location.href`, and JS-set `.href` in this codebase must point straight at the clean URL (`/about`, `/login`, `/dashboard`, etc.), not the `.html` form. Linking to the `.html` version makes Google crawl through a pointless redirect and was previously showing up in Search Console as "page with redirect." When adding a new page, write its internal links clean from the start.
+- **Every public page needs, in its `<head>`:** a unique `<meta name="description">` (under ~160 characters, no two pages share one), a `<link rel="canonical" href="https://myjay.net/<clean-path>">`, and for anything worth sharing, `og:type`/`og:title`/`og:description`/`og:url`/`og:image` plus matching `twitter:card`/`twitter:title`/`twitter:description`. Legal/utility pages (privacy, terms, status) only need the description + canonical, OG tags add no value there. `public/assets/img/logo.png` is the default `og:image` until a dedicated social card image exists.
+- **Private, auth-gated pages (`dashboard.html`, `admin.html`) get `<meta name="robots" content="noindex, nofollow">`** instead of a description, and are `Disallow`'d in `robots.txt`. They have no content worth indexing and shouldn't show up in search results.
+- **`public/robots.txt`, `public/sitemap.xml`, `public/llms.txt` are real static files**, not generated. Update `sitemap.xml` (clean URLs, sensible `priority`) whenever a new public page is added or removed. Update `llms.txt`'s page list and description to match. All three are allowlisted in `_middleware.js`'s `MAINTENANCE_ALLOWLIST` so crawlers don't get redirected to the maintenance page mid-crawl.
+- `llms.txt` follows the llmstxt.org convention: a short summary, then a flat list of key pages with one-line descriptions, then a "Notes for crawlers and assistants" section calling out that user subdomains are independent and unmoderated, and that the dashboard/admin have no public content.
+
+---
+
 ## Development Workflow
 
 ```bash

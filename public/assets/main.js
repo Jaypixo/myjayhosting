@@ -195,7 +195,7 @@ async function initNav() {
     authEl.innerHTML = '';
     const link = document.createElement('a');
     link.className = 'btn btn-sm';
-    link.href = '/dashboard.html';
+    link.href = '/dashboard';
     link.textContent = `Dashboard (${user.username})`;
     authEl.appendChild(link);
   }

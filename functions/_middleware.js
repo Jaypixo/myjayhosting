@@ -25,11 +25,16 @@ const PUBLIC_API_PATHS = new Set([
 ]);
 
 // Paths that must stay reachable even while maintenance mode is on: the
-// maintenance page itself, shared assets, and the login page (so an admin
-// who isn't currently logged in can still get in to turn it back off).
+// maintenance page itself, shared assets, the login page (so an admin who
+// isn't currently logged in can still get in to turn it back off), and the
+// crawler-facing SEO files (no reason to 302 Googlebot mid-crawl).
 // Cloudflare Pages 308-redirects "/foo.html" to "/foo", so both forms of
 // each path need to be allowlisted to avoid a redirect loop.
-const MAINTENANCE_ALLOWLIST = new Set(['/maintenance.html', '/maintenance', '/login.html', '/login']);
+const MAINTENANCE_ALLOWLIST = new Set([
+  '/maintenance.html', '/maintenance',
+  '/login.html', '/login',
+  '/robots.txt', '/sitemap.xml', '/llms.txt',
+]);
 
 function isAllowedOrigin(origin) {
   if (ALLOWED_ORIGINS.has(origin)) return true;

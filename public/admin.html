@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin | MyJay.net</title>
+  <meta name="robots" content="noindex, nofollow">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@1,300&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
   <link rel="icon" type="image/png" href="/assets/img/favicon.png">
@@ -12,8 +13,8 @@
 <body>
   <header class="torn-header compact">
     <div class="nav-auth" data-nav-auth>
-      <a href="/login.html" class="btn btn-sm btn-outline">Log in</a>
-      <a href="/register.html" class="btn btn-sm">Register</a>
+      <a href="/login" class="btn btn-sm btn-outline">Log in</a>
+      <a href="/register" class="btn btn-sm">Register</a>
     </div>
     <div class="logo">
       <img src="/assets/img/logo.png" alt="MyJay.net" onerror="var s=this.nextElementSibling; this.remove(); s.style.display=''">
@@ -21,9 +22,9 @@
     </div>
     <nav class="nav">
       <a href="/">Home</a>
-      <a href="/explore.html">Explore</a>
-      <a href="/help.html">Help</a>
-      <a href="/contact.html">Contact</a>
+      <a href="/explore">Explore</a>
+      <a href="/help">Help</a>
+      <a href="/contact">Contact</a>
     </nav>
   </header>
 
@@ -89,7 +90,7 @@
       </div>
 
       <div id="contact-panel" class="tab-panel">
-        <p class="text-muted">Submissions from <a href="/contact.html">the contact form</a>. Reply opens your email client with the sender's address pre-filled; nothing is sent server-side.</p>
+        <p class="text-muted">Submissions from <a href="/contact">the contact form</a>. Reply opens your email client with the sender's address pre-filled; nothing is sent server-side.</p>
         <table>
           <thead>
             <tr>
@@ -150,7 +151,7 @@
         </div>
         <p class="text-muted">
           When on, every visitor except logged-in admins is redirected to
-          <code>/maintenance.html</code>, the page with
+          <code>/maintenance</code>, the page with
           <code>MyJayErrorMascot.png</code> in the middle (drop that file into
           <code>public/assets/img/</code> if you haven't). The login page stays
           reachable so you can always get back in to flip this off.
@@ -188,7 +189,7 @@
   <footer class="footer">
     <span class="footnote">[1] Admin actions take effect immediately. There is no undo.</span>
     <span class="footnote">[2] v0.1.0-alpha, independently run.</span>
-    <span class="footnote">[3] <a href="/status.html">Status</a> · <a href="/privacy.html">Privacy</a> · <a href="/terms.html">Terms</a></span>
+    <span class="footnote">[3] <a href="/status">Status</a> · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a></span>
   </footer>
 
   <script type="module">
@@ -641,7 +642,7 @@
       const enabling = document.getElementById('maintenance-btn').textContent === 'Enable';
       if (enabling) {
         const ok = await showConfirm(
-          'Turn on maintenance mode? Everyone except logged-in admins will be redirected to /maintenance.html until you turn this back off here.',
+          'Turn on maintenance mode? Everyone except logged-in admins will be redirected to /maintenance until you turn this back off here.',
           { title: 'Enable maintenance mode', confirmText: 'Enable', danger: true }
         );
         if (!ok) return;
@@ -681,7 +682,7 @@
     async function init() {
       const user = await getCurrentUser();
       if (!user || user.role !== 'admin') {
-        window.location.href = '/login.html';
+        window.location.href = '/login';
         return;
       }
       viewerIsRootAdmin = Boolean(user.isRootAdmin);

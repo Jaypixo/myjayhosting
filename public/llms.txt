@@ -1,0 +1,23 @@
+# MyJay.net
+
+> Free static site hosting for the indie web. Claim a subdomain at username.myjay.net, upload HTML/CSS/JS, publish instantly. No trackers, no algorithms, no ads, no VC money.
+
+MyJay is a small, independently run platform (built by Jaypix, https://jaypix.dev). It hosts static files only: no server-side code, no database for user sites, no page builder. Users write their own HTML and upload it through a browser-based file manager. One site per account, 50MB storage free, no credit card required.
+
+## Key pages
+
+- [Homepage](https://myjay.net/): what MyJay is and how it works
+- [Register](https://myjay.net/register): create a free account and claim a subdomain
+- [Explore](https://myjay.net/explore): recently updated sites hosted on the platform
+- [Help](https://myjay.net/help): setup guide, allowed file types, troubleshooting
+- [About](https://myjay.net/about): what MyJay is, what it isn't, who runs it, the roadmap
+- [Contact](https://myjay.net/contact): bug reports, abuse reports, account help, press
+- [Status](https://myjay.net/status): live system checks and maintenance mode
+- [Privacy](https://myjay.net/privacy): what little data is collected and why
+- [Terms](https://myjay.net/terms): terms of use
+
+## Notes for crawlers and assistants
+
+- Subdomains under myjay.net (e.g. someone.myjay.net) are independent, user-controlled sites. MyJay does not vet, moderate proactively, or vouch for their content.
+- The dashboard and admin panel require login and have no public content; please don't index them.
+- This is not a company. There's no enterprise plan, no API for third parties, and no affiliate program.

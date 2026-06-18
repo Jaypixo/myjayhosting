@@ -4,6 +4,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MyJay.net | Your corner of the web</title>
+  <meta name="description" content="Free static site hosting for the indie web. Claim username.myjay.net, upload your HTML, and publish instantly. No trackers, no algorithms, no ads.">
+  <link rel="canonical" href="https://myjay.net/">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="MyJay.net | Your corner of the web">
+  <meta property="og:description" content="Free static site hosting for the indie web. No trackers, no algorithms, no ads, no VC money.">
+  <meta property="og:url" content="https://myjay.net/">
+  <meta property="og:image" content="https://myjay.net/assets/img/logo.png">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="MyJay.net | Your corner of the web">
+  <meta name="twitter:description" content="Free static site hosting for the indie web. No trackers, no algorithms, no ads, no VC money.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@1,300&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
   <link rel="icon" type="image/png" href="/assets/img/favicon.png">
@@ -13,8 +23,8 @@
 
   <header class="torn-header">
     <div class="nav-auth" data-nav-auth>
-      <a href="/login.html" class="btn btn-sm btn-outline">Log in</a>
-      <a href="/register.html" class="btn btn-sm">Register</a>
+      <a href="/login" class="btn btn-sm btn-outline">Log in</a>
+      <a href="/register" class="btn btn-sm">Register</a>
     </div>
     <div class="logo">
       <img src="/assets/img/logo.png" alt="MyJay.net" onerror="var s=this.nextElementSibling; this.remove(); s.style.display=''">
@@ -38,10 +48,10 @@
     </div>
     <nav class="nav">
       <a href="/">Home</a>
-      <a href="/explore.html">Explore</a>
-      <a href="/help.html">Help</a>
-      <a href="/about.html">About</a>
-      <a href="/contact.html">Contact</a>
+      <a href="/explore">Explore</a>
+      <a href="/help">Help</a>
+      <a href="/about">About</a>
+      <a href="/contact">Contact</a>
     </nav>
   </header>
 
@@ -123,7 +133,7 @@
         <div class="empty-state">loading...</div>
       </div>
       <p class="mt-1" style="text-align:right">
-        <a href="/explore.html">See all sites →</a>
+        <a href="/explore">See all sites →</a>
       </p>
     </section>
 
@@ -132,11 +142,11 @@
       <h2>Common questions.</h2>
       <details>
         <summary>Do I need to know how to code?</summary>
-        <p>A little. You need at least an <code>index.html</code> file. If you've never written HTML, the <a href="/help.html">help page</a> has a five-minute starting point.</p>
+        <p>A little. You need at least an <code>index.html</code> file. If you've never written HTML, the <a href="/help">help page</a> has a five-minute starting point.</p>
       </details>
       <details>
         <summary>Is it really free?</summary>
-        <p>Yes. 50MB of storage, one site per account, no credit card needed. See <a href="/about.html">the limits</a> for the fine print.</p>
+        <p>Yes. 50MB of storage, one site per account, no credit card needed. See <a href="/about">the limits</a> for the fine print.</p>
       </details>
       <details>
         <summary>Can I use my own domain?</summary>
@@ -148,11 +158,11 @@
       </details>
       <details>
         <summary>Will you sell my data, show ads, or add tracking later?</summary>
-        <p>No. Read <a href="/privacy.html">the privacy page</a>. It's short on purpose.</p>
+        <p>No. Read <a href="/privacy">the privacy page</a>. It's short on purpose.</p>
       </details>
       <details>
         <summary>Something's broken. Now what?</summary>
-        <p>Check <a href="/status.html">status.myjay.net</a> first. If maintenance mode is on, that's probably it. Otherwise, hang tight.</p>
+        <p>Check <a href="/status">status.myjay.net</a> first. If maintenance mode is on, that's probably it. Otherwise, hang tight.</p>
       </details>
     </section>
 
@@ -160,7 +170,7 @@
       <span class="section-label">// ready?</span>
       <h2><em>Make something.</em></h2>
       <p class="sub">Two minutes to a live site. No credit card. No fine print.<br>Just claim a name and start uploading.</p>
-      <a class="btn" href="/register.html">Claim your subdomain →</a>
+      <a class="btn" href="/register">Claim your subdomain →</a>
     </section>
 
   </main>
@@ -168,7 +178,7 @@
   <footer class="footer">
     <span class="footnote">[1] Phase 1: hosting, auth, dashboard, explore. Phase 2+: blog tool, guestbook, custom domains, pro plan.</span>
     <span class="footnote">[2] v0.1.0-alpha, independently run.</span>
-    <span class="footnote">[3] <a href="/status.html">Status</a> · <a href="/privacy.html">Privacy</a> · <a href="/terms.html">Terms</a> · <a href="/about.html">About</a></span>
+    <span class="footnote">[3] <a href="/status">Status</a> · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> · <a href="/about">About</a></span>
   </footer>
 
   <script type="module" src="/assets/main.js"></script>
