@@ -50,67 +50,7 @@ body {
   font-family: var(--font-mono);
   font-size: 15px;
   line-height: 1.6;
-  padding-top: 28px;
   min-height: 100vh;
-}
-
-/* ---------------------------------------------------------------------
-   Status bar
-   --------------------------------------------------------------------- */
-
-.status-bar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 28px;
-  background: var(--paper-alt);
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  gap: 1.5rem;
-  padding: 0 1rem;
-  font-size: 0.75rem;
-  color: var(--muted);
-  z-index: 100;
-  overflow: hidden;
-}
-
-.status-bar .cursor {
-  display: inline-block;
-  width: 0.6em;
-  height: 1em;
-  background: var(--primary);
-  vertical-align: middle;
-  animation: blink 1s steps(1) infinite;
-}
-
-@keyframes blink {
-  50% { opacity: 0; }
-}
-
-.status-bar .uptime,
-.status-bar .version {
-  white-space: nowrap;
-}
-
-.status-bar .marquee {
-  flex: 1;
-  overflow: hidden;
-  white-space: nowrap;
-  position: relative;
-  mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
-}
-
-.status-bar .marquee span {
-  display: inline-block;
-  padding-left: 100%;
-  animation: marquee 35s linear infinite;
-}
-
-@keyframes marquee {
-  from { transform: translateX(0); }
-  to   { transform: translateX(-100%); }
 }
 
 /* ---------------------------------------------------------------------
@@ -534,6 +474,7 @@ input:focus, textarea:focus, select:focus {
 .badge-live  { color: var(--tertiary); border-color: var(--tertiary); }
 .badge-draft { color: var(--muted); }
 .badge-admin { color: var(--primary); border-color: var(--primary); }
+.badge-warn  { color: var(--warning); border-color: var(--warning); }
 
 /* ---------------------------------------------------------------------
    Dashboard / admin layout

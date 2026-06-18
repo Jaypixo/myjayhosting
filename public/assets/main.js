@@ -1,29 +1,4 @@
-// MyJay shared client utilities: status bar uptime, nav auth state, API helpers.
-
-const LAUNCH_DATE = new Date('2025-01-01T00:00:00Z');
-
-function pad(n) {
-  return String(n).padStart(2, '0');
-}
-
-function formatUptime(ms) {
-  const totalSeconds = Math.floor(ms / 1000);
-  const days = Math.floor(totalSeconds / 86400);
-  const hours = Math.floor((totalSeconds % 86400) / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-  return `${days}d ${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
-}
-
-function initUptime() {
-  const el = document.querySelector('[data-uptime]');
-  if (!el) return;
-  const tick = () => {
-    el.textContent = `uptime ${formatUptime(Date.now() - LAUNCH_DATE.getTime())}`;
-  };
-  tick();
-  setInterval(tick, 1000);
-}
+// MyJay shared client utilities: nav auth state, API helpers.
 
 export async function apiFetch(path, options = {}) {
   const headers = { ...(options.headers || {}) };
@@ -93,7 +68,6 @@ async function initAnnouncement() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  initUptime();
   initNav();
   initAnnouncement();
 });

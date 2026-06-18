@@ -366,12 +366,28 @@ POST /api/site/publish       { published: bool } → { ok }
 
 GET  /api/explore            → { sites: [{ username, siteTitle, updatedAt, viewCount }] }
 
+POST /api/contact            { category, username?, email, message } → { ok }  (public, no session)
+
 GET  /api/admin/users        → { users: [...] }
 PATCH /api/admin/users/:id   { role?, banned?, password? } → { ok }
 DELETE /api/admin/users/:id  → { ok }
 GET  /api/admin/sites        → { sites: [...] }
 DELETE /api/admin/sites/:id  → { ok }
+GET  /api/admin/contact      → { messages: [{ id, category, username, email, message, status, createdAt }] }
+PATCH /api/admin/contact/:id { status: 'new'|'read'|'replied' } → { ok }
+DELETE /api/admin/contact/:id → { ok }
 ```
+
+Contact form categories (`functions/api/contact/index.js`, mirrored in the `<select>` in
+`public/contact.html`): `general`, `bug`, `abuse`, `account`, `feature`, `press`, `other`.
+
+There is no outbound email sending configured for this project (no Email Routing / Workers
+Send Email binding). The admin panel's "Reply" action on a contact message is a `mailto:`
+link that opens the admin's own email client with the sender's address, a subject line, and
+the original message quoted, it does not send anything server-side. If real server-side
+email sending is wanted later, that needs Cloudflare Email Routing (or a third-party SMTP/API
+provider) configured against the `myjay.net` domain, which touches DNS and isn't something to
+wire up casually.
 
 ---
 
@@ -439,6 +455,7 @@ npx wrangler pages deployment tail
 - **File size limits:** Cloudflare Pages Functions have a 25MB request body limit. For uploads > 25MB, you'll need a pre-signed R2 URL flow, defer this to Phase 2.
 - **Do not hardcode secrets.** All secrets come from environment variables or `wrangler secret put`.
 - **Subdomains are case-insensitive.** Normalize usernames to lowercase everywhere.
+- **No scrolling marquee / fixed top status bar.** An earlier iteration had a `position: fixed` bar across the top of every page with a blinking cursor and a scrolling marquee (`status: nominal :: ...`). It was removed as silly and distracting. Do not re-add a global ticker/marquee/status bar of this kind.
 
 ---
 

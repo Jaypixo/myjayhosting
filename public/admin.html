@@ -10,13 +10,6 @@
   <link rel="stylesheet" href="/assets/style.css">
 </head>
 <body>
-  <div class="status-bar">
-    <span class="cursor"></span>
-    <span class="version">myjay v0.1.0-alpha</span>
-    <span class="uptime" data-uptime>uptime 0d 00:00:00</span>
-    <div class="marquee"><span>status: nominal :: admin panel :: owner access only :: handle with care ::</span></div>
-  </div>
-
   <header class="torn-header compact">
     <div class="nav-auth" data-nav-auth>
       <a href="/login.html" class="btn btn-sm btn-outline">Log in</a>
@@ -30,6 +23,7 @@
       <a href="/">Home</a>
       <a href="/explore.html">Explore</a>
       <a href="/help.html">Help</a>
+      <a href="/contact.html">Contact</a>
     </nav>
   </header>
 
@@ -43,6 +37,7 @@
       <div class="tabs">
         <button class="active" data-tab="users-panel">Users</button>
         <button data-tab="sites-panel">Sites</button>
+        <button data-tab="contact-panel">Contact <span class="badge hidden" id="contact-new-badge">0</span></button>
         <button data-tab="stats-panel">Stats</button>
         <button data-tab="settings-panel">Settings</button>
       </div>
@@ -89,6 +84,25 @@
           </thead>
           <tbody id="sites-body">
             <tr><td colspan="7" class="text-muted">loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div id="contact-panel" class="tab-panel">
+        <p class="text-muted">Submissions from <a href="/contact.html">the contact form</a>. Reply opens your email client with the sender's address pre-filled; nothing is sent server-side.</p>
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Category</th>
+              <th>From</th>
+              <th>Message</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="contact-body">
+            <tr><td colspan="6" class="text-muted">loading...</td></tr>
           </tbody>
         </table>
       </div>
@@ -367,6 +381,110 @@
       loadSites();
     }
 
+    // --- Contact tab --------------------------------------------------------
+
+    const CATEGORY_LABELS = {
+      general: 'General', bug: 'Bug report', abuse: 'Abuse report',
+      account: 'Account help', feature: 'Feature request', press: 'Press', other: 'Other',
+    };
+
+    async function setContactStatus(id, status) {
+      await apiFetch(`/api/admin/contact/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) });
+    }
+
+    async function deleteContact(id) {
+      if (!confirm('Delete this message permanently?')) return;
+      await apiFetch(`/api/admin/contact/${id}`, { method: 'DELETE' });
+      loadContact();
+    }
+
+    async function loadContact() {
+      const res = await apiFetch('/api/admin/contact');
+      const data = await res.json();
+      const messages = data.messages || [];
+
+      const badge = document.getElementById('contact-new-badge');
+      const newCount = messages.filter((m) => m.status === 'new').length;
+      badge.textContent = String(newCount);
+      badge.classList.toggle('hidden', newCount === 0);
+
+      const body = document.getElementById('contact-body');
+      body.innerHTML = '';
+
+      if (messages.length === 0) {
+        body.innerHTML = '<tr><td colspan="6" class="text-muted">No messages.</td></tr>';
+        return;
+      }
+
+      for (const m of messages) {
+        const tr = document.createElement('tr');
+
+        const msgCell = document.createElement('td');
+        msgCell.style.maxWidth = '320px';
+        msgCell.style.whiteSpace = 'pre-wrap';
+        msgCell.style.cursor = 'pointer';
+        msgCell.title = 'Click to expand/collapse';
+        const short = m.message.length > 90 ? m.message.slice(0, 90) + '…' : m.message;
+        msgCell.textContent = short;
+        let expanded = false;
+        msgCell.addEventListener('click', () => {
+          expanded = !expanded;
+          msgCell.textContent = expanded ? m.message : short;
+        });
+
+        const fromCell = document.createElement('td');
+        fromCell.textContent = m.username ? `${m.username} <${m.email}>` : m.email;
+
+        const statusTd = document.createElement('td');
+        const badgeEl = document.createElement('span');
+        badgeEl.className = m.status === 'replied' ? 'badge badge-live' : m.status === 'read' ? 'badge' : 'badge badge-warn';
+        badgeEl.textContent = m.status;
+        statusTd.appendChild(badgeEl);
+
+        const replyLink = document.createElement('a');
+        replyLink.className = 'btn btn-ghost btn-sm';
+        replyLink.textContent = 'Reply';
+        const subject = `Re: ${CATEGORY_LABELS[m.category] || m.category} — MyJay.net`;
+        const replyBody = `\n\n----- original message -----\n${m.message}`;
+        replyLink.href = `mailto:${m.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(replyBody)}`;
+        replyLink.addEventListener('click', async () => {
+          if (m.status === 'new') {
+            await setContactStatus(m.id, 'replied');
+            loadContact();
+          }
+        });
+
+        const readBtn = document.createElement('button');
+        readBtn.className = 'btn btn-ghost btn-sm';
+        readBtn.textContent = m.status === 'new' ? 'Mark read' : 'Mark new';
+        readBtn.addEventListener('click', async () => {
+          await setContactStatus(m.id, m.status === 'new' ? 'read' : 'new');
+          loadContact();
+        });
+
+        const delBtn = document.createElement('button');
+        delBtn.className = 'btn btn-danger btn-sm';
+        delBtn.textContent = 'Delete';
+        delBtn.addEventListener('click', () => deleteContact(m.id));
+
+        const actions = document.createElement('td');
+        actions.style.display = 'flex';
+        actions.style.gap = '0.5rem';
+        actions.style.flexWrap = 'wrap';
+        actions.appendChild(replyLink);
+        actions.appendChild(readBtn);
+        actions.appendChild(delBtn);
+
+        tr.appendChild(td(formatDate(m.createdAt)));
+        tr.appendChild(td(CATEGORY_LABELS[m.category] || m.category));
+        tr.appendChild(fromCell);
+        tr.appendChild(msgCell);
+        tr.appendChild(statusTd);
+        tr.appendChild(actions);
+        body.appendChild(tr);
+      }
+    }
+
     function countryFlag(code) {
       if (!code || code === 'XX' || code.length !== 2) return '🌐';
       const upper = code.toUpperCase();
@@ -522,7 +640,7 @@
         return;
       }
       setupTabs();
-      await Promise.all([loadUsers(), loadSites(), loadStats(), loadSettings()]);
+      await Promise.all([loadUsers(), loadSites(), loadContact(), loadStats(), loadSettings()]);
     }
 
     init();

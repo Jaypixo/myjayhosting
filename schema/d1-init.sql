@@ -51,3 +51,16 @@ INSERT OR IGNORE INTO settings (key, value) VALUES ('maintenance_mode', '0');
 INSERT OR IGNORE INTO settings (key, value) VALUES ('announcement', '');
 INSERT OR IGNORE INTO settings (key, value) VALUES ('announcement_enabled', '0');
 INSERT OR IGNORE INTO settings (key, value) VALUES ('registration_enabled', '1');
+
+-- Contact form submissions (public/contact.html), reviewed from the admin panel.
+CREATE TABLE IF NOT EXISTS contact_messages (
+  id TEXT PRIMARY KEY,            -- UUID
+  category TEXT NOT NULL,         -- see CATEGORIES in functions/api/contact/index.js
+  username TEXT,                  -- optional, the sender's myjay username if provided
+  email TEXT NOT NULL,
+  message TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'new', -- 'new' | 'read' | 'replied'
+  created_at TEXT NOT NULL        -- ISO 8601
+);
+
+CREATE INDEX IF NOT EXISTS idx_contact_messages_created ON contact_messages(created_at DESC);

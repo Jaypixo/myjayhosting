@@ -10,13 +10,6 @@
   <link rel="stylesheet" href="/assets/style.css">
 </head>
 <body>
-  <div class="status-bar">
-    <span class="cursor"></span>
-    <span class="version">myjay v0.1.0-alpha</span>
-    <span class="uptime" data-uptime>uptime 0d 00:00:00</span>
-    <div class="marquee"><span>status: nominal :: system status :: all components self-reporting fine ::</span></div>
-  </div>
-
   <header class="torn-header compact">
     <div class="nav-auth" data-nav-auth>
       <a href="/login.html" class="btn btn-sm btn-outline">Log in</a>
@@ -31,6 +24,7 @@
       <a href="/explore.html">Explore</a>
       <a href="/help.html">Help</a>
       <a href="/about.html">About</a>
+      <a href="/contact.html">Contact</a>
     </nav>
   </header>
 
@@ -102,7 +96,7 @@ page views served:  <span id="stats-views">...</span>
   </main>
 
   <footer class="footer">
-    <span class="footnote">[1] The uptime counter in the status bar is decorative. It counts since launch, not since the last restart (Workers don't really "restart").</span>
+    <span class="footnote">[1] This page reflects platform settings and a manual read of Cloudflare's own status. There's no automated incident detection here.</span>
     <span class="footnote">[2] v0.1.0-alpha, built on Cloudflare Pages, Workers, D1, R2, KV.</span>
     <span class="footnote">[3] <a href="/status.html">Status</a> · <a href="/privacy.html">Privacy</a> · <a href="/terms.html">Terms</a></span>
   </footer>
