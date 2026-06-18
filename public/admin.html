@@ -129,8 +129,8 @@
 
         <h3 class="mt-2">Top locations</h3>
         <p class="text-muted">
-          Rough location only, based on Cloudflare's edge location for each
-          request. Aggregated across all published sites.
+          Rough location only, guessed from the network location that handled
+          the request. Aggregated across all published sites.
         </p>
         <table>
           <thead>
@@ -187,7 +187,7 @@
 
   <footer class="footer">
     <span class="footnote">[1] Admin actions take effect immediately. There is no undo.</span>
-    <span class="footnote">[2] v0.1.0-alpha, built on Cloudflare Pages, Workers, D1, R2, KV.</span>
+    <span class="footnote">[2] v0.1.0-alpha, independently run.</span>
     <span class="footnote">[3] <a href="/status.html">Status</a> · <a href="/privacy.html">Privacy</a> · <a href="/terms.html">Terms</a></span>
   </footer>
 
@@ -384,8 +384,10 @@
     // --- Contact tab --------------------------------------------------------
 
     const CATEGORY_LABELS = {
-      general: 'General', bug: 'Bug report', abuse: 'Abuse report',
-      account: 'Account help', feature: 'Feature request', press: 'Press', other: 'Other',
+      general: 'General', account: 'Account help', billing: 'Billing / Pro plan',
+      feature: 'Feature request', abuse: 'Abuse report', dmca: 'DMCA takedown',
+      security: 'Security report', privacy: 'Data request', bug: 'Bug report',
+      press: 'Press', partnership: 'Partnership', other: 'Other',
     };
 
     async function setContactStatus(id, status) {
@@ -444,7 +446,7 @@
         const replyLink = document.createElement('a');
         replyLink.className = 'btn btn-ghost btn-sm';
         replyLink.textContent = 'Reply';
-        const subject = `Re: ${CATEGORY_LABELS[m.category] || m.category} — MyJay.net`;
+        const subject = `Re: ${CATEGORY_LABELS[m.category] || m.category} (MyJay.net)`;
         const replyBody = `\n\n----- original message -----\n${m.message}`;
         replyLink.href = `mailto:${m.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(replyBody)}`;
         replyLink.addEventListener('click', async () => {

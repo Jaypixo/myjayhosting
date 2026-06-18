@@ -32,9 +32,8 @@
     <section>
       <h1>Status.</h1>
       <p class="text-muted">
-        No incident history yet, there's only been one incident so far and
-        it was a typo. This page reflects live settings and Cloudflare's own
-        infrastructure status.
+        No real incident history yet. There's only been one so far and it
+        was a typo. This page reflects live platform settings.
       </p>
       <div class="terminal-log">
 <span class="dim">$ myjay status --verbose</span>
@@ -53,37 +52,35 @@ page views served:  <span id="stats-views">...</span>
         </thead>
         <tbody>
           <tr>
-            <td>Cloudflare Pages</td>
-            <td>Serves myjay.net + the API</td>
+            <td>Web frontend</td>
+            <td>Serves myjay.net and the dashboard</td>
             <td><span class="badge badge-live">operational</span></td>
           </tr>
           <tr>
-            <td>myjay-router Worker</td>
-            <td>Serves <code>username.myjay.net</code> from R2</td>
+            <td>Subdomain router</td>
+            <td>Serves <code>username.myjay.net</code></td>
             <td><span class="badge badge-live">operational</span></td>
           </tr>
           <tr>
-            <td>D1 (myjay-db)</td>
+            <td>Account database</td>
             <td>Accounts, sites, settings</td>
             <td><span class="badge badge-live">operational</span></td>
           </tr>
           <tr>
-            <td>R2 (myjay-sites)</td>
-            <td>User file storage</td>
+            <td>File storage</td>
+            <td>User uploaded site files</td>
             <td><span class="badge badge-live">operational</span></td>
           </tr>
           <tr>
-            <td>KV (myjay-sessions)</td>
+            <td>Session store</td>
             <td>Login sessions</td>
             <td><span class="badge badge-live">operational</span></td>
           </tr>
         </tbody>
       </table>
       <p class="text-muted mt-1">
-        These reflect Cloudflare's own infrastructure. If Cloudflare is
-        having a bad day, so are we. Check
-        <a href="https://www.cloudflarestatus.com/" target="_blank" rel="noopener">cloudflarestatus.com</a>
-        for the real source of truth.
+        This table is a manual read, not a live health check. If something
+        upstream of us has a bad day, this site usually does too.
       </p>
     </section>
 
@@ -96,8 +93,8 @@ page views served:  <span id="stats-views">...</span>
   </main>
 
   <footer class="footer">
-    <span class="footnote">[1] This page reflects platform settings and a manual read of Cloudflare's own status. There's no automated incident detection here.</span>
-    <span class="footnote">[2] v0.1.0-alpha, built on Cloudflare Pages, Workers, D1, R2, KV.</span>
+    <span class="footnote">[1] This page reflects platform settings, checked by hand. There's no automated incident detection here.</span>
+    <span class="footnote">[2] v0.1.0-alpha, independently run.</span>
     <span class="footnote">[3] <a href="/status.html">Status</a> · <a href="/privacy.html">Privacy</a> · <a href="/terms.html">Terms</a></span>
   </footer>
 

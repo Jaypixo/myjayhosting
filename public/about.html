@@ -39,11 +39,9 @@
         and a place to put HTML, CSS, JS, and a few images. That's it.
       </p>
       <p>
-        There's no editor magic, no themes, no templates. You bring the files, we serve them.
-        It's built entirely on Cloudflare's infrastructure: Pages for the platform UI,
-        Workers for routing subdomains, D1 for accounts, R2 for your files, and KV
-        for sessions. No traditional server. No database for your site's content.
-        Your files are your site.
+        There's no editor magic, no themes, no templates. You bring the files, we
+        serve them. There's no database for your site's content and no content
+        management layer in the way. Your files are your site.
       </p>
     </section>
 
@@ -79,7 +77,7 @@
         </thead>
         <tbody>
           <tr><td>Storage</td><td>50 MB</td><td>per account, total</td></tr>
-          <tr><td>Upload per request</td><td>25 MB</td><td>Cloudflare Pages Functions hard ceiling</td></tr>
+          <tr><td>Upload per request</td><td>25 MB</td><td>a hard ceiling on the current platform</td></tr>
           <tr><td>Sites per account</td><td>1</td><td>Phase 2 may add multiple sites</td></tr>
           <tr><td>File types</td><td>html, css, js, jpg, png, gif, webp, svg, ico, txt, md, json, xml, woff, woff2, ttf</td><td>executables rejected</td></tr>
           <tr><td>Server-side code</td><td class="compare-no">None</td><td>static files only</td></tr>
@@ -96,15 +94,26 @@
       <span class="section-label">// the why</span>
       <h2>The ethos.</h2>
       <p>
-        The old web was messy and personal and occasionally ugly, and that was good.
-        MyJay exists for the indie web before it, every
-        hand-coded "under construction" GIF was a better place to put a website
+        The old web was messy, personal, and occasionally ugly, and that was
+        good. MyJay is for that version of the internet, back when a
+        hand-coded "under construction" GIF was a better home for a website
         than a profile on someone else's platform.
       </p>
       <p>
-        No algorithm decides who sees your page. No analytics script reports back on
-        who's looking. No ads, here or on your site. There's no VC money behind this,
-        which means there's no pressure to monetize you.
+        No algorithm decides who sees your page. No analytics script reports
+        back on who's looking. No ads, here or on your site. There's no VC
+        money behind this, so there's no pressure to monetize you either.
+      </p>
+    </section>
+
+    <section>
+      <span class="section-label">// who's behind this</span>
+      <h2>One person, not a company.</h2>
+      <p class="text-muted">
+        MyJay is built and run by Jaypix. No team, no support tiers, no
+        ticket queue. If something breaks, <a href="/contact.html">say so</a>
+        and it gets fixed by the same person who broke it in the first place.
+        More work at <a href="https://jaypix.dev" target="_blank" rel="noopener">jaypix.dev</a>.
       </p>
     </section>
 
@@ -113,13 +122,13 @@
       <h2>Dev log.</h2>
       <p class="text-muted">Rough order, no promises on timing.</p>
       <ul class="roadmap-list">
-        <li><span class="badge badge-live">done</span> v0.1.0-alpha — accounts, dashboard, file manager, code editor, publishing, explore page</li>
-        <li><span class="badge badge-warn">next</span> blog tool — a simple posts list + RSS, still static files under the hood</li>
-        <li><span class="badge badge-warn">next</span> guestbook — leave a note on someone's site, the old-fashioned way</li>
-        <li><span class="badge badge-draft">later</span> microblog — short posts, your own little timeline</li>
-        <li><span class="badge badge-draft">later</span> custom domains — point your own .com at your myjay site</li>
-        <li><span class="badge badge-draft">later</span> pro plan — more storage, for people who outgrow 50MB</li>
-        <li><span class="badge">maybe</span> indie ad network — opt-in, between sites only, never forced</li>
+        <li><span class="badge badge-live">done</span> v0.1.0-alpha: accounts, dashboard, file manager, code editor, publishing, explore page</li>
+        <li><span class="badge badge-warn">next</span> blog tool: a simple posts list and RSS feed, still static files under the hood</li>
+        <li><span class="badge badge-warn">next</span> guestbook: leave a note on someone's site, the old-fashioned way</li>
+        <li><span class="badge badge-draft">later</span> microblog: short posts, your own little timeline</li>
+        <li><span class="badge badge-draft">later</span> custom domains: point your own .com at your myjay site</li>
+        <li><span class="badge badge-draft">later</span> pro plan: more storage, for people who outgrow 50MB</li>
+        <li><span class="badge">maybe</span> indie ad network: opt-in, between sites only, never forced</li>
       </ul>
     </section>
 
@@ -134,7 +143,7 @@
 
   <footer class="footer">
     <span class="footnote">[1] Questions or bugs? Email <a href="mailto:jaypix@myjay.net">jaypix@myjay.net</a>.</span>
-    <span class="footnote">[2] v0.1.0-alpha · built on Cloudflare Pages, Workers, D1, R2, KV</span>
+    <span class="footnote">[2] v0.1.0-alpha, independently run.</span>
     <span class="footnote">[3] <a href="/status.html">Status</a> · <a href="/privacy.html">Privacy</a> · <a href="/terms.html">Terms</a></span>
   </footer>
 

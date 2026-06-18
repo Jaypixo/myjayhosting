@@ -1,7 +1,11 @@
 import { isValidEmail, json, errorResponse } from '../../_lib/auth.js';
 
 // Keep this in sync with the <select> options in public/contact.html.
-const CATEGORIES = new Set(['general', 'bug', 'abuse', 'account', 'feature', 'press', 'other']);
+const CATEGORIES = new Set([
+  'general', 'account', 'billing', 'feature',
+  'abuse', 'dmca', 'security', 'privacy',
+  'bug', 'press', 'partnership', 'other',
+]);
 
 const MAX_MESSAGE_LENGTH = 4000;
 const MAX_USERNAME_LENGTH = 32;

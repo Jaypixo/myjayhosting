@@ -47,14 +47,14 @@ password:        never stored in plain text, PBKDF2-SHA256, salted
 site files:      whatever you upload, public if your site is published
 bio / site title: optional, public if you fill them in
 session cookie:  random token, HttpOnly + Secure, expires after 30 days
-ip address:      transient, in Cloudflare's request logs, we don't query these
+ip address:      transient, in our request logs, we don't query these
       </div>
     </section>
 
     <section>
       <h2>What we don't do.</h2>
       <ul>
-        <li>No analytics scripts on <code>myjay.net</code> or the dashboard. View counts on your published site are a single number in D1, incremented server-side. No per-visitor tracking.</li>
+        <li>No analytics scripts on <code>myjay.net</code> or the dashboard. View counts on your published site are a single number in our database, incremented server-side. No per-visitor tracking.</li>
         <li>No third-party trackers, pixels, or ad networks anywhere on the platform.</li>
         <li>No selling, renting, or sharing account data with anyone. There's no one to sell it to, and we wouldn't if there were.</li>
         <li>No reading the contents of your files except when an admin action requires it (e.g. investigating abuse reports).</li>
@@ -106,7 +106,7 @@ ip address:      transient, in Cloudflare's request logs, we don't query these
 
   <footer class="footer">
     <span class="footnote">[1] Questions about this policy? There's no contact form yet, see <a href="/about.html">about</a>.</span>
-    <span class="footnote">[2] v0.1.0-alpha, built on Cloudflare Pages, Workers, D1, R2, KV.</span>
+    <span class="footnote">[2] v0.1.0-alpha, independently run.</span>
     <span class="footnote">[3] <a href="/status.html">Status</a> · <a href="/privacy.html">Privacy</a> · <a href="/terms.html">Terms</a></span>
   </footer>
 

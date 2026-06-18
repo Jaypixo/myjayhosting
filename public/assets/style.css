@@ -229,6 +229,12 @@ a:hover {
   padding: 0 1.5rem 3rem;
 }
 
+.wrapper-medium {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 1.5rem 3rem;
+}
+
 .layout-grid {
   display: grid;
   grid-template-columns: 270px 1fr;
@@ -400,6 +406,52 @@ input:focus, textarea:focus, select:focus {
 
 .auth-section h1 {
   margin-bottom: 0.35rem;
+}
+
+/* ---------------------------------------------------------------------
+   Contact page
+   --------------------------------------------------------------------- */
+
+.contact-layout {
+  display: grid;
+  grid-template-columns: 1fr 260px;
+  gap: 2rem;
+  align-items: start;
+  margin-top: 1.5rem;
+}
+
+.contact-card {
+  border-top: 3px solid var(--primary);
+}
+
+.contact-sidebar .card {
+  border-top: 3px solid var(--secondary);
+  position: sticky;
+  top: 1.5rem;
+}
+
+.contact-tips {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.contact-tips li {
+  margin-bottom: 0.6rem;
+}
+
+.contact-tips li:last-child {
+  margin-bottom: 0;
+}
+
+@media (max-width: 760px) {
+  .contact-layout {
+    grid-template-columns: 1fr;
+  }
+  .contact-sidebar .card {
+    position: static;
+  }
 }
 
 /* ---------------------------------------------------------------------

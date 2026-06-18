@@ -343,6 +343,8 @@ Every HTML page in `public/` must implement the Papyrus/Terminal design system e
 - Dry, technical, slightly self-aware
 - Metadata feels like system output: `v0.1.0-alpha`, `status: nominal`
 - Terminal log blocks are for genuinely log-like or code-like content (raw data dumps, code samples); prefer tables, lists, and badges for anything a user needs to actually read and act on
+- Write like a human, not a press release. No em dashes anywhere in user-facing copy, use commas, periods, or colons instead.
+- Never name the hosting vendor (or its products: Pages, Workers, D1, R2, KV, etc.) in anything a visitor can read. Footers, status pages, and prose should describe things generically ("independently run", "the platform", "our database", "the network edge that handled the request"). This is a deliberate choice, not an oversight, don't "helpfully" add the vendor name back in.
 
 ---
 
@@ -379,13 +381,15 @@ DELETE /api/admin/contact/:id → { ok }
 ```
 
 Contact form categories (`functions/api/contact/index.js`, mirrored in the `<select>` in
-`public/contact.html`): `general`, `bug`, `abuse`, `account`, `feature`, `press`, `other`.
+`public/contact.html` and the `CATEGORY_LABELS` map in `public/admin.html`): `general`,
+`account`, `billing`, `feature`, `abuse`, `dmca`, `security`, `privacy`, `bug`, `press`,
+`partnership`, `other`. Keep all three in sync if this list changes.
 
 There is no outbound email sending configured for this project (no Email Routing / Workers
 Send Email binding). The admin panel's "Reply" action on a contact message is a `mailto:`
 link that opens the admin's own email client with the sender's address, a subject line, and
 the original message quoted, it does not send anything server-side. If real server-side
-email sending is wanted later, that needs Cloudflare Email Routing (or a third-party SMTP/API
+email sending is wanted later, that needs server-side email routing (or a third-party SMTP/API
 provider) configured against the `myjay.net` domain, which touches DNS and isn't something to
 wire up casually.
 

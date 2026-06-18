@@ -28,64 +28,93 @@
     </nav>
   </header>
 
-  <main class="wrapper">
-    <section class="auth-section">
+  <main class="wrapper-medium">
+    <section>
       <span class="section-label">// reach out</span>
       <h1>Get in touch.</h1>
       <p class="text-muted">
-        Bug, question, abuse report, or just saying hi, pick a category below.
-        A human reads these, not a bot, so expect a reply over email rather
-        than an instant response.
+        Bug, question, abuse report, or just saying hi, pick a category below
+        and send it over. A person reads every one of these. Nobody on this
+        platform is a chatbot yet.
       </p>
 
-      <div class="card" id="contact-card">
-        <form id="contact-form">
-          <div class="form-error" id="form-error"></div>
+      <div class="contact-layout">
+        <div>
+          <div class="card contact-card" id="contact-card">
+            <form id="contact-form">
+              <div class="form-error" id="form-error"></div>
 
-          <div class="field">
-            <label for="category">Category</label>
-            <select id="category" name="category" required>
-              <option value="" disabled selected>Choose one...</option>
-              <option value="general">General question</option>
-              <option value="bug">Bug report</option>
-              <option value="abuse">Report abuse / a site</option>
-              <option value="account">Account help</option>
-              <option value="feature">Feature request</option>
-              <option value="press">Press / partnership</option>
-              <option value="other">Other</option>
-            </select>
+              <div class="field">
+                <label for="category">Category</label>
+                <select id="category" name="category" required>
+                  <option value="" disabled selected>Choose one...</option>
+                  <optgroup label="Account &amp; platform">
+                    <option value="general">General question</option>
+                    <option value="account">Account help</option>
+                    <option value="billing">Billing / Pro plan</option>
+                    <option value="feature">Feature request</option>
+                  </optgroup>
+                  <optgroup label="Trust &amp; safety">
+                    <option value="abuse">Report abuse or a site</option>
+                    <option value="dmca">Copyright / DMCA takedown</option>
+                    <option value="security">Security report</option>
+                    <option value="privacy">Data request</option>
+                  </optgroup>
+                  <optgroup label="Technical">
+                    <option value="bug">Bug report</option>
+                  </optgroup>
+                  <optgroup label="Business">
+                    <option value="press">Press</option>
+                    <option value="partnership">Partnership</option>
+                  </optgroup>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+
+              <div class="field">
+                <label for="username">Your myjay username <span class="text-muted">(optional)</span></label>
+                <input type="text" id="username" name="username" maxlength="32" placeholder="e.g. noah">
+              </div>
+
+              <div class="field">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" autocomplete="email" required placeholder="you@example.com">
+                <p class="field-hint">So we can actually reply. Never shown publicly.</p>
+              </div>
+
+              <div class="field">
+                <label for="message">Message</label>
+                <textarea id="message" name="message" rows="6" maxlength="4000" required placeholder="What's going on?"></textarea>
+              </div>
+
+              <button type="submit" class="btn" id="submit-btn">Send message →</button>
+            </form>
           </div>
 
-          <div class="field">
-            <label for="username">Your myjay username <span class="text-muted">(optional)</span></label>
-            <input type="text" id="username" name="username" maxlength="32" placeholder="e.g. noah">
+          <div class="card contact-card hidden" id="contact-success">
+            <h3 class="text-ok">Message sent.</h3>
+            <p class="text-muted">Thanks, that's in the queue now. If it needs a reply, it'll land in the inbox you gave.</p>
           </div>
+        </div>
 
-          <div class="field">
-            <label for="email">Email</label>
-            <input type="email" id="email" name="email" autocomplete="email" required placeholder="you@example.com">
-            <p class="field-hint">So we can actually reply. Never shown publicly.</p>
+        <aside class="contact-sidebar">
+          <div class="card">
+            <h3>Before you send this</h3>
+            <ul class="contact-tips">
+              <li>Setup or "how do I" questions are usually already answered on the <a href="/help.html">help page</a>.</li>
+              <li>Abuse or takedown reports go faster with the full <code>username.myjay.net</code> URL and a short explanation.</li>
+              <li>Security reports: tell us what you found and how to reproduce it. We'll follow up directly.</li>
+              <li>This is a small operation. Replies usually take a day or two, not minutes.</li>
+            </ul>
           </div>
-
-          <div class="field">
-            <label for="message">Message</label>
-            <textarea id="message" name="message" rows="6" maxlength="4000" required placeholder="What's going on?"></textarea>
-          </div>
-
-          <button type="submit" class="btn" id="submit-btn">Send message →</button>
-        </form>
-      </div>
-
-      <div class="card hidden" id="contact-success">
-        <h3 class="text-ok">Message sent.</h3>
-        <p class="text-muted">Thanks, that's in the queue. If it warrants a reply, it'll come to the email you gave.</p>
+        </aside>
       </div>
     </section>
   </main>
 
   <footer class="footer">
-    <span class="footnote">[1] Abuse reports: please include the <code>username.myjay.net</code> URL and what's wrong with it.</span>
-    <span class="footnote">[2] v0.1.0-alpha, built on Cloudflare Pages, Workers, D1, R2, KV.</span>
+    <span class="footnote">[1] Abuse and takedown reports: please include the full <code>username.myjay.net</code> URL and what's wrong with it.</span>
+    <span class="footnote">[2] v0.1.0-alpha, independently run.</span>
     <span class="footnote">[3] <a href="/status.html">Status</a> · <a href="/privacy.html">Privacy</a> · <a href="/terms.html">Terms</a></span>
   </footer>
 
