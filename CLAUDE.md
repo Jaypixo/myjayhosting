@@ -435,8 +435,10 @@ don't add a fake row for it, leave it out instead.
 
 ## Documentation Section (`/docs`)
 
-A long-form reference, separate from `help.html` (which stays the five-minute
-quickstart + short FAQ). Lives at `public/docs/`, one file per topic, all
+The long-form reference for the whole platform. There is no separate
+`help.html`, it was removed, `/docs/getting-started` is the quickstart and
+the rest of `/docs` is the FAQ/reference, don't recreate a second "quick
+help" page alongside it. Lives at `public/docs/`, one file per topic, all
 served at clean URLs via the same `.html`-stripping behavior as the rest of
 the site.
 
@@ -452,7 +454,7 @@ or reordering a page means touching things in multiple places:
 2. Add it to the `.docs-nav` sidebar block in **every** existing docs page (it's duplicated, not shared), and mark the current page's link `class="active"`.
 3. Wire up `.docs-pager` prev/next links on the new page and on its new neighbors.
 4. Add it to `sitemap.xml` and to the "Documentation" section of `llms.txt`.
-5. The main site nav (`Home / Explore / Docs / Help / About / Contact`) only links to `/docs` itself, individual sub-pages are reached from the sidebar, not the top nav.
+5. The main site nav (`Home / Explore / Docs / About / Contact`) only links to `/docs` itself, individual sub-pages are reached from the sidebar, not the top nav.
 
 **Accuracy bar is high here on purpose**, this section exists to be the
 correct, detailed answer, not a teaser. Before writing or editing a docs page,

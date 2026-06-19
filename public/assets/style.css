@@ -246,7 +246,7 @@ a:hover {
   align-items: start;
   max-width: 1100px;
   margin: 0 auto;
-  padding: 0 1.5rem 3rem;
+  padding: 2rem 1.5rem 3rem;
 }
 
 .docs-sidebar {
@@ -334,8 +334,9 @@ a:hover {
 }
 
 .feature-grid a.card {
+  display: block;
   color: var(--ink);
-  border-bottom: none;
+  border: 1px solid var(--border);
   transition: border-color 0.15s ease;
 }
 
@@ -587,6 +588,12 @@ input:focus, textarea:focus, select:focus {
 
 .card + .card {
   margin-top: 1rem;
+}
+
+/* Grids lay cards out with `gap`, not stacking margin, the rule above is
+   only meant for cards stacked directly in normal flow. */
+.feature-grid .card + .card {
+  margin-top: 0;
 }
 
 /* ---------------------------------------------------------------------

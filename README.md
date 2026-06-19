@@ -338,11 +338,13 @@ server-side (`GET /api/admin/users?q=...`, matched against `username` and
 
 ### New static pages
 
-- **`/help.html`**: getting-started guide and troubleshooting FAQ
-- **`/status.html`**: live maintenance state + Cloudflare component status
+- **`/docs/*`**: long-form documentation, one page per topic, see the "Documentation Section" notes in `CLAUDE.md`
+- **`/status.html`**: live system checks + maintenance state
 - **`/privacy.html`**: privacy policy
 - **`/terms.html`**: terms of use
 - **`/maintenance.html`**: shown platform-wide during maintenance mode
 
 All follow the Papyrus/Terminal design system and are linked from the footer
-(`[3]`) and main nav (`Help`) on every page.
+(`[3]`) and main nav on every page. There's no separate `/help.html`, the
+old quickstart + FAQ page, `/docs/getting-started` and the rest of `/docs`
+replaced it entirely.
