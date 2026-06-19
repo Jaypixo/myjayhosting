@@ -18,10 +18,14 @@ const PUBLIC_API_PATHS = new Set([
   '/api/auth/login',
   '/api/auth/logout',
   '/api/auth/check-username',
+  '/api/auth/resend-verification',
+  '/api/auth/request-reset',
+  '/api/auth/reset',
   '/api/explore',
   '/api/settings',
   '/api/contact',
   '/api/health',
+  '/api/webhooks/resend',
 ]);
 
 // Paths that must stay reachable even while maintenance mode is on: the
@@ -34,6 +38,7 @@ const MAINTENANCE_ALLOWLIST = new Set([
   '/maintenance.html', '/maintenance',
   '/login.html', '/login',
   '/robots.txt', '/sitemap.xml', '/llms.txt',
+  '/auth/verify', '/auth/reset', '/unsubscribe',
 ]);
 
 function isAllowedOrigin(origin) {

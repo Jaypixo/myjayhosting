@@ -141,10 +141,10 @@ export function clearSessionCookie() {
 
 // D1 user lookups
 export async function getUserById(env, id) {
-  // D1 better actually return the user this time. 
+  // D1 better actually return the user this time.
   // Istg if this returns an empty object I'm jumping.
   return env.DB.prepare(
-    'SELECT id, email, username, role, banned, created_at, bio, site_title FROM users WHERE id = ?'
+    'SELECT id, email, username, role, banned, email_verified, created_at, bio, site_title FROM users WHERE id = ?'
   )
     .bind(id)
     .first();
@@ -153,7 +153,7 @@ export async function getUserById(env, id) {
 export async function getUserByEmail(env, email) {
   // Need the hash here to actually verify the login. Obviously.
   return env.DB.prepare(
-    'SELECT id, email, username, password_hash, role, banned, created_at, bio, site_title FROM users WHERE email = ?'
+    'SELECT id, email, username, password_hash, role, banned, email_verified, created_at, bio, site_title FROM users WHERE email = ?'
   )
     .bind(email)
     .first();

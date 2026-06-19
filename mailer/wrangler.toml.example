@@ -1,0 +1,21 @@
+# Copy this file to mailer/wrangler.toml and fill in your account/database ID.
+# Used only if you deploy with `wrangler deploy` from the mailer/ directory.
+
+name = "myjay-mailer"
+main = "mailer.js"
+compatibility_date = "2024-01-01"
+workers_dev = false
+
+account_id = "<your-cloudflare-account-id>"
+
+# This Worker is never given a public route or custom domain. It's reached
+# only via a service binding from the Pages project (and, if a future
+# feature needs it, from the router), never directly from the internet.
+
+[[d1_databases]]
+binding = "DB"
+database_name = "myjay-db"
+database_id = "<your-d1-database-id>"
+
+# RESEND_API_KEY is sensitive, set it with:
+#   npx wrangler secret put RESEND_API_KEY --config mailer/wrangler.toml

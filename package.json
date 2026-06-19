@@ -10,7 +10,9 @@
     "db:init": "wrangler d1 execute myjay-db --file=schema/d1-init.sql",
     "db:init:local": "wrangler d1 execute myjay-db --local --file=schema/d1-init.sql",
     "router:dev": "wrangler dev worker/router.js",
-    "router:deploy": "wrangler deploy worker/router.js --name myjay-router"
+    "router:deploy": "wrangler deploy worker/router.js --name myjay-router",
+    "mailer:dev": "wrangler dev --config mailer/wrangler.toml",
+    "mailer:deploy": "wrangler deploy --config mailer/wrangler.toml"
   },
   "devDependencies": {
     "wrangler": "^3.78.0"

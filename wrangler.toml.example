@@ -23,6 +23,13 @@ bucket_name = "myjay-sites"
 binding = "SESSIONS"
 id = "<your-kv-namespace-id>"
 
+# --- Mailer service binding ---------------------------------------------------
+# The myjay-mailer Worker (mailer/). Deploy that first (`npm run mailer:deploy`),
+# it has no public route, this binding is the only way anything reaches it.
+[[services]]
+binding = "MAILER"
+service = "myjay-mailer"
+
 # --- Environment variables ---------------------------------------------------
 [vars]
 ADMIN_EMAIL = "<your-email@example.com>"

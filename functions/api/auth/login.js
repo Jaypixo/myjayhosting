@@ -34,6 +34,13 @@ export async function onRequestPost(context) {
     return errorResponse('This account has been suspended', 403);
   }
 
+  if (!user.email_verified) {
+    return json(
+      { error: 'Please verify your email before logging in. Check your inbox, or request a new link.', unverified: true },
+      { status: 403 }
+    );
+  }
+
   const token = await createSession(env, user.id);
 
   return json({ username: user.username }, { headers: { 'Set-Cookie': sessionCookie(token) } });

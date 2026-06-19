@@ -9,6 +9,10 @@ import {
   errorResponse,
 } from '../../_lib/auth.js';
 import { getSettings } from '../../_lib/settings.js';
+import { sendEmail } from '../../_lib/mailer.js';
+import { verifyEmail } from '../../_lib/email-templates.js';
+
+const VERIFY_TTL_SECONDS = 60 * 60 * 24; // 24 hours
 
 export async function onRequestPost(context) {
   const { request, env } = context;
@@ -59,17 +63,35 @@ export async function onRequestPost(context) {
   const now = new Date().toISOString();
   const passwordHash = await hashPassword(password);
   const role = isAdminSignup ? 'admin' : 'user';
+  // The bootstrap admin signup can't depend on the mailer working, so it's
+  // exempt from email verification, same reasoning as the registration-closed
+  // bypass above: this account has to work on the very first try.
+  const emailVerified = isAdminSignup ? 1 : 0;
 
   await env.DB.batch([
     env.DB.prepare(
-      'INSERT INTO users (id, email, username, password_hash, role, banned, created_at) VALUES (?, ?, ?, ?, ?, 0, ?)'
-    ).bind(userId, email, username, passwordHash, role, now),
+      'INSERT INTO users (id, email, username, password_hash, role, banned, email_verified, created_at) VALUES (?, ?, ?, ?, ?, 0, ?, ?)'
+    ).bind(userId, email, username, passwordHash, role, emailVerified, now),
     env.DB.prepare(
       'INSERT INTO sites (id, user_id, username, published, updated_at, view_count, storage_bytes) VALUES (?, ?, ?, 0, ?, 0, 0)'
     ).bind(siteId, userId, username, now),
   ]);
 
-  const token = await createSession(env, userId);
+  if (isAdminSignup) {
+    const token = await createSession(env, userId);
+    return json(
+      { userId, username, verified: true },
+      { status: 201, headers: { 'Set-Cookie': sessionCookie(token) } }
+    );
+  }
 
-  return json({ userId, username }, { status: 201, headers: { 'Set-Cookie': sessionCookie(token) } });
+  const verifyToken = crypto.randomUUID();
+  await env.SESSIONS.put(`verify:${verifyToken}`, userId, { expirationTtl: VERIFY_TTL_SECONDS });
+
+  const { subject, html } = verifyEmail(verifyToken);
+  await sendEmail(env, { to: email, type: 'verify', subject, bodyHtml: html, userId });
+
+  // No session cookie here on purpose, login is blocked until the address
+  // is verified, see functions/api/auth/login.js.
+  return json({ userId, username, verified: false }, { status: 201 });
 }

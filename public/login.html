@@ -47,9 +47,11 @@
           <div class="field">
             <label for="password">Password</label>
             <input type="password" id="password" name="password" autocomplete="current-password" required>
+            <p class="field-hint"><a href="#" id="forgot-password-link">Forgot your password?</a></p>
           </div>
 
           <button type="submit" class="btn" id="submit-btn">Log in →</button>
+          <button type="button" class="btn btn-ghost mt-1 hidden" id="resend-verification-btn" style="width:100%">Resend verification email</button>
         </form>
       </div>
 
@@ -65,13 +67,14 @@
 
   <script type="module" src="/assets/main.js"></script>
   <script type="module">
-    import { apiFetch, setFieldError, clearFieldError, clearFormErrors } from '/assets/main.js';
+    import { apiFetch, setFieldError, clearFieldError, clearFormErrors, showAlert, showPrompt } from '/assets/main.js';
 
     const emailInput = document.getElementById('email');
     const passwordInput = document.getElementById('password');
     const form = document.getElementById('login-form');
     const errorEl = document.getElementById('form-error');
     const submitBtn = document.getElementById('submit-btn');
+    const resendBtn = document.getElementById('resend-verification-btn');
 
     const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -104,6 +107,7 @@
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       errorEl.textContent = '';
+      resendBtn.classList.add('hidden');
       if (!validate()) return;
 
       submitBtn.disabled = true;
@@ -121,6 +125,7 @@
         if (!res.ok) {
           // Deliberately generic, never reveal which of email/password is wrong.
           errorEl.textContent = data.error || 'Invalid email or password.';
+          if (data.unverified) resendBtn.classList.remove('hidden');
           submitBtn.disabled = false;
           submitBtn.textContent = 'Log in →';
           return;
@@ -131,6 +136,40 @@
         submitBtn.disabled = false;
         submitBtn.textContent = 'Log in →';
       }
+    });
+
+    resendBtn.addEventListener('click', async () => {
+      const email = emailInput.value.trim();
+      if (!email) {
+        setFieldError(emailInput, 'Enter your email address first.');
+        emailInput.focus();
+        return;
+      }
+      resendBtn.disabled = true;
+      try {
+        await apiFetch('/api/auth/resend-verification', {
+          method: 'POST',
+          body: JSON.stringify({ email }),
+        });
+        await showAlert('If that account needs verifying, a new link is on its way.', { title: 'Check your email' });
+      } finally {
+        resendBtn.disabled = false;
+      }
+    });
+
+    document.getElementById('forgot-password-link').addEventListener('click', async (e) => {
+      e.preventDefault();
+      const email = await showPrompt('Enter your account email and we\'ll send a reset link.', {
+        title: 'Reset your password',
+        placeholder: 'you@example.com',
+        defaultValue: emailInput.value.trim(),
+      });
+      if (!email) return;
+      await apiFetch('/api/auth/request-reset', {
+        method: 'POST',
+        body: JSON.stringify({ email }),
+      });
+      await showAlert('If that email has an account, a reset link is on its way.', { title: 'Check your email' });
     });
   </script>
 </body>

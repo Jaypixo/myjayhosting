@@ -465,6 +465,157 @@ claims drift, the code doesn't.
 
 ---
 
+## Email Infrastructure
+
+### The mailer Worker (`mailer/`)
+
+`myjay-mailer` is the only thing in the whole platform that talks to Resend.
+Pages Functions reach it through a service binding (`env.MAILER`, wired in
+`wrangler.toml`'s `[[services]]` block), never the Resend REST API directly.
+It has **no public route** (`workers_dev = false`, no custom domain), the
+service binding is the only way in. Deploy it with `npm run mailer:deploy`
+after copying `mailer/wrangler.toml.example` to `mailer/wrangler.toml` and
+filling in your account ID; set the secret with
+`echo "<key>" | npx wrangler secret put RESEND_API_KEY --config mailer/wrangler.toml`.
+
+It accepts `POST { to, type, subject, bodyHtml, userId? }`, and for every
+request: checks `bounce_suppression` (skips regardless of type, there's no
+inbox to deliver to), checks `notification_prefs` for non-transactional
+types (`admin_message`, `broadcast`, `blog_notification`, gated; `verify`,
+`reset`, `security_alert` always send), calls Resend, and logs the result to
+`email_log` including the rendered `body_html` (needed so a failed send can
+actually be retried later, not just re-described).
+
+Use `sendEmail(env, {...})` from `functions/_lib/mailer.js` everywhere
+instead of touching `env.MAILER` directly, it's a two-line wrapper but keeps
+the call site consistent.
+
+### Templates (`functions/_lib/email-templates.js`)
+
+Table-based HTML, inline styles only, 600px max width, Gmail-safe (no
+external stylesheet, no web fonts, monospace falls back to `'Courier New',
+Courier, monospace`). `baseLayout()` renders the shared shell (terracotta
+header bar with the logo, white content area, muted footer with an
+unsubscribe link when one's given, a legal link, `© MyJay.net`). Six
+template functions sit on top of it: `verifyEmail`, `passwordReset`,
+`securityAlert`, `adminMessage`, `broadcastAnnouncement`, `blogNotification`.
+Each returns `{ subject, html }`.
+
+A few adaptations from how this might first get described:
+
+- The logo URL is `https://myjay.net/assets/img/logo.png` (the actual asset
+  path), not anywhere under `/public/`, that's the local build directory
+  name, never a real URL segment.
+- The footer's legal link points at `/terms`, there's no `/impressum` page.
+  Impressum content needs a real legal entity name and address, neither of
+  which exists in this codebase, don't fabricate one. If a real Impressum
+  page gets built later, repoint `LEGAL_URL` in the templates file.
+- `blogNotification` exists as a template only, nothing calls it. There's no
+  blog feature in this build (see Project Overview), it's defined because it
+  was asked for by name, not because something triggers it yet.
+
+### Auth integration
+
+**Signup**: new accounts are created with `email_verified = 0` (column on
+`users`, added by `schema/migrate-004-email.sql`, which also backfills every
+*pre-existing* account to `1` in the same migration, nobody who could already
+log in gets locked out by this shipping). A `verify:{token}` key (the token
+is `crypto.randomUUID()`) goes into the `SESSIONS` KV namespace with a 24h
+TTL, alongside the existing `session:{token}` keys, different prefix, same
+namespace, no collision. `register.js` does **not** create a session for a
+freshly-registered, unverified account, the frontend shows a "check your
+email" message instead of redirecting to the dashboard. The one exception:
+a signup using `ADMIN_EMAIL` is auto-verified and auto-logged-in, exactly
+like its existing bypass of the "registration closed" check, two days of
+new-platform bootstrapping shouldn't depend on the mailer working.
+
+**Login** (`login.js`) rejects with `{ error, unverified: true }` (HTTP 403)
+if `email_verified` is `0`. The frontend uses that flag to show a "Resend
+verification email" button rather than a second generic error.
+
+**`GET /auth/verify?token=X`** (`functions/auth/verify.js`, *not* under
+`/api/`) looks up `verify:{token}` in KV, flips `email_verified` to `1`,
+deletes the KV entry, and returns a styled result page directly, no JSON
+round-trip. Same shape for **`GET /auth/reset?token=X`**
+(`functions/auth/reset.js`), except it renders a new-password form instead
+of a one-shot action, the form POSTs to `POST /api/auth/reset` with
+`{ token, password }`. `POST /api/auth/request-reset` (`{ email }`) is what
+sends the reset email in the first place, both endpoints return the exact
+same response whether or not the email has an account, that's deliberate,
+this is the one auth surface that must never confirm or deny an email's
+existence. Reset tokens live under `reset:{token}` in KV, 1h TTL. A
+successful reset fires a `security_alert` email (always sends, transactional)
+with the requesting IP and a rough location from `request.cf`.
+
+### Unsubscribe (`functions/_lib/unsubscribe.js`, `functions/unsubscribe.js`)
+
+Tokens are `base64url(userId:type).base64url(HMAC-SHA256(SESSION_SECRET, userId:type))`.
+Verifying a token returns the **trusted** `{ userId, type }` decoded from the
+token itself, never trust the `&type=` query string for the actual write,
+that's display-only, otherwise editing the URL could unsubscribe someone
+from a different category than the one their signed link was for.
+`GET /unsubscribe?token=X&type=Y` writes `notification_prefs(user_id, type,
+unsubscribed=1)`. The mailer checks this table before every non-transactional
+send, see above, there's no separate enforcement point to keep in sync.
+
+### Admin routes (`functions/api/admin/email/*`)
+
+All under the existing `/api/admin/*` prefix, so the existing
+`role === 'admin'` middleware check covers them for free, no extra
+auth code needed in any of these files.
+
+- `POST /api/admin/email/send` — one-off, by `userId` or raw `email`
+- `POST /api/admin/email/broadcast` — by `segment`: `all`, `published`,
+  `unpublished`, `inactive_30d`, or `custom` with a `filter` object
+  (`{ role?, emailVerified? }`). **There is no raw-SQL filter option** and
+  there shouldn't be, an admin panel that runs arbitrary SQL from a request
+  body is a SQL injection / data-exfiltration hole waiting to happen even
+  when only admins can reach it (mistakes and pasted text happen). If a new
+  filter dimension is needed, add a new allowlisted field to
+  `resolveCustomSegment()` in `broadcast.js`, not a free-text SQL clause.
+  `paid`/`free`/`blog_subscribers` from an earlier description of this
+  feature don't correspond to anything real, there's no billing and no blog,
+  they were replaced with the segments above.
+- `GET /api/admin/email/logs` — paginated, filters: `type`, `status`, `since`
+- `GET /api/admin/email/stats` — sent today, total, delivery rate, open
+  rate, suppressed-bounce count, unsubscribe count
+- `GET /api/admin/email/bounces` / `DELETE /api/admin/email/bounces/:email`
+- `POST /api/admin/email/resend/:logId` — re-sends using the stored
+  `body_html` from the original log row
+
+The admin dashboard's **Email** tab (`public/admin.html`) covers all of this:
+stat cards, a one-off send form, a broadcast form (segment select, with the
+custom-filter fields only shown when "Custom filter" is picked), a
+filterable/paginated send log with a Resend button on failed rows, and the
+bounce suppression list with a Remove action. It follows the same patterns
+as every other admin tab (`showConfirm`/`showAlert` from `main.js`, no
+native dialogs, table + badge + card layout).
+
+### Webhook (`functions/api/webhooks/resend.js`)
+
+`POST /api/webhooks/resend`, public (signature-verified, not session-gated,
+it's in `_middleware.js`'s `PUBLIC_API_PATHS`). Verifies the `svix-id` /
+`svix-timestamp` / `svix-signature` headers the way Svix signs all Resend
+webhooks: base64 HMAC-SHA256 over `"{svix-id}.{svix-timestamp}.{raw body}"`,
+keyed by `RESEND_WEBHOOK_SECRET` (a *different* secret than
+`RESEND_API_KEY`, generated by Resend when you create the webhook endpoint
+in its dashboard, not something this codebase can generate for you). Handles
+`email.delivered`, `email.opened`, `email.bounced`, matching back to
+`email_log` rows via `resend_id` (the id Resend's API returns when a message
+is first sent). A bounce both updates the log row and inserts into
+`bounce_suppression`, so the address is skipped on every future send from
+that point on, not just logged.
+
+**Manual steps that can't be done from this codebase**: add the `MAILER`
+service binding to the live Pages project (Settings → Functions → Bindings
+→ Service binding → variable `MAILER` → service `myjay-mailer`, this Pages
+project deploys via git push, not local `wrangler.toml`, so the binding has
+to be added in the dashboard directly); create the webhook endpoint in the
+Resend dashboard pointing at `https://myjay.net/api/webhooks/resend` and set
+its signing secret as `RESEND_WEBHOOK_SECRET` on the Pages project.
+
+---
+
 ## Development Workflow
 
 ```bash
