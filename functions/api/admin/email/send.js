@@ -1,6 +1,6 @@
-import { errorResponse, json } from '../../../../_lib/auth.js';
-import { sendEmail } from '../../../../_lib/mailer.js';
-import { adminMessage } from '../../../../_lib/email-templates.js';
+import { errorResponse, json } from '../../../_lib/auth.js';
+import { sendEmail } from '../../../_lib/mailer.js';
+import { adminMessage } from '../../../_lib/email-templates.js';
 
 export async function onRequestPost(context) {
   const { request, env } = context;
