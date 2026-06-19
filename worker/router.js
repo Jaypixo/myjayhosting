@@ -82,7 +82,7 @@ function siteNotPublishedResponse(username) {
     <div class="terminal">
 $ curl ${safe}.myjay.net<br>
 status: 404, site not published<br>
-hint: claim this name at <a href="https://myjay.net/register.html">myjay.net</a>
+hint: claim this name at <a href="https://myjay.net/register">myjay.net</a>
     </div>
   `);
   return new Response(html, { status: 404, headers: { 'Content-Type': 'text/html; charset=utf-8' } });

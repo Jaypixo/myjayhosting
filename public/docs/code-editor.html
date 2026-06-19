@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Code Editor | MyJay Docs</title>
+  <meta name="description" content="Using the built-in code editor to write and save HTML, CSS, JS, and other text files directly in your browser.">
+  <link rel="canonical" href="https://myjay.net/docs/code-editor">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Code Editor | MyJay Docs">
+  <meta property="og:description" content="Using the built-in code editor to write and save text files directly in your browser.">
+  <meta property="og:url" content="https://myjay.net/docs/code-editor">
+  <meta property="og:image" content="https://myjay.net/assets/img/logo.png">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Code Editor | MyJay Docs">
+  <meta name="twitter:description" content="Using the built-in code editor to write and save text files in your browser.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@1,300&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="/assets/img/favicon.png">
+  <link rel="stylesheet" href="/assets/style.css">
+</head>
+<body>
+  <header class="torn-header compact">
+    <div class="nav-auth" data-nav-auth>
+      <a href="/login" class="btn btn-sm btn-outline">Log in</a>
+      <a href="/register" class="btn btn-sm">Register</a>
+    </div>
+    <div class="logo">
+      <img src="/assets/img/logo.png" alt="MyJay.net" onerror="var s=this.nextElementSibling; this.remove(); s.style.display=''">
+      <span class="logo-fallback" style="display:none"><span class="myjay">MyJay</span><span class="dotnet">.net</span></span>
+    </div>
+    <nav class="nav">
+      <a href="/">Home</a>
+      <a href="/explore">Explore</a>
+      <a href="/docs">Docs</a>
+      <a href="/help">Help</a>
+      <a href="/about">About</a>
+      <a href="/contact">Contact</a>
+    </nav>
+  </header>
+
+  <main class="docs-layout">
+    <aside class="docs-sidebar">
+      <p class="docs-sidebar-title">Documentation</p>
+      <nav class="docs-nav">
+        <a href="/docs">Overview</a>
+        <a href="/docs/getting-started">Getting started</a>
+        <a href="/docs/dashboard">The dashboard</a>
+        <a href="/docs/file-manager">File manager</a>
+        <a href="/docs/code-editor" class="active">Code editor</a>
+        <a href="/docs/publishing">Publishing</a>
+        <a href="/docs/routing">How routing works</a>
+        <a href="/docs/file-types-and-limits">File types &amp; limits</a>
+        <a href="/docs/analytics">Analytics</a>
+        <a href="/docs/account-and-security">Account &amp; security</a>
+        <a href="/docs/troubleshooting">Troubleshooting</a>
+      </nav>
+    </aside>
+
+    <div class="docs-content">
+      <span class="section-label">// docs / code editor</span>
+      <h1>Code editor.</h1>
+      <p class="text-muted">A real code editor in the browser, with syntax highlighting, line numbers, and a save shortcut.</p>
+
+      <h2>Which files it opens for</h2>
+      <p>Clicking a file in the file manager opens it in the editor if its extension is one of:</p>
+      <table>
+        <thead><tr><th>Type</th><th>Extensions</th><th>Highlighting</th></tr></thead>
+        <tbody>
+          <tr><td>HTML</td><td><code>html</code>, <code>htm</code></td><td>HTML with embedded CSS/JS</td></tr>
+          <tr><td>Styles</td><td><code>css</code></td><td>CSS</td></tr>
+          <tr><td>Scripts</td><td><code>js</code></td><td>JavaScript</td></tr>
+          <tr><td>Data</td><td><code>json</code></td><td>JavaScript, JSON mode</td></tr>
+          <tr><td>Markup</td><td><code>xml</code>, <code>svg</code></td><td>XML</td></tr>
+          <tr><td>Docs</td><td><code>md</code></td><td>Markdown</td></tr>
+          <tr><td>Plain text</td><td><code>txt</code></td><td>None, just monospace</td></tr>
+        </tbody>
+      </table>
+      <p class="text-muted">
+        Anything else, images, fonts, icons, doesn't open here. See
+        <a href="/docs/file-manager">file manager</a> for how those are
+        handled instead.
+      </p>
+
+      <h2>Editing</h2>
+      <p>
+        The editor has line numbers and wraps long lines instead of scrolling
+        sideways. It's a plain text editor with syntax coloring, there's no
+        autocomplete, linting, or live preview.
+      </p>
+
+      <h2>Saving</h2>
+      <p>
+        Click <strong>Save</strong>, or press <kbd>Ctrl</kbd>+<kbd>S</kbd>
+        (<kbd>Cmd</kbd>+<kbd>S</kbd> on macOS) while the editor has focus. A
+        small "Saved." confirmation appears briefly next to the button.
+        Saving writes the file back immediately, there's no separate publish
+        step for individual files, see <a href="/docs/publishing">publishing</a>
+        for what controls public visibility instead.
+      </p>
+      <p class="text-muted">
+        There's no autosave. Closing the editor panel or navigating away
+        before saving discards whatever you typed, with no warning prompt.
+        Save before you close if you want to keep changes.
+      </p>
+
+      <h2>Creating a new text file</h2>
+      <p>
+        There's no "new file" button in the editor itself. To create one,
+        upload a file with the content you want (even an empty placeholder),
+        then open and edit it from there. The simplest path for something
+        like a new page is to write it locally and upload it, or upload a
+        blank <code>.html</code> file and build it up directly in the editor.
+      </p>
+
+      <div class="docs-pager">
+        <a class="prev" href="/docs/file-manager">
+          <span class="label">← Back</span>
+          File manager
+        </a>
+        <a class="next" href="/docs/publishing">
+          <span class="label">Next</span>
+          Publishing →
+        </a>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <span class="footnote">[1] The editor runs entirely in your browser. Nothing you type is sent anywhere until you click Save.</span>
+    <span class="footnote">[2] v0.1.0-alpha, independently run.</span>
+    <span class="footnote">[3] <a href="/status">Status</a> · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a></span>
+  </footer>
+
+  <script type="module" src="/assets/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Getting Started | MyJay Docs</title>
+  <meta name="description" content="How to register, claim a username.myjay.net subdomain, upload your first file, and publish your MyJay site.">
+  <link rel="canonical" href="https://myjay.net/docs/getting-started">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Getting Started | MyJay Docs">
+  <meta property="og:description" content="How to register, claim a username.myjay.net subdomain, upload your first file, and publish your site.">
+  <meta property="og:url" content="https://myjay.net/docs/getting-started">
+  <meta property="og:image" content="https://myjay.net/assets/img/logo.png">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Getting Started | MyJay Docs">
+  <meta name="twitter:description" content="How to register, claim a subdomain, upload your first file, and publish your site.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@1,300&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="/assets/img/favicon.png">
+  <link rel="stylesheet" href="/assets/style.css">
+</head>
+<body>
+  <header class="torn-header compact">
+    <div class="nav-auth" data-nav-auth>
+      <a href="/login" class="btn btn-sm btn-outline">Log in</a>
+      <a href="/register" class="btn btn-sm">Register</a>
+    </div>
+    <div class="logo">
+      <img src="/assets/img/logo.png" alt="MyJay.net" onerror="var s=this.nextElementSibling; this.remove(); s.style.display=''">
+      <span class="logo-fallback" style="display:none"><span class="myjay">MyJay</span><span class="dotnet">.net</span></span>
+    </div>
+    <nav class="nav">
+      <a href="/">Home</a>
+      <a href="/explore">Explore</a>
+      <a href="/docs">Docs</a>
+      <a href="/help">Help</a>
+      <a href="/about">About</a>
+      <a href="/contact">Contact</a>
+    </nav>
+  </header>
+
+  <main class="docs-layout">
+    <aside class="docs-sidebar">
+      <p class="docs-sidebar-title">Documentation</p>
+      <nav class="docs-nav">
+        <a href="/docs">Overview</a>
+        <a href="/docs/getting-started" class="active">Getting started</a>
+        <a href="/docs/dashboard">The dashboard</a>
+        <a href="/docs/file-manager">File manager</a>
+        <a href="/docs/code-editor">Code editor</a>
+        <a href="/docs/publishing">Publishing</a>
+        <a href="/docs/routing">How routing works</a>
+        <a href="/docs/file-types-and-limits">File types &amp; limits</a>
+        <a href="/docs/analytics">Analytics</a>
+        <a href="/docs/account-and-security">Account &amp; security</a>
+        <a href="/docs/troubleshooting">Troubleshooting</a>
+      </nav>
+    </aside>
+
+    <div class="docs-content">
+      <span class="section-label">// docs / getting started</span>
+      <h1>Getting started.</h1>
+      <p class="text-muted">From nothing to a live site, in about five minutes.</p>
+
+      <h2>1. Register an account</h2>
+      <p>
+        Go to <a href="/register">/register</a> and fill in three things: a username, an email, and a password.
+      </p>
+      <p>
+        The username becomes your subdomain, so <code>noah</code> becomes
+        <code>noah.myjay.net</code>. It has to be 3 to 32 characters long, and
+        can only contain lowercase letters, numbers, and hyphens. A handful of
+        names are reserved (things like <code>www</code>, <code>admin</code>,
+        <code>api</code>, <code>help</code>) so the platform's own pages don't
+        collide with someone's subdomain. The registration form checks
+        availability live as you type.
+      </p>
+      <p>
+        Passwords need to be at least 8 characters. There's no other complexity
+        requirement, just make it one you don't reuse elsewhere.
+      </p>
+      <p class="text-muted">
+        Registering signs you in immediately and drops you into the dashboard.
+        There's no email verification step in the current version, you're in
+        right away.
+      </p>
+
+      <h2>2. Upload something</h2>
+      <p>
+        You land on the <strong>Files</strong> tab of your <a href="/docs/dashboard">dashboard</a>.
+        It's empty. Drag a file onto the page, or click <strong>Upload</strong> and pick one
+        from a file dialog. You can also click <strong>Upload folder</strong> to upload
+        an entire folder at once, keeping its internal structure intact.
+      </p>
+      <p>
+        At minimum, you need a file named exactly <code>index.html</code> at
+        the root of your files. That's what gets served when someone visits
+        <code>username.myjay.net</code> with no specific path. See
+        <a href="/docs/routing">how routing works</a> for the full detail on
+        how paths resolve to files.
+      </p>
+      <p>
+        A minimal one works fine to start:
+      </p>
+      <div class="terminal-log">
+&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+  &lt;head&gt;&lt;title&gt;My site&lt;/title&gt;&lt;/head&gt;
+  &lt;body&gt;&lt;h1&gt;Hello, web.&lt;/h1&gt;&lt;/body&gt;
+&lt;/html&gt;
+      </div>
+
+      <h2>3. Publish</h2>
+      <p>
+        New accounts start as <strong>draft</strong>. While a site is in draft,
+        nobody but you can see it, the public URL shows a "nothing here yet"
+        page instead. Flip the toggle at the top of the Files tab from
+        <strong>Site is DRAFT</strong> to <strong>Site is LIVE</strong> and it's
+        instantly reachable at your subdomain. No build step, no deploy queue,
+        no waiting. See <a href="/docs/publishing">publishing</a> for exactly
+        what that toggle does and doesn't change.
+      </p>
+
+      <h2>That's it</h2>
+      <p>
+        Three steps: register, upload an <code>index.html</code>, flip the
+        toggle. Everything past this point is detail: how the
+        <a href="/docs/file-manager">file manager</a> organizes folders, how
+        the <a href="/docs/code-editor">code editor</a> works, what counts
+        against your <a href="/docs/file-types-and-limits">storage limit</a>,
+        and what to do when something doesn't look right (see
+        <a href="/docs/troubleshooting">troubleshooting</a>).
+      </p>
+
+      <div class="docs-pager">
+        <a class="prev" href="/docs">
+          <span class="label">← Back</span>
+          Documentation overview
+        </a>
+        <a class="next" href="/docs/dashboard">
+          <span class="label">Next</span>
+          The dashboard →
+        </a>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <span class="footnote">[1] Registration is free. One site per account in the current version.</span>
+    <span class="footnote">[2] v0.1.0-alpha, independently run.</span>
+    <span class="footnote">[3] <a href="/status">Status</a> · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a></span>
+  </footer>
+
+  <script type="module" src="/assets/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>File Manager | MyJay Docs</title>
+  <meta name="description" content="How to upload, organize into folders, and manage your site's files in the MyJay dashboard's file manager.">
+  <link rel="canonical" href="https://myjay.net/docs/file-manager">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="File Manager | MyJay Docs">
+  <meta property="og:description" content="How to upload, organize into folders, and manage your site's files in the MyJay dashboard.">
+  <meta property="og:url" content="https://myjay.net/docs/file-manager">
+  <meta property="og:image" content="https://myjay.net/assets/img/logo.png">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="File Manager | MyJay Docs">
+  <meta name="twitter:description" content="How to upload, organize into folders, and manage your site's files.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@1,300&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="/assets/img/favicon.png">
+  <link rel="stylesheet" href="/assets/style.css">
+</head>
+<body>
+  <header class="torn-header compact">
+    <div class="nav-auth" data-nav-auth>
+      <a href="/login" class="btn btn-sm btn-outline">Log in</a>
+      <a href="/register" class="btn btn-sm">Register</a>
+    </div>
+    <div class="logo">
+      <img src="/assets/img/logo.png" alt="MyJay.net" onerror="var s=this.nextElementSibling; this.remove(); s.style.display=''">
+      <span class="logo-fallback" style="display:none"><span class="myjay">MyJay</span><span class="dotnet">.net</span></span>
+    </div>
+    <nav class="nav">
+      <a href="/">Home</a>
+      <a href="/explore">Explore</a>
+      <a href="/docs">Docs</a>
+      <a href="/help">Help</a>
+      <a href="/about">About</a>
+      <a href="/contact">Contact</a>
+    </nav>
+  </header>
+
+  <main class="docs-layout">
+    <aside class="docs-sidebar">
+      <p class="docs-sidebar-title">Documentation</p>
+      <nav class="docs-nav">
+        <a href="/docs">Overview</a>
+        <a href="/docs/getting-started">Getting started</a>
+        <a href="/docs/dashboard">The dashboard</a>
+        <a href="/docs/file-manager" class="active">File manager</a>
+        <a href="/docs/code-editor">Code editor</a>
+        <a href="/docs/publishing">Publishing</a>
+        <a href="/docs/routing">How routing works</a>
+        <a href="/docs/file-types-and-limits">File types &amp; limits</a>
+        <a href="/docs/analytics">Analytics</a>
+        <a href="/docs/account-and-security">Account &amp; security</a>
+        <a href="/docs/troubleshooting">Troubleshooting</a>
+      </nav>
+    </aside>
+
+    <div class="docs-content">
+      <span class="section-label">// docs / file manager</span>
+      <h1>File manager.</h1>
+      <p class="text-muted">The Files tab is a two-pane layout: your files on the left, an editor or viewer on the right once you open something.</p>
+
+      <h2>Navigating folders</h2>
+      <p>
+        A breadcrumb bar above the file list shows where you are, starting at
+        <strong>root</strong>. Click any folder name to step into it, or click
+        a breadcrumb segment to jump back up. Folders are listed first,
+        sorted alphabetically, then files.
+      </p>
+      <p class="text-muted">
+        Folders only exist as a side effect of file paths. There's no
+        separate "folder" object being tracked, a folder is just a common
+        prefix shared by one or more files. This matters for one specific
+        case: see below.
+      </p>
+
+      <h2>Creating a folder</h2>
+      <p>
+        Click <strong>New folder</strong> and type a name. Names can contain
+        letters, numbers, hyphens, underscores, and dots, nothing else.
+        Because folders are really just shared prefixes, creating an empty
+        folder works by placing a small hidden placeholder file inside it so
+        it has something to "contain." That placeholder is filtered out of
+        the file list, you'll just see the folder.
+      </p>
+      <p class="text-muted">
+        The practical consequence: a folder that has had every real file
+        deleted from it (including, if you manage to remove it, the
+        placeholder) stops showing up, because there's nothing left to imply
+        it exists. This is expected, not a bug.
+      </p>
+
+      <h2>Uploading files</h2>
+      <p>There are three ways to get files in:</p>
+      <ul>
+        <li><strong>Upload</strong>: opens a standard file picker, select one or more files</li>
+        <li><strong>Upload folder</strong>: opens a folder picker (your browser's native folder selection), the entire folder's contents upload together with their relative structure intact</li>
+        <li><strong>Drag and drop</strong>: drag files from your computer directly onto the file list</li>
+      </ul>
+      <p>
+        Whichever method you use, files land in whatever folder you're
+        currently viewing. Upload into a subfolder by navigating there first.
+      </p>
+      <p class="text-muted">
+        Uploading a file with the same name as an existing one overwrites it,
+        there's no version history or confirmation step for that specific case
+        (deleting a file does ask for confirmation, see below).
+      </p>
+
+      <h2>Opening a file</h2>
+      <p>Click a file's name, or its action button, and the right-hand panel opens:</p>
+      <ul>
+        <li>Text files (HTML, CSS, JS, JSON, XML, SVG, TXT, MD) open in the <a href="/docs/code-editor">code editor</a></li>
+        <li>Images (JPG, PNG, GIF, WEBP) open in a read-only preview</li>
+        <li>Everything else (fonts, ICO icons) has no preview, only Delete</li>
+      </ul>
+      <p>
+        Opening a second file while one is already open swaps the panel's
+        content, it doesn't stack multiple tabs. Closing the panel (the
+        <strong>Close</strong> button) collapses the layout back to a single,
+        full-width file list.
+      </p>
+
+      <h2>Deleting things</h2>
+      <p>
+        Every delete action asks for confirmation first, there's no trash and
+        no undo. Deleting a single file removes just that file. Deleting a
+        folder (via its <strong>Delete all</strong> button) removes every
+        file inside it, including nested subfolders, in one action.
+      </p>
+
+      <h2>What you can't do (yet)</h2>
+      <p>
+        There's no rename. To rename a file, upload a copy under the new name
+        and delete the old one. There's also no copy/move between folders,
+        the same workaround applies: re-upload at the new location, delete
+        the original.
+      </p>
+
+      <div class="docs-pager">
+        <a class="prev" href="/docs/dashboard">
+          <span class="label">← Back</span>
+          The dashboard
+        </a>
+        <a class="next" href="/docs/code-editor">
+          <span class="label">Next</span>
+          Code editor →
+        </a>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <span class="footnote">[1] Storage quota and allowed file types are covered separately, see file types &amp; limits.</span>
+    <span class="footnote">[2] v0.1.0-alpha, independently run.</span>
+    <span class="footnote">[3] <a href="/status">Status</a> · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a></span>
+  </footer>
+
+  <script type="module" src="/assets/main.js"></script>
+</body>
+</html>

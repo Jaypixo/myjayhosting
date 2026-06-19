@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Documentation | MyJay.net</title>
+  <meta name="description" content="Complete documentation for MyJay: getting started, the dashboard, file manager, code editor, publishing, routing, file limits, analytics, security, and troubleshooting.">
+  <link rel="canonical" href="https://myjay.net/docs">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Documentation | MyJay.net">
+  <meta property="og:description" content="Complete documentation for MyJay: getting started, the dashboard, file manager, publishing, routing, and more.">
+  <meta property="og:url" content="https://myjay.net/docs">
+  <meta property="og:image" content="https://myjay.net/assets/img/logo.png">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Documentation | MyJay.net">
+  <meta name="twitter:description" content="Complete documentation for MyJay: getting started, the dashboard, file manager, publishing, routing, and more.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@1,300&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="/assets/img/favicon.png">
+  <link rel="stylesheet" href="/assets/style.css">
+</head>
+<body>
+  <header class="torn-header compact">
+    <div class="nav-auth" data-nav-auth>
+      <a href="/login" class="btn btn-sm btn-outline">Log in</a>
+      <a href="/register" class="btn btn-sm">Register</a>
+    </div>
+    <div class="logo">
+      <img src="/assets/img/logo.png" alt="MyJay.net" onerror="var s=this.nextElementSibling; this.remove(); s.style.display=''">
+      <span class="logo-fallback" style="display:none"><span class="myjay">MyJay</span><span class="dotnet">.net</span></span>
+    </div>
+    <nav class="nav">
+      <a href="/">Home</a>
+      <a href="/explore">Explore</a>
+      <a href="/docs">Docs</a>
+      <a href="/help">Help</a>
+      <a href="/about">About</a>
+      <a href="/contact">Contact</a>
+    </nav>
+  </header>
+
+  <main class="docs-layout">
+    <aside class="docs-sidebar">
+      <p class="docs-sidebar-title">Documentation</p>
+      <nav class="docs-nav">
+        <a href="/docs" class="active">Overview</a>
+        <a href="/docs/getting-started">Getting started</a>
+        <a href="/docs/dashboard">The dashboard</a>
+        <a href="/docs/file-manager">File manager</a>
+        <a href="/docs/code-editor">Code editor</a>
+        <a href="/docs/publishing">Publishing</a>
+        <a href="/docs/routing">How routing works</a>
+        <a href="/docs/file-types-and-limits">File types &amp; limits</a>
+        <a href="/docs/analytics">Analytics</a>
+        <a href="/docs/account-and-security">Account &amp; security</a>
+        <a href="/docs/troubleshooting">Troubleshooting</a>
+      </nav>
+    </aside>
+
+    <div class="docs-content">
+      <span class="section-label">// documentation</span>
+      <h1>MyJay documentation.</h1>
+      <p class="text-muted">
+        Everything the help page doesn't have room for. This is the long
+        version: how the file manager actually works, what happens when you
+        publish, how a request to <code>username.myjay.net</code> gets
+        resolved to a file, and what's tracked versus what isn't.
+      </p>
+
+      <div class="feature-grid mt-2">
+        <a class="card" href="/docs/getting-started" style="display:block">
+          <h3>Getting started</h3>
+          <p class="text-muted">Register, claim a subdomain, upload your first file, and go live.</p>
+        </a>
+        <a class="card" href="/docs/dashboard" style="display:block">
+          <h3>The dashboard</h3>
+          <p class="text-muted">A tour of the sidebar, the storage bar, and the three tabs.</p>
+        </a>
+        <a class="card" href="/docs/file-manager" style="display:block">
+          <h3>File manager</h3>
+          <p class="text-muted">Folders, drag-and-drop, breadcrumbs, and deleting things on purpose.</p>
+        </a>
+        <a class="card" href="/docs/code-editor" style="display:block">
+          <h3>Code editor</h3>
+          <p class="text-muted">Editing text files in the browser, syntax highlighting, and saving.</p>
+        </a>
+        <a class="card" href="/docs/publishing" style="display:block">
+          <h3>Publishing</h3>
+          <p class="text-muted">What draft versus live actually changes, and what it doesn't.</p>
+        </a>
+        <a class="card" href="/docs/routing" style="display:block">
+          <h3>How routing works</h3>
+          <p class="text-muted">Exactly how a URL on your subdomain resolves to a file.</p>
+        </a>
+        <a class="card" href="/docs/file-types-and-limits" style="display:block">
+          <h3>File types &amp; limits</h3>
+          <p class="text-muted">The full allowed-extensions list, storage quota, and upload ceiling.</p>
+        </a>
+        <a class="card" href="/docs/analytics" style="display:block">
+          <h3>Analytics</h3>
+          <p class="text-muted">What gets counted, what doesn't, and where to see it.</p>
+        </a>
+        <a class="card" href="/docs/account-and-security" style="display:block">
+          <h3>Account &amp; security</h3>
+          <p class="text-muted">Username rules, password hashing, and how sessions work.</p>
+        </a>
+        <a class="card" href="/docs/troubleshooting" style="display:block">
+          <h3>Troubleshooting</h3>
+          <p class="text-muted">Fixes for the issues that actually come up.</p>
+        </a>
+      </div>
+
+      <p class="text-muted mt-2">
+        Looking for the five-minute version instead? Try the <a href="/help">help page</a>.
+        Something not covered here? <a href="/contact">Get in touch</a>.
+      </p>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <span class="footnote">[1] This documentation describes MyJay as it actually behaves. If something here turns out to be wrong, <a href="/contact">tell us</a>.</span>
+    <span class="footnote">[2] v0.1.0-alpha, independently run.</span>
+    <span class="footnote">[3] <a href="/status">Status</a> · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a></span>
+  </footer>
+
+  <script type="module" src="/assets/main.js"></script>
+</body>
+</html>

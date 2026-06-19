@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Publishing | MyJay Docs</title>
+  <meta name="description" content="What happens when you publish or unpublish your MyJay site, and exactly what the draft/live toggle changes.">
+  <link rel="canonical" href="https://myjay.net/docs/publishing">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Publishing | MyJay Docs">
+  <meta property="og:description" content="What happens when you publish or unpublish your site, and what the draft/live toggle changes.">
+  <meta property="og:url" content="https://myjay.net/docs/publishing">
+  <meta property="og:image" content="https://myjay.net/assets/img/logo.png">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Publishing | MyJay Docs">
+  <meta name="twitter:description" content="What the draft/live toggle actually changes, and what it doesn't.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@1,300&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="/assets/img/favicon.png">
+  <link rel="stylesheet" href="/assets/style.css">
+</head>
+<body>
+  <header class="torn-header compact">
+    <div class="nav-auth" data-nav-auth>
+      <a href="/login" class="btn btn-sm btn-outline">Log in</a>
+      <a href="/register" class="btn btn-sm">Register</a>
+    </div>
+    <div class="logo">
+      <img src="/assets/img/logo.png" alt="MyJay.net" onerror="var s=this.nextElementSibling; this.remove(); s.style.display=''">
+      <span class="logo-fallback" style="display:none"><span class="myjay">MyJay</span><span class="dotnet">.net</span></span>
+    </div>
+    <nav class="nav">
+      <a href="/">Home</a>
+      <a href="/explore">Explore</a>
+      <a href="/docs">Docs</a>
+      <a href="/help">Help</a>
+      <a href="/about">About</a>
+      <a href="/contact">Contact</a>
+    </nav>
+  </header>
+
+  <main class="docs-layout">
+    <aside class="docs-sidebar">
+      <p class="docs-sidebar-title">Documentation</p>
+      <nav class="docs-nav">
+        <a href="/docs">Overview</a>
+        <a href="/docs/getting-started">Getting started</a>
+        <a href="/docs/dashboard">The dashboard</a>
+        <a href="/docs/file-manager">File manager</a>
+        <a href="/docs/code-editor">Code editor</a>
+        <a href="/docs/publishing" class="active">Publishing</a>
+        <a href="/docs/routing">How routing works</a>
+        <a href="/docs/file-types-and-limits">File types &amp; limits</a>
+        <a href="/docs/analytics">Analytics</a>
+        <a href="/docs/account-and-security">Account &amp; security</a>
+        <a href="/docs/troubleshooting">Troubleshooting</a>
+      </nav>
+    </aside>
+
+    <div class="docs-content">
+      <span class="section-label">// docs / publishing</span>
+      <h1>Publishing.</h1>
+      <p class="text-muted">One toggle, one boolean, instant effect. Here's exactly what it does.</p>
+
+      <h2>Draft versus live</h2>
+      <p>
+        Every account has a single switch: <strong>Site is DRAFT</strong> or
+        <strong>Site is LIVE</strong>, visible at the top of the Files tab.
+        New accounts start in draft.
+      </p>
+      <p>
+        While a site is in draft, visiting <code>username.myjay.net</code>
+        shows a generic "nothing here yet" page, regardless of how many files
+        you've uploaded. Flip the toggle to live and the exact same files
+        become reachable at that address immediately.
+      </p>
+
+      <h2>What flipping the toggle actually changes</h2>
+      <p>
+        One value in the platform's database: whether your site is published.
+        That's the entire mechanism. There's no build, no deploy, no queue,
+        no propagation delay. The very next request to your subdomain sees
+        the new state.
+      </p>
+
+      <h2>What it doesn't change</h2>
+      <ul>
+        <li>Your files. Unpublishing doesn't delete or hide anything from you, it only affects what the public can see.</li>
+        <li>Your access to the dashboard. You can keep editing, uploading, and deleting files while unpublished, exactly as while published.</li>
+        <li>Your storage usage. Files count against your quota whether the site is published or not.</li>
+      </ul>
+      <p class="text-muted">
+        In other words: draft mode is a way to work on your site privately
+        before showing it to anyone, or to take it offline temporarily without
+        losing anything. Going back and forth between draft and live as many
+        times as you want has no downside.
+      </p>
+
+      <h2>Why you might stay in draft</h2>
+      <p>
+        Some people upload everything first and only flip to live once it
+        looks right. Others publish immediately and edit live. Both are fine,
+        there's no difference in how the platform treats a site that's edited
+        publicly versus one drafted privately first.
+      </p>
+
+      <div class="docs-pager">
+        <a class="prev" href="/docs/code-editor">
+          <span class="label">← Back</span>
+          Code editor
+        </a>
+        <a class="next" href="/docs/routing">
+          <span class="label">Next</span>
+          How routing works →
+        </a>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <span class="footnote">[1] Curious exactly how a published site resolves a URL to a file? See how routing works.</span>
+    <span class="footnote">[2] v0.1.0-alpha, independently run.</span>
+    <span class="footnote">[3] <a href="/status">Status</a> · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a></span>
+  </footer>
+
+  <script type="module" src="/assets/main.js"></script>
+</body>
+</html>

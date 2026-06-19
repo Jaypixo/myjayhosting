@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Dashboard | MyJay Docs</title>
+  <meta name="description" content="A tour of the MyJay dashboard: the sidebar, the storage bar, and the Files, Stats, and Settings tabs.">
+  <link rel="canonical" href="https://myjay.net/docs/dashboard">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="The Dashboard | MyJay Docs">
+  <meta property="og:description" content="A tour of the MyJay dashboard: the sidebar, the storage bar, and the Files, Stats, and Settings tabs.">
+  <meta property="og:url" content="https://myjay.net/docs/dashboard">
+  <meta property="og:image" content="https://myjay.net/assets/img/logo.png">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="The Dashboard | MyJay Docs">
+  <meta name="twitter:description" content="A tour of the MyJay dashboard: the sidebar, the storage bar, and the three tabs.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@1,300&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="/assets/img/favicon.png">
+  <link rel="stylesheet" href="/assets/style.css">
+</head>
+<body>
+  <header class="torn-header compact">
+    <div class="nav-auth" data-nav-auth>
+      <a href="/login" class="btn btn-sm btn-outline">Log in</a>
+      <a href="/register" class="btn btn-sm">Register</a>
+    </div>
+    <div class="logo">
+      <img src="/assets/img/logo.png" alt="MyJay.net" onerror="var s=this.nextElementSibling; this.remove(); s.style.display=''">
+      <span class="logo-fallback" style="display:none"><span class="myjay">MyJay</span><span class="dotnet">.net</span></span>
+    </div>
+    <nav class="nav">
+      <a href="/">Home</a>
+      <a href="/explore">Explore</a>
+      <a href="/docs">Docs</a>
+      <a href="/help">Help</a>
+      <a href="/about">About</a>
+      <a href="/contact">Contact</a>
+    </nav>
+  </header>
+
+  <main class="docs-layout">
+    <aside class="docs-sidebar">
+      <p class="docs-sidebar-title">Documentation</p>
+      <nav class="docs-nav">
+        <a href="/docs">Overview</a>
+        <a href="/docs/getting-started">Getting started</a>
+        <a href="/docs/dashboard" class="active">The dashboard</a>
+        <a href="/docs/file-manager">File manager</a>
+        <a href="/docs/code-editor">Code editor</a>
+        <a href="/docs/publishing">Publishing</a>
+        <a href="/docs/routing">How routing works</a>
+        <a href="/docs/file-types-and-limits">File types &amp; limits</a>
+        <a href="/docs/analytics">Analytics</a>
+        <a href="/docs/account-and-security">Account &amp; security</a>
+        <a href="/docs/troubleshooting">Troubleshooting</a>
+      </nav>
+    </aside>
+
+    <div class="docs-content">
+      <span class="section-label">// docs / the dashboard</span>
+      <h1>The dashboard.</h1>
+      <p class="text-muted">Everything you can do with your account lives at <code>/dashboard</code>, behind login.</p>
+
+      <h2>The sidebar</h2>
+      <p>Always visible on the left, it shows:</p>
+      <ul>
+        <li>Your avatar (just the first letter of your username) and your username</li>
+        <li>A link to your live subdomain, <code>username.myjay.net</code></li>
+        <li>A storage bar showing used space out of your account's total quota, see <a href="/docs/file-types-and-limits">file types &amp; limits</a></li>
+        <li>Three tabs: <strong>Files</strong>, <strong>Stats</strong>, <strong>Settings</strong></li>
+        <li>A <strong>Visit Site</strong> link that opens your subdomain in a new tab</li>
+        <li>Logout</li>
+      </ul>
+      <p class="text-muted">
+        The storage bar turns a warning color as you approach your limit, and
+        a different color once you're at or over it. Going over doesn't delete
+        anything, it just means new uploads get rejected until you free up space.
+      </p>
+
+      <h2>Files tab</h2>
+      <p>
+        The default tab. A publish toggle sits above a two-pane file manager:
+        a file list on the left, and an editor or image viewer on the right
+        once you open something. Full detail in <a href="/docs/file-manager">file manager</a>
+        and <a href="/docs/code-editor">code editor</a>.
+      </p>
+
+      <h2>Stats tab</h2>
+      <p>
+        Three numbers (total views, views in the last 30 days, top location),
+        a 30-day bar chart, and a table breaking views down by country. All of
+        it is real traffic to your published site, nothing simulated. Full
+        detail in <a href="/docs/analytics">analytics</a>.
+      </p>
+
+      <h2>Settings tab</h2>
+      <p>A form for the parts of your account you can change yourself:</p>
+      <ul>
+        <li><strong>Site title</strong>: shown on the <a href="/explore">explore page</a> if your site is published</li>
+        <li><strong>Bio</strong>: a short blurb, also shown on explore</li>
+        <li><strong>Email</strong>: your login email, changing it doesn't affect your username or subdomain</li>
+        <li><strong>Password</strong>: leave blank to keep your current one</li>
+      </ul>
+      <p class="text-muted">
+        Username and subdomain can't be changed from here. In the current
+        version they're permanent once you register. See
+        <a href="/docs/account-and-security">account &amp; security</a> for
+        the validation rules and what's enforced server-side.
+      </p>
+
+      <div class="docs-pager">
+        <a class="prev" href="/docs/getting-started">
+          <span class="label">← Back</span>
+          Getting started
+        </a>
+        <a class="next" href="/docs/file-manager">
+          <span class="label">Next</span>
+          File manager →
+        </a>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <span class="footnote">[1] The dashboard is private to your account and isn't indexed by search engines.</span>
+    <span class="footnote">[2] v0.1.0-alpha, independently run.</span>
+    <span class="footnote">[3] <a href="/status">Status</a> · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a></span>
+  </footer>
+
+  <script type="module" src="/assets/main.js"></script>
+</body>
+</html>

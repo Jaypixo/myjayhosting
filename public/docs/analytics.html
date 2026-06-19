@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Analytics | MyJay Docs</title>
+  <meta name="description" content="What MyJay tracks for your published site, what it deliberately doesn't, and where to see your numbers.">
+  <link rel="canonical" href="https://myjay.net/docs/analytics">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Analytics | MyJay Docs">
+  <meta property="og:description" content="What MyJay tracks for your published site, and what it deliberately doesn't.">
+  <meta property="og:url" content="https://myjay.net/docs/analytics">
+  <meta property="og:image" content="https://myjay.net/assets/img/logo.png">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Analytics | MyJay Docs">
+  <meta name="twitter:description" content="What MyJay tracks for your site, and what it deliberately doesn't.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@1,300&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="/assets/img/favicon.png">
+  <link rel="stylesheet" href="/assets/style.css">
+</head>
+<body>
+  <header class="torn-header compact">
+    <div class="nav-auth" data-nav-auth>
+      <a href="/login" class="btn btn-sm btn-outline">Log in</a>
+      <a href="/register" class="btn btn-sm">Register</a>
+    </div>
+    <div class="logo">
+      <img src="/assets/img/logo.png" alt="MyJay.net" onerror="var s=this.nextElementSibling; this.remove(); s.style.display=''">
+      <span class="logo-fallback" style="display:none"><span class="myjay">MyJay</span><span class="dotnet">.net</span></span>
+    </div>
+    <nav class="nav">
+      <a href="/">Home</a>
+      <a href="/explore">Explore</a>
+      <a href="/docs">Docs</a>
+      <a href="/help">Help</a>
+      <a href="/about">About</a>
+      <a href="/contact">Contact</a>
+    </nav>
+  </header>
+
+  <main class="docs-layout">
+    <aside class="docs-sidebar">
+      <p class="docs-sidebar-title">Documentation</p>
+      <nav class="docs-nav">
+        <a href="/docs">Overview</a>
+        <a href="/docs/getting-started">Getting started</a>
+        <a href="/docs/dashboard">The dashboard</a>
+        <a href="/docs/file-manager">File manager</a>
+        <a href="/docs/code-editor">Code editor</a>
+        <a href="/docs/publishing">Publishing</a>
+        <a href="/docs/routing">How routing works</a>
+        <a href="/docs/file-types-and-limits">File types &amp; limits</a>
+        <a href="/docs/analytics" class="active">Analytics</a>
+        <a href="/docs/account-and-security">Account &amp; security</a>
+        <a href="/docs/troubleshooting">Troubleshooting</a>
+      </nav>
+    </aside>
+
+    <div class="docs-content">
+      <span class="section-label">// docs / analytics</span>
+      <h1>Analytics.</h1>
+      <p class="text-muted">A view counter and a rough map. That's the whole feature, on purpose.</p>
+
+      <h2>What gets counted</h2>
+      <p>
+        Every time someone loads an HTML page on your published subdomain,
+        that's one view. It's counted twice, in two different shapes:
+      </p>
+      <ul>
+        <li>A running total on your account (<strong>total views</strong>, shown in the Stats tab and on the <a href="/explore">explore page</a>)</li>
+        <li>A per-day, per-country row, so the dashboard can show you a 30-day trend and a breakdown by location</li>
+      </ul>
+      <p class="text-muted">
+        Only HTML responses count. Requests for your CSS, JS, images, and
+        fonts don't add to your view count, and neither do 404s or requests
+        to an unpublished site. See <a href="/docs/routing">how routing works</a>
+        for what makes something an HTML response.
+      </p>
+
+      <h2>Where to see it</h2>
+      <p>In your <a href="/docs/dashboard">dashboard's</a> Stats tab:</p>
+      <ul>
+        <li>Total views, all time</li>
+        <li>Views in the last 30 days</li>
+        <li>Your top location by view count</li>
+        <li>A 30-day bar chart</li>
+        <li>A table of every location that's sent you traffic, sorted by views</li>
+      </ul>
+
+      <h2>What "location" means here</h2>
+      <p>
+        It's a country-level guess, based on the network location that
+        happened to handle each request, not anything read from the visitor's
+        device or browser. It's a rough signal, not a precise one, treat it
+        as "mostly right" rather than authoritative. When it can't be
+        determined, it shows up as "Unknown."
+      </p>
+
+      <h2>What's deliberately not tracked</h2>
+      <ul>
+        <li>No per-visitor identifiers. There's no way to tell two views apart as the "same person" or "different people."</li>
+        <li>No cookies set for your visitors. The only cookie on this platform is the login session cookie for account holders, and that never touches your public site.</li>
+        <li>No IP addresses stored as part of analytics.</li>
+        <li>No third-party analytics or tracking scripts injected into your pages. If you want analytics beyond this, you'd have to add your own script to your own HTML, the platform doesn't do that for you or against your will.</li>
+      </ul>
+      <p class="text-muted">
+        See <a href="/privacy">the privacy page</a> for the full picture of
+        what's collected platform-wide, this page is specifically about your
+        site's traffic numbers.
+      </p>
+
+      <div class="docs-pager">
+        <a class="prev" href="/docs/file-types-and-limits">
+          <span class="label">← Back</span>
+          File types &amp; limits
+        </a>
+        <a class="next" href="/docs/account-and-security">
+          <span class="label">Next</span>
+          Account &amp; security →
+        </a>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <span class="footnote">[1] If you publish a site, this is the only traffic data anyone, including the platform, has about it.</span>
+    <span class="footnote">[2] v0.1.0-alpha, independently run.</span>
+    <span class="footnote">[3] <a href="/status">Status</a> · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a></span>
+  </footer>
+
+  <script type="module" src="/assets/main.js"></script>
+</body>
+</html>

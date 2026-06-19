@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>How Routing Works | MyJay Docs</title>
+  <meta name="description" content="Exactly how a request to username.myjay.net resolves to a file, including folders, index.html fallback, and 404 handling.">
+  <link rel="canonical" href="https://myjay.net/docs/routing">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="How Routing Works | MyJay Docs">
+  <meta property="og:description" content="Exactly how a request to your subdomain resolves to a file, step by step.">
+  <meta property="og:url" content="https://myjay.net/docs/routing">
+  <meta property="og:image" content="https://myjay.net/assets/img/logo.png">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="How Routing Works | MyJay Docs">
+  <meta name="twitter:description" content="Exactly how a request to your subdomain resolves to a file.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@1,300&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="/assets/img/favicon.png">
+  <link rel="stylesheet" href="/assets/style.css">
+</head>
+<body>
+  <header class="torn-header compact">
+    <div class="nav-auth" data-nav-auth>
+      <a href="/login" class="btn btn-sm btn-outline">Log in</a>
+      <a href="/register" class="btn btn-sm">Register</a>
+    </div>
+    <div class="logo">
+      <img src="/assets/img/logo.png" alt="MyJay.net" onerror="var s=this.nextElementSibling; this.remove(); s.style.display=''">
+      <span class="logo-fallback" style="display:none"><span class="myjay">MyJay</span><span class="dotnet">.net</span></span>
+    </div>
+    <nav class="nav">
+      <a href="/">Home</a>
+      <a href="/explore">Explore</a>
+      <a href="/docs">Docs</a>
+      <a href="/help">Help</a>
+      <a href="/about">About</a>
+      <a href="/contact">Contact</a>
+    </nav>
+  </header>
+
+  <main class="docs-layout">
+    <aside class="docs-sidebar">
+      <p class="docs-sidebar-title">Documentation</p>
+      <nav class="docs-nav">
+        <a href="/docs">Overview</a>
+        <a href="/docs/getting-started">Getting started</a>
+        <a href="/docs/dashboard">The dashboard</a>
+        <a href="/docs/file-manager">File manager</a>
+        <a href="/docs/code-editor">Code editor</a>
+        <a href="/docs/publishing">Publishing</a>
+        <a href="/docs/routing" class="active">How routing works</a>
+        <a href="/docs/file-types-and-limits">File types &amp; limits</a>
+        <a href="/docs/analytics">Analytics</a>
+        <a href="/docs/account-and-security">Account &amp; security</a>
+        <a href="/docs/troubleshooting">Troubleshooting</a>
+      </nav>
+    </aside>
+
+    <div class="docs-content">
+      <span class="section-label">// docs / how routing works</span>
+      <h1>How routing works.</h1>
+      <p class="text-muted">The exact, step-by-step logic behind every request to <code>username.myjay.net</code>.</p>
+
+      <h2>The short version</h2>
+      <p>
+        A separate piece of infrastructure, independent from the main
+        <code>myjay.net</code> site, handles every request to every
+        subdomain. It looks up the username, checks whether that account is
+        published, and if so, serves the matching file straight from storage.
+        Nothing is rebuilt or regenerated, it reads exactly what you uploaded.
+      </p>
+
+      <h2>Step by step</h2>
+      <ol>
+        <li>
+          The hostname is split on dots. A request needs at least three parts
+          (<code>username.myjay.net</code>) to be treated as a subdomain
+          request at all. The bare apex domain isn't handled by this part of
+          the platform.
+        </li>
+        <li>
+          The first part of the hostname is taken as the username, and looked
+          up. If no account has that username, or the account exists but
+          hasn't published, the visitor gets a friendly "nothing here yet"
+          page with a <code>404</code> status. <em>The site existing and the
+          site being published are two different checks, both have to pass.</em>
+        </li>
+        <li>
+          The request path is resolved against your files:
+          <ul>
+            <li>If the path is empty (the bare domain) or ends in a slash, it looks for <code>index.html</code> at that location. A request to <code>/blog/</code> looks for <code>blog/index.html</code>.</li>
+            <li>Otherwise it looks for a file at that exact path first. A request to <code>/style.css</code> looks for exactly <code>style.css</code>.</li>
+            <li>If there's no exact match <em>and</em> the path has no file extension, it tries one more thing: that path plus <code>/index.html</code>. So <code>/blog</code> (no trailing slash) also resolves to <code>blog/index.html</code> if that file exists, even though you didn't upload anything literally named <code>blog</code>.</li>
+          </ul>
+        </li>
+        <li>
+          If none of that finds a file, the visitor gets a styled
+          <code>404</code> page specific to your subdomain.
+        </li>
+        <li>
+          If a file is found, it's streamed back with a <code>Content-Type</code>
+          header matched to its extension (or whatever type was recorded when
+          you uploaded it), and cached at the edge for a short time (currently
+          60 seconds) to keep repeat requests fast.
+        </li>
+      </ol>
+
+      <h2>Case sensitivity</h2>
+      <p>
+        File paths are matched exactly, including case. <code>About.html</code>
+        and <code>about.html</code> are two different files as far as routing
+        is concerned. If a link or a 404 seems wrong, check capitalization
+        first, see <a href="/docs/troubleshooting">troubleshooting</a>.
+      </p>
+
+      <h2>Folders</h2>
+      <p>
+        There's no special folder configuration needed. Upload
+        <code>blog/index.html</code> and <code>blog/post-1.html</code>, and
+        both <code>/blog/</code> and <code>/blog</code> will correctly serve
+        <code>blog/index.html</code> by the rule above, while
+        <code>/blog/post-1.html</code> serves that file directly.
+      </p>
+
+      <h2>What counts as a page view</h2>
+      <p>
+        Only successful responses with an HTML content type increment your
+        view count, see <a href="/docs/analytics">analytics</a> for the full
+        breakdown. Requests for CSS, JS, images, fonts, and 404s don't count.
+      </p>
+
+      <div class="docs-pager">
+        <a class="prev" href="/docs/publishing">
+          <span class="label">← Back</span>
+          Publishing
+        </a>
+        <a class="next" href="/docs/file-types-and-limits">
+          <span class="label">Next</span>
+          File types &amp; limits →
+        </a>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <span class="footnote">[1] None of this requires you to configure anything, it's how every subdomain behaves automatically.</span>
+    <span class="footnote">[2] v0.1.0-alpha, independently run.</span>
+    <span class="footnote">[3] <a href="/status">Status</a> · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a></span>
+  </footer>
+
+  <script type="module" src="/assets/main.js"></script>
+</body>
+</html>

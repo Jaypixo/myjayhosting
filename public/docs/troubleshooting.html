@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Troubleshooting | MyJay Docs</title>
+  <meta name="description" content="Fixes for the most common MyJay issues: unpublished sites, 404s, broken CSS paths, upload errors, and more.">
+  <link rel="canonical" href="https://myjay.net/docs/troubleshooting">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Troubleshooting | MyJay Docs">
+  <meta property="og:description" content="Fixes for the issues that actually come up: unpublished sites, 404s, broken paths, upload errors.">
+  <meta property="og:url" content="https://myjay.net/docs/troubleshooting">
+  <meta property="og:image" content="https://myjay.net/assets/img/logo.png">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Troubleshooting | MyJay Docs">
+  <meta name="twitter:description" content="Fixes for the most common MyJay issues.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@1,300&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="/assets/img/favicon.png">
+  <link rel="stylesheet" href="/assets/style.css">
+</head>
+<body>
+  <header class="torn-header compact">
+    <div class="nav-auth" data-nav-auth>
+      <a href="/login" class="btn btn-sm btn-outline">Log in</a>
+      <a href="/register" class="btn btn-sm">Register</a>
+    </div>
+    <div class="logo">
+      <img src="/assets/img/logo.png" alt="MyJay.net" onerror="var s=this.nextElementSibling; this.remove(); s.style.display=''">
+      <span class="logo-fallback" style="display:none"><span class="myjay">MyJay</span><span class="dotnet">.net</span></span>
+    </div>
+    <nav class="nav">
+      <a href="/">Home</a>
+      <a href="/explore">Explore</a>
+      <a href="/docs">Docs</a>
+      <a href="/help">Help</a>
+      <a href="/about">About</a>
+      <a href="/contact">Contact</a>
+    </nav>
+  </header>
+
+  <main class="docs-layout">
+    <aside class="docs-sidebar">
+      <p class="docs-sidebar-title">Documentation</p>
+      <nav class="docs-nav">
+        <a href="/docs">Overview</a>
+        <a href="/docs/getting-started">Getting started</a>
+        <a href="/docs/dashboard">The dashboard</a>
+        <a href="/docs/file-manager">File manager</a>
+        <a href="/docs/code-editor">Code editor</a>
+        <a href="/docs/publishing">Publishing</a>
+        <a href="/docs/routing">How routing works</a>
+        <a href="/docs/file-types-and-limits">File types &amp; limits</a>
+        <a href="/docs/analytics">Analytics</a>
+        <a href="/docs/account-and-security">Account &amp; security</a>
+        <a href="/docs/troubleshooting" class="active">Troubleshooting</a>
+      </nav>
+    </aside>
+
+    <div class="docs-content">
+      <span class="section-label">// docs / troubleshooting</span>
+      <h1>Troubleshooting.</h1>
+      <p class="text-muted">The issues that actually come up, and exactly why they happen.</p>
+
+      <h2>"This site doesn't exist yet"</h2>
+      <p>
+        This means one of two things: the username isn't registered at all,
+        or it is, but the account hasn't flipped the publish toggle to live
+        yet. See <a href="/docs/publishing">publishing</a>. If it's your own
+        site, check the toggle at the top of your Files tab.
+      </p>
+
+      <h2>A page gives a 404 that I expect to exist</h2>
+      <p>Two usual causes:</p>
+      <ul>
+        <li><strong>Case mismatch.</strong> <code>/About.html</code> and <code>/about.html</code> are different files. Paths are matched exactly, including capitalization.</li>
+        <li><strong>Missing folder index.</strong> A URL like <code>/blog/</code> only resolves if <code>blog/index.html</code> exists. If you uploaded <code>blog/post.html</code> but no <code>blog/index.html</code>, visiting <code>/blog/</code> itself 404s even though <code>/blog/post.html</code> works fine.</li>
+      </ul>
+      <p>See <a href="/docs/routing">how routing works</a> for the full resolution logic.</p>
+
+      <h2>My CSS or JS isn't loading</h2>
+      <p>
+        Use relative paths (<code>style.css</code> or <code>/style.css</code>),
+        not a full URL pointing at <code>myjay.net</code>. Your site lives on
+        <code>username.myjay.net</code>, a different address from the main
+        platform domain, so a hardcoded link to <code>myjay.net/style.css</code>
+        will never resolve to your file.
+      </p>
+
+      <h2>I can't rename a file</h2>
+      <p>
+        Renaming isn't supported yet. Upload a new file with the name you
+        want, then delete the old one. See <a href="/docs/file-manager">file manager</a>.
+      </p>
+
+      <h2>A folder I created disappeared</h2>
+      <p>
+        Folders aren't separate objects, they only exist as a side effect of
+        having a file inside them. If every file in a folder gets deleted,
+        the folder stops appearing because there's nothing left implying it
+        exists. This is expected, see <a href="/docs/file-manager">file manager</a>.
+      </p>
+
+      <h2>An upload was rejected</h2>
+      <p>Check, in order:</p>
+      <ul>
+        <li>Is the file's extension on the <a href="/docs/file-types-and-limits">allowed list</a>?</li>
+        <li>Would it push your account over the 50MB total storage quota?</li>
+        <li>Is the whole upload batch (everything you selected at once) under 25MB?</li>
+      </ul>
+
+      <h2>I edited a file but my changes are gone</h2>
+      <p>
+        The code editor doesn't autosave. If you closed the editor panel or
+        navigated away before clicking <strong>Save</strong> (or pressing
+        Ctrl/Cmd+S), the edit was never written. See <a href="/docs/code-editor">code editor</a>.
+      </p>
+
+      <h2>An image won't preview, it just shows as a generic file</h2>
+      <p>
+        The built-in viewer opens JPG, PNG, GIF, and WEBP. SVG files are
+        treated as code (they're text under the hood) and open in the editor
+        instead, not the image viewer. Fonts and icon files have no preview
+        at all, only upload and delete.
+      </p>
+
+      <h2>I forgot my password</h2>
+      <p>
+        There's no automated "reset password" email yet. <a href="/contact">Contact support</a>
+        with the account category selected and we'll sort it out manually.
+      </p>
+
+      <h2>The whole site shows a maintenance page</h2>
+      <p>
+        That's platform-wide maintenance mode, switched on by an admin, and
+        unrelated to anything about your specific site. Check
+        <a href="/status">the status page</a> for the current state, it
+        reflects this live.
+      </p>
+
+      <h2>Still stuck?</h2>
+      <p>
+        <a href="/contact">Get in touch</a>. Include your username and, if
+        relevant, the exact URL that's misbehaving, it makes this much faster
+        to track down.
+      </p>
+
+      <div class="docs-pager">
+        <a class="prev" href="/docs/account-and-security">
+          <span class="label">← Back</span>
+          Account &amp; security
+        </a>
+        <a class="next" href="/docs">
+          <span class="label">Back to</span>
+          Documentation overview
+        </a>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <span class="footnote">[1] If something here is wrong or out of date, that's a bug in the documentation, please report it.</span>
+    <span class="footnote">[2] v0.1.0-alpha, independently run.</span>
+    <span class="footnote">[3] <a href="/status">Status</a> · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a></span>
+  </footer>
+
+  <script type="module" src="/assets/main.js"></script>
+</body>
+</html>

@@ -9,12 +9,29 @@ MyJay is a small, independently run platform (built by Jaypix, https://jaypix.de
 - [Homepage](https://myjay.net/): what MyJay is and how it works
 - [Register](https://myjay.net/register): create a free account and claim a subdomain
 - [Explore](https://myjay.net/explore): recently updated sites hosted on the platform
-- [Help](https://myjay.net/help): setup guide, allowed file types, troubleshooting
+- [Help](https://myjay.net/help): five-minute setup guide and a short troubleshooting FAQ
 - [About](https://myjay.net/about): what MyJay is, what it isn't, who runs it, the roadmap
 - [Contact](https://myjay.net/contact): bug reports, abuse reports, account help, press
 - [Status](https://myjay.net/status): live system checks and maintenance mode
 - [Privacy](https://myjay.net/privacy): what little data is collected and why
 - [Terms](https://myjay.net/terms): terms of use
+
+## Documentation
+
+The full reference lives under /docs, the help page above is only the quick
+version. Each of these is its own page:
+
+- [Documentation overview](https://myjay.net/docs): index of every doc page
+- [Getting started](https://myjay.net/docs/getting-started): register, upload, publish
+- [The dashboard](https://myjay.net/docs/dashboard): tour of the account dashboard
+- [File manager](https://myjay.net/docs/file-manager): folders, uploads, drag-and-drop, deleting
+- [Code editor](https://myjay.net/docs/code-editor): the in-browser editor, supported file types, saving
+- [Publishing](https://myjay.net/docs/publishing): exactly what the draft/live toggle changes
+- [How routing works](https://myjay.net/docs/routing): the precise request-to-file resolution logic for username.myjay.net
+- [File types & limits](https://myjay.net/docs/file-types-and-limits): the full allowed-extensions list, storage quota, upload ceiling
+- [Analytics](https://myjay.net/docs/analytics): what view tracking does and deliberately doesn't do
+- [Account & security](https://myjay.net/docs/account-and-security): username rules, password hashing, session handling
+- [Troubleshooting](https://myjay.net/docs/troubleshooting): fixes for the issues that actually come up
 
 ## Notes for crawlers and assistants
 

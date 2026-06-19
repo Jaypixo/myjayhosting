@@ -13,6 +13,50 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://myjay.net/docs</loc>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://myjay.net/docs/getting-started</loc>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://myjay.net/docs/dashboard</loc>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://myjay.net/docs/file-manager</loc>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://myjay.net/docs/code-editor</loc>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://myjay.net/docs/publishing</loc>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://myjay.net/docs/routing</loc>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://myjay.net/docs/file-types-and-limits</loc>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://myjay.net/docs/analytics</loc>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://myjay.net/docs/account-and-security</loc>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://myjay.net/docs/troubleshooting</loc>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://myjay.net/help</loc>
     <priority>0.7</priority>
   </url>

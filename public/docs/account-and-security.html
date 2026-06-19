@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Account &amp; Security | MyJay Docs</title>
+  <meta name="description" content="Username rules, password hashing, and how login sessions work for MyJay accounts.">
+  <link rel="canonical" href="https://myjay.net/docs/account-and-security">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Account & Security | MyJay Docs">
+  <meta property="og:description" content="Username rules, password security, and session handling for MyJay accounts.">
+  <meta property="og:url" content="https://myjay.net/docs/account-and-security">
+  <meta property="og:image" content="https://myjay.net/assets/img/logo.png">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Account & Security | MyJay Docs">
+  <meta name="twitter:description" content="Username rules, password security, and how sessions work.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@1,300&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="/assets/img/favicon.png">
+  <link rel="stylesheet" href="/assets/style.css">
+</head>
+<body>
+  <header class="torn-header compact">
+    <div class="nav-auth" data-nav-auth>
+      <a href="/login" class="btn btn-sm btn-outline">Log in</a>
+      <a href="/register" class="btn btn-sm">Register</a>
+    </div>
+    <div class="logo">
+      <img src="/assets/img/logo.png" alt="MyJay.net" onerror="var s=this.nextElementSibling; this.remove(); s.style.display=''">
+      <span class="logo-fallback" style="display:none"><span class="myjay">MyJay</span><span class="dotnet">.net</span></span>
+    </div>
+    <nav class="nav">
+      <a href="/">Home</a>
+      <a href="/explore">Explore</a>
+      <a href="/docs">Docs</a>
+      <a href="/help">Help</a>
+      <a href="/about">About</a>
+      <a href="/contact">Contact</a>
+    </nav>
+  </header>
+
+  <main class="docs-layout">
+    <aside class="docs-sidebar">
+      <p class="docs-sidebar-title">Documentation</p>
+      <nav class="docs-nav">
+        <a href="/docs">Overview</a>
+        <a href="/docs/getting-started">Getting started</a>
+        <a href="/docs/dashboard">The dashboard</a>
+        <a href="/docs/file-manager">File manager</a>
+        <a href="/docs/code-editor">Code editor</a>
+        <a href="/docs/publishing">Publishing</a>
+        <a href="/docs/routing">How routing works</a>
+        <a href="/docs/file-types-and-limits">File types &amp; limits</a>
+        <a href="/docs/analytics">Analytics</a>
+        <a href="/docs/account-and-security" class="active">Account &amp; security</a>
+        <a href="/docs/troubleshooting">Troubleshooting</a>
+      </nav>
+    </aside>
+
+    <div class="docs-content">
+      <span class="section-label">// docs / account &amp; security</span>
+      <h1>Account &amp; security.</h1>
+      <p class="text-muted">Username rules, how passwords are stored, and how login sessions actually work.</p>
+
+      <h2>Usernames</h2>
+      <p>Your username doubles as your subdomain, so it has firm rules:</p>
+      <ul>
+        <li>3 to 32 characters</li>
+        <li>Lowercase letters, numbers, and hyphens only, no spaces, no uppercase, no underscores</li>
+        <li>Checked for availability live as you type during registration</li>
+        <li>A set of reserved names is blocked so they can't collide with the platform's own pages, things like <code>www</code>, <code>api</code>, <code>admin</code>, <code>help</code>, <code>support</code>, and similar</li>
+      </ul>
+      <p class="text-muted">
+        Usernames are permanent once registered. There's currently no way to
+        rename one or transfer it to a different account.
+      </p>
+
+      <h2>Passwords</h2>
+      <p>
+        Passwords must be at least 8 characters, no other complexity rule is
+        enforced. Behind the scenes, passwords are never stored as plain
+        text: each one is hashed with PBKDF2-SHA256, salted with a unique
+        random value per account, using 100,000 iterations. No API response,
+        anywhere on the platform, ever returns a password or its hash.
+      </p>
+      <p>
+        Change your password from the <strong>Settings</strong> tab of your
+        <a href="/docs/dashboard">dashboard</a>, leave the field blank to
+        keep your current one.
+      </p>
+
+      <h2>Sessions</h2>
+      <p>
+        Logging in creates a random session token, stored server-side, and
+        sets it in a cookie marked <code>HttpOnly</code>, <code>Secure</code>,
+        and <code>SameSite=Lax</code>. That combination means the token can't
+        be read by page scripts (including someone else's script, if it ever
+        ended up running on a page you visited), only travels over encrypted
+        connections, and isn't sent along with most cross-site requests.
+      </p>
+      <p>
+        Sessions last 30 days from login. Logging out clears the cookie and
+        invalidates the token immediately, so it can't be reused even if
+        someone captured it earlier.
+      </p>
+
+      <h2>Email</h2>
+      <p>
+        Your email is used for login and, currently, for manual account
+        recovery if you contact support, there's no automated password-reset
+        email flow yet. Changing your email in Settings doesn't affect your
+        username or subdomain, they're independent.
+      </p>
+
+      <h2>One account, one site</h2>
+      <p>
+        In the current version, each account manages exactly one site at one
+        subdomain. There's no concept of teams, multiple sites per account,
+        or shared access to a site yet.
+      </p>
+
+      <div class="docs-pager">
+        <a class="prev" href="/docs/analytics">
+          <span class="label">← Back</span>
+          Analytics
+        </a>
+        <a class="next" href="/docs/troubleshooting">
+          <span class="label">Next</span>
+          Troubleshooting →
+        </a>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <span class="footnote">[1] For what's collected and why beyond your account credentials, see the privacy page.</span>
+    <span class="footnote">[2] v0.1.0-alpha, independently run.</span>
+    <span class="footnote">[3] <a href="/status">Status</a> · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a></span>
+  </footer>
+
+  <script type="module" src="/assets/main.js"></script>
+</body>
+</html>

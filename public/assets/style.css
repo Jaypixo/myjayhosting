@@ -235,6 +235,139 @@ a:hover {
   padding: 0 1.5rem 3rem;
 }
 
+/* ---------------------------------------------------------------------
+   Documentation pages
+   --------------------------------------------------------------------- */
+
+.docs-layout {
+  display: grid;
+  grid-template-columns: 230px 1fr;
+  gap: 2.5rem;
+  align-items: start;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 1.5rem 3rem;
+}
+
+.docs-sidebar {
+  position: sticky;
+  top: 1.5rem;
+}
+
+.docs-sidebar-title {
+  font-family: var(--font-ui);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.7rem;
+  color: var(--muted);
+  margin: 0 0 0.6rem;
+  padding: 0 0.6rem;
+}
+
+.docs-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.docs-nav a {
+  display: block;
+  padding: 0.4rem 0.6rem;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--ink);
+  border-bottom: none;
+  border-left: 2px solid transparent;
+}
+
+.docs-nav a:hover {
+  background: var(--paper-alt);
+}
+
+.docs-nav a.active {
+  color: var(--primary);
+  border-left-color: var(--primary);
+  background: var(--paper-alt);
+  font-weight: 500;
+}
+
+.docs-content {
+  min-width: 0;
+  max-width: 700px;
+}
+
+.docs-content h2 {
+  margin-top: 2.25rem;
+}
+
+.docs-content section:first-of-type h2:first-child,
+.docs-content > h1 + h2 {
+  margin-top: 1.5rem;
+}
+
+.docs-pager {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 3rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.85rem;
+}
+
+.docs-pager a {
+  display: block;
+}
+
+.docs-pager .next {
+  text-align: right;
+  margin-left: auto;
+}
+
+.docs-pager .label {
+  display: block;
+  color: var(--muted);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 0.2rem;
+}
+
+.feature-grid a.card {
+  color: var(--ink);
+  border-bottom: none;
+  transition: border-color 0.15s ease;
+}
+
+.feature-grid a.card:hover {
+  border-color: var(--primary);
+}
+
+.feature-grid a.card h3 {
+  color: var(--primary);
+}
+
+@media (max-width: 820px) {
+  .docs-layout {
+    grid-template-columns: 1fr;
+  }
+  .docs-sidebar {
+    position: static;
+  }
+  .docs-nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+  .docs-nav a {
+    border-left: none;
+    border: 1px solid var(--border);
+  }
+  .docs-nav a.active {
+    border-color: var(--primary);
+  }
+}
+
 .layout-grid {
   display: grid;
   grid-template-columns: 270px 1fr;
