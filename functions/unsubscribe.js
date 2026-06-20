@@ -1,7 +1,10 @@
-// GET /unsubscribe?token=X&type=Y. The type in the query string is only
-// for display before we've verified anything; the actual write uses the
-// type embedded in the signed token, never the raw query param, so nobody
-// can edit the URL to unsubscribe a different category than they were sent.
+// GET /unsubscribe?token=X&type=Y[&action=resub]. The type in the query
+// string is only for display before we've verified anything; the actual
+// write uses the type embedded in the signed token, never the raw query
+// param, so nobody can edit the URL to unsubscribe a different category
+// than they were sent. action=resub reverses it using that same token, so
+// a misclick is one more click away from undone, not a trip to account
+// settings, the token has no expiry so this works whenever someone notices.
 import { verifyUnsubscribeToken } from './_lib/unsubscribe.js';
 
 const TYPE_LABELS = {
@@ -10,7 +13,7 @@ const TYPE_LABELS = {
   blog_notification: 'blog post notifications',
 };
 
-function page({ title, heading, message }) {
+function page({ title, heading, message, resubscribeUrl }) {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -34,7 +37,10 @@ function page({ title, heading, message }) {
     <section class="auth-section">
       <h1>${heading}</h1>
       <p class="text-muted">${message}</p>
-      <a class="btn btn-ghost mt-1" href="/">Back to MyJay.net</a>
+      <div style="display:flex;gap:0.75rem;justify-content:center;flex-wrap:wrap;margin-top:1rem;">
+        ${resubscribeUrl ? `<a class="btn btn-sm" href="${resubscribeUrl}">Didn't mean to? Resubscribe</a>` : ''}
+        <a class="btn btn-ghost btn-sm" href="/">Back to MyJay.net</a>
+      </div>
     </section>
   </main>
   <footer class="footer">
@@ -47,7 +53,9 @@ function page({ title, heading, message }) {
 
 export async function onRequestGet(context) {
   const { request, env } = context;
-  const token = new URL(request.url).searchParams.get('token') || '';
+  const url = new URL(request.url);
+  const token = url.searchParams.get('token') || '';
+  const resub = url.searchParams.get('action') === 'resub';
 
   const verified = await verifyUnsubscribeToken(env, token);
   if (!verified) {
@@ -60,19 +68,32 @@ export async function onRequestGet(context) {
   }
 
   const { userId, type } = verified;
+  const unsubscribed = resub ? 0 : 1;
+
   await env.DB.prepare(
     `INSERT INTO notification_prefs (user_id, type, unsubscribed, updated_at)
-     VALUES (?, ?, 1, ?)
-     ON CONFLICT(user_id, type) DO UPDATE SET unsubscribed = 1, updated_at = excluded.updated_at`
+     VALUES (?, ?, ?, ?)
+     ON CONFLICT(user_id, type) DO UPDATE SET unsubscribed = excluded.unsubscribed, updated_at = excluded.updated_at`
   )
-    .bind(userId, type, new Date().toISOString())
+    .bind(userId, type, unsubscribed, new Date().toISOString())
     .run();
 
   const label = TYPE_LABELS[type] || type;
+
+  if (resub) {
+    const html = page({
+      title: 'Resubscribed',
+      heading: "You're back in.",
+      message: `You'll get ${label} from MyJay.net again.`,
+    });
+    return new Response(html, { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+  }
+
   const html = page({
     title: 'Unsubscribed',
     heading: 'Done.',
     message: `You won't get ${label} from MyJay.net anymore. This doesn't affect account emails like password resets or security alerts.`,
+    resubscribeUrl: `/unsubscribe?token=${encodeURIComponent(token)}&action=resub`,
   });
   return new Response(html, { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
 }

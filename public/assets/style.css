@@ -1235,6 +1235,43 @@ th {
   display: block;
 }
 
+/* Nested tab bar, used inside a single tab-panel (e.g. the Email tab's
+   Overview/Compose/Log split) so one heavy panel doesn't need its own
+   global .tabs/.tab-panel class, which setupTabs() treats as page-wide. */
+.subtabs {
+  display: flex;
+  gap: 1.25rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 1.25rem;
+  font-family: var(--font-ui);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.72rem;
+}
+
+.subtabs button {
+  background: none;
+  border: none;
+  padding: 0.5rem 0;
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  border-bottom: 2px solid transparent;
+}
+
+.subtabs button.active {
+  color: var(--ink);
+  border-bottom-color: var(--primary);
+}
+
+.subtab-panel {
+  display: none;
+}
+
+.subtab-panel.active {
+  display: block;
+}
+
 /* ---------------------------------------------------------------------
    Footer
    --------------------------------------------------------------------- */

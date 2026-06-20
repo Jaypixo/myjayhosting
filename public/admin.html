@@ -110,241 +110,253 @@
       </div>
 
       <div id="email-panel" class="tab-panel">
-        <div class="card hidden" id="email-health-banner" style="border-top:3px solid var(--error)">
-          <h3 class="text-error" id="email-health-title">Nothing has sent yet</h3>
-          <p class="text-muted" id="email-health-body"></p>
+        <div class="subtabs">
+          <button class="active" data-subtab="email-overview-panel">Overview</button>
+          <button data-subtab="email-compose-panel">Compose</button>
+          <button data-subtab="email-log-panel">Log</button>
         </div>
 
-        <div class="layout-2col">
-          <div>
-            <h3>Send a test email</h3>
+        <div id="email-overview-panel" class="subtab-panel active">
+          <div class="card hidden" id="email-health-banner" style="border-top:3px solid var(--error)">
+            <h3 class="text-error" id="email-health-title">Nothing has sent yet</h3>
+            <p class="text-muted" id="email-health-body"></p>
+          </div>
+
+          <div class="feature-grid">
             <div class="card">
-              <p class="text-muted">
-                Sends a real email through the real pipeline (this panel &rarr; mailer &rarr; Resend),
-                logged below like anything else. The fastest way to check whether <code>noreply@myjay.net</code>
-                sending actually works.
-              </p>
-              <form id="email-test-form">
-                <div class="form-error" id="email-test-error"></div>
+              <h3 id="email-stat-today">...</h3>
+              <p class="text-muted">sent today</p>
+            </div>
+            <div class="card">
+              <h3 id="email-stat-total">...</h3>
+              <p class="text-muted">total sent</p>
+            </div>
+            <div class="card">
+              <h3 id="email-stat-failed">...</h3>
+              <p class="text-muted">total failed</p>
+            </div>
+            <div class="card">
+              <h3 id="email-stat-delivery">...</h3>
+              <p class="text-muted">delivery rate</p>
+            </div>
+            <div class="card">
+              <h3 id="email-stat-open">...</h3>
+              <p class="text-muted">open rate</p>
+            </div>
+            <div class="card">
+              <h3 id="email-stat-bounces">...</h3>
+              <p class="text-muted">suppressed bounces</p>
+            </div>
+            <div class="card">
+              <h3 id="email-stat-unsubs">...</h3>
+              <p class="text-muted">unsubscribed</p>
+            </div>
+          </div>
+
+          <h3 class="mt-2">Last 30 days</h3>
+          <div class="chart-bars" id="email-chart"></div>
+
+          <div id="email-top-errors-wrap" class="hidden">
+            <h3 class="mt-2">Most common failure reasons</h3>
+            <table>
+              <thead><tr><th>Error</th><th>Count</th></tr></thead>
+              <tbody id="email-top-errors-body"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="email-compose-panel" class="subtab-panel">
+          <div class="layout-2col">
+            <div>
+              <h3>Send a test email</h3>
+              <div class="card">
+                <p class="text-muted">
+                  Sends a real email through the real pipeline (this panel &rarr; mailer &rarr; Resend),
+                  logged below like anything else. The fastest way to check whether <code>noreply@myjay.net</code>
+                  sending actually works.
+                </p>
+                <form id="email-test-form">
+                  <div class="form-error" id="email-test-error"></div>
+                  <div class="field">
+                    <label for="email-test-to">Send to</label>
+                    <input type="email" id="email-test-to" placeholder="defaults to your own admin email">
+                  </div>
+                  <div class="field">
+                    <label for="email-test-template">Template</label>
+                    <select id="email-test-template">
+                      <option value="admin_message">Admin message</option>
+                      <option value="verify">Verify email</option>
+                      <option value="reset">Password reset</option>
+                      <option value="security_alert">Security alert</option>
+                      <option value="broadcast">Broadcast announcement</option>
+                      <option value="blog_notification">Blog notification</option>
+                    </select>
+                  </div>
+                  <button type="submit" class="btn btn-sm" id="email-test-submit">Send test</button>
+                  <span class="text-ok hidden" id="email-test-success">Sent, check the log.</span>
+                </form>
+              </div>
+            </div>
+
+            <div>
+              <h3>Email signature</h3>
+              <div class="card">
+                <p class="text-muted">Shown at the bottom of every email this platform sends, edits apply immediately to future sends.</p>
+                <form id="email-signature-form">
+                  <div class="form-error" id="email-signature-error"></div>
+                  <div class="field">
+                    <label for="email-signature-name">Sign-off name</label>
+                    <input type="text" id="email-signature-name" maxlength="60" required>
+                  </div>
+                  <div class="field">
+                    <label for="email-signature-tagline">Tagline</label>
+                    <input type="text" id="email-signature-tagline" maxlength="120" placeholder="optional">
+                  </div>
+                  <button type="submit" class="btn btn-sm" id="email-signature-submit">Save signature</button>
+                  <span class="text-ok hidden" id="email-signature-success">Saved.</span>
+                </form>
+                <iframe class="email-preview-frame email-preview-frame-sm mt-1" id="email-signature-preview" title="Signature preview" sandbox=""></iframe>
+              </div>
+            </div>
+          </div>
+
+          <h3 class="mt-2">Send a one-off message</h3>
+          <div class="card">
+            <div class="layout-2col">
+              <form id="email-send-form">
+                <div class="form-error" id="email-send-error"></div>
                 <div class="field">
-                  <label for="email-test-to">Send to</label>
-                  <input type="email" id="email-test-to" placeholder="defaults to your own admin email">
+                  <label for="email-send-userid">User ID</label>
+                  <input type="text" id="email-send-userid" placeholder="leave blank if sending by email instead">
                 </div>
                 <div class="field">
-                  <label for="email-test-template">Template</label>
-                  <select id="email-test-template">
-                    <option value="admin_message">Admin message</option>
-                    <option value="verify">Verify email</option>
-                    <option value="reset">Password reset</option>
-                    <option value="security_alert">Security alert</option>
-                    <option value="broadcast">Broadcast announcement</option>
-                    <option value="blog_notification">Blog notification</option>
+                  <label for="email-send-email">Email</label>
+                  <input type="email" id="email-send-email" placeholder="leave blank if sending by user ID instead">
+                </div>
+                <div class="field">
+                  <label for="email-send-subject">Subject</label>
+                  <input type="text" id="email-send-subject" required>
+                </div>
+                <div class="field">
+                  <label for="email-send-body">Message</label>
+                  <textarea id="email-send-body" rows="6" required></textarea>
+                </div>
+                <button type="submit" class="btn btn-sm" id="email-send-submit">Send</button>
+                <span class="text-ok hidden" id="email-send-success">Sent.</span>
+              </form>
+              <div>
+                <iframe class="email-preview-frame" id="email-send-preview" title="Message preview" sandbox=""></iframe>
+              </div>
+            </div>
+          </div>
+
+          <h3 class="mt-2">Broadcast</h3>
+          <div class="card">
+            <div class="layout-2col">
+              <form id="email-broadcast-form">
+                <div class="form-error" id="email-broadcast-error"></div>
+                <div class="field">
+                  <label for="email-broadcast-segment">Segment</label>
+                  <select id="email-broadcast-segment">
+                    <option value="all">All users</option>
+                    <option value="published">Sites that are published</option>
+                    <option value="unpublished">Sites that are unpublished</option>
+                    <option value="inactive_30d">Inactive 30+ days</option>
+                    <option value="custom">Custom filter</option>
                   </select>
                 </div>
-                <button type="submit" class="btn btn-sm" id="email-test-submit">Send test</button>
-                <span class="text-ok hidden" id="email-test-success">Sent, check the log below.</span>
-              </form>
-            </div>
-          </div>
-
-          <div>
-            <h3>Email signature</h3>
-            <div class="card">
-              <p class="text-muted">Shown at the bottom of every email this platform sends, edits apply immediately to future sends.</p>
-              <form id="email-signature-form">
-                <div class="form-error" id="email-signature-error"></div>
-                <div class="field">
-                  <label for="email-signature-name">Sign-off name</label>
-                  <input type="text" id="email-signature-name" maxlength="60" required>
+                <div class="field hidden" id="email-broadcast-custom-fields">
+                  <label for="email-broadcast-role">Role</label>
+                  <select id="email-broadcast-role">
+                    <option value="">Any role</option>
+                    <option value="user">User</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                  <label for="email-broadcast-verified" class="mt-1">Email verified</label>
+                  <select id="email-broadcast-verified">
+                    <option value="">Doesn't matter</option>
+                    <option value="true">Verified only</option>
+                    <option value="false">Unverified only</option>
+                  </select>
                 </div>
                 <div class="field">
-                  <label for="email-signature-tagline">Tagline</label>
-                  <input type="text" id="email-signature-tagline" maxlength="120" placeholder="optional">
+                  <label for="email-broadcast-subject">Subject</label>
+                  <input type="text" id="email-broadcast-subject" required>
                 </div>
-                <button type="submit" class="btn btn-sm" id="email-signature-submit">Save signature</button>
-                <span class="text-ok hidden" id="email-signature-success">Saved.</span>
+                <div class="field">
+                  <label for="email-broadcast-body">Message</label>
+                  <textarea id="email-broadcast-body" rows="6" required></textarea>
+                </div>
+                <button type="submit" class="btn btn-danger btn-sm" id="email-broadcast-submit">Send broadcast</button>
+                <span class="text-ok hidden" id="email-broadcast-result"></span>
               </form>
-              <iframe class="email-preview-frame email-preview-frame-sm mt-1" id="email-signature-preview" title="Signature preview" sandbox=""></iframe>
+              <div>
+                <iframe class="email-preview-frame" id="email-broadcast-preview" title="Broadcast preview" sandbox=""></iframe>
+              </div>
             </div>
           </div>
         </div>
 
-        <div class="feature-grid mt-2">
-          <div class="card">
-            <h3 id="email-stat-today">...</h3>
-            <p class="text-muted">sent today</p>
+        <div id="email-log-panel" class="subtab-panel">
+          <div class="flex-between">
+            <h3>Send log</h3>
+            <button class="btn btn-danger btn-sm" id="email-logs-clear-btn">Clear log</button>
           </div>
-          <div class="card">
-            <h3 id="email-stat-total">...</h3>
-            <p class="text-muted">total sent</p>
+          <div class="flex-between" style="flex-wrap:wrap;gap:0.5rem">
+            <div class="field" style="margin:0;flex:1;min-width:200px">
+              <input type="text" id="email-log-search" placeholder="Search recipient or subject...">
+            </div>
+            <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+              <select id="email-log-type-filter">
+                <option value="">All types</option>
+                <option value="verify">Verify</option>
+                <option value="reset">Reset</option>
+                <option value="security_alert">Security alert</option>
+                <option value="admin_message">Admin message</option>
+                <option value="broadcast">Broadcast</option>
+                <option value="blog_notification">Blog notification</option>
+              </select>
+              <select id="email-log-status-filter">
+                <option value="">All statuses</option>
+                <option value="sent">Sent</option>
+                <option value="delivered">Delivered</option>
+                <option value="bounced">Bounced</option>
+                <option value="failed">Failed</option>
+              </select>
+            </div>
           </div>
-          <div class="card">
-            <h3 id="email-stat-failed">...</h3>
-            <p class="text-muted">total failed</p>
-          </div>
-          <div class="card">
-            <h3 id="email-stat-delivery">...</h3>
-            <p class="text-muted">delivery rate</p>
-          </div>
-          <div class="card">
-            <h3 id="email-stat-open">...</h3>
-            <p class="text-muted">open rate</p>
-          </div>
-          <div class="card">
-            <h3 id="email-stat-bounces">...</h3>
-            <p class="text-muted">suppressed bounces</p>
-          </div>
-          <div class="card">
-            <h3 id="email-stat-unsubs">...</h3>
-            <p class="text-muted">unsubscribed</p>
-          </div>
-        </div>
-
-        <h3 class="mt-2">Last 30 days</h3>
-        <div class="chart-bars" id="email-chart"></div>
-
-        <div id="email-top-errors-wrap" class="hidden">
-          <h3 class="mt-2">Most common failure reasons</h3>
           <table>
-            <thead><tr><th>Error</th><th>Count</th></tr></thead>
-            <tbody id="email-top-errors-body"></tbody>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Recipient</th>
+                <th>Type</th>
+                <th>Subject</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="email-logs-body">
+              <tr><td colspan="6" class="text-muted">loading...</td></tr>
+            </tbody>
+          </table>
+          <div class="flex-between mt-1">
+            <button class="btn btn-ghost btn-sm" id="email-logs-prev">← Prev</button>
+            <span class="text-muted" id="email-logs-page-info">page 1</span>
+            <button class="btn btn-ghost btn-sm" id="email-logs-next">Next →</button>
+          </div>
+
+          <h3 class="mt-2">Bounce suppression</h3>
+          <p class="text-muted">Addresses that hard-bounced. They're skipped automatically on every future send until removed here.</p>
+          <table>
+            <thead>
+              <tr><th>Email</th><th>Reason</th><th>Since</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="email-bounces-body">
+              <tr><td colspan="4" class="text-muted">loading...</td></tr>
+            </tbody>
           </table>
         </div>
-
-        <h3 class="mt-2">Send a one-off message</h3>
-        <div class="card">
-          <div class="layout-2col">
-            <form id="email-send-form">
-              <div class="form-error" id="email-send-error"></div>
-              <div class="field">
-                <label for="email-send-userid">User ID</label>
-                <input type="text" id="email-send-userid" placeholder="leave blank if sending by email instead">
-              </div>
-              <div class="field">
-                <label for="email-send-email">Email</label>
-                <input type="email" id="email-send-email" placeholder="leave blank if sending by user ID instead">
-              </div>
-              <div class="field">
-                <label for="email-send-subject">Subject</label>
-                <input type="text" id="email-send-subject" required>
-              </div>
-              <div class="field">
-                <label for="email-send-body">Message</label>
-                <textarea id="email-send-body" rows="6" required></textarea>
-              </div>
-              <button type="submit" class="btn btn-sm" id="email-send-submit">Send</button>
-              <span class="text-ok hidden" id="email-send-success">Sent.</span>
-            </form>
-            <div>
-              <iframe class="email-preview-frame" id="email-send-preview" title="Message preview" sandbox=""></iframe>
-            </div>
-          </div>
-        </div>
-
-        <h3 class="mt-2">Broadcast</h3>
-        <div class="card">
-          <div class="layout-2col">
-            <form id="email-broadcast-form">
-              <div class="form-error" id="email-broadcast-error"></div>
-              <div class="field">
-                <label for="email-broadcast-segment">Segment</label>
-                <select id="email-broadcast-segment">
-                  <option value="all">All users</option>
-                  <option value="published">Sites that are published</option>
-                  <option value="unpublished">Sites that are unpublished</option>
-                  <option value="inactive_30d">Inactive 30+ days</option>
-                  <option value="custom">Custom filter</option>
-                </select>
-              </div>
-              <div class="field hidden" id="email-broadcast-custom-fields">
-                <label for="email-broadcast-role">Role</label>
-                <select id="email-broadcast-role">
-                  <option value="">Any role</option>
-                  <option value="user">User</option>
-                  <option value="admin">Admin</option>
-                </select>
-                <label for="email-broadcast-verified" class="mt-1">Email verified</label>
-                <select id="email-broadcast-verified">
-                  <option value="">Doesn't matter</option>
-                  <option value="true">Verified only</option>
-                  <option value="false">Unverified only</option>
-                </select>
-              </div>
-              <div class="field">
-                <label for="email-broadcast-subject">Subject</label>
-                <input type="text" id="email-broadcast-subject" required>
-              </div>
-              <div class="field">
-                <label for="email-broadcast-body">Message</label>
-                <textarea id="email-broadcast-body" rows="6" required></textarea>
-              </div>
-              <button type="submit" class="btn btn-danger btn-sm" id="email-broadcast-submit">Send broadcast</button>
-              <span class="text-ok hidden" id="email-broadcast-result"></span>
-            </form>
-            <div>
-              <iframe class="email-preview-frame" id="email-broadcast-preview" title="Broadcast preview" sandbox=""></iframe>
-            </div>
-          </div>
-        </div>
-
-        <div class="flex-between mt-2">
-          <h3>Send log</h3>
-          <button class="btn btn-danger btn-sm" id="email-logs-clear-btn">Clear log</button>
-        </div>
-        <div class="flex-between" style="flex-wrap:wrap;gap:0.5rem">
-          <div class="field" style="margin:0;flex:1;min-width:200px">
-            <input type="text" id="email-log-search" placeholder="Search recipient or subject...">
-          </div>
-          <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
-            <select id="email-log-type-filter">
-              <option value="">All types</option>
-              <option value="verify">Verify</option>
-              <option value="reset">Reset</option>
-              <option value="security_alert">Security alert</option>
-              <option value="admin_message">Admin message</option>
-              <option value="broadcast">Broadcast</option>
-              <option value="blog_notification">Blog notification</option>
-            </select>
-            <select id="email-log-status-filter">
-              <option value="">All statuses</option>
-              <option value="sent">Sent</option>
-              <option value="delivered">Delivered</option>
-              <option value="bounced">Bounced</option>
-              <option value="failed">Failed</option>
-            </select>
-          </div>
-        </div>
-        <table>
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Recipient</th>
-              <th>Type</th>
-              <th>Subject</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody id="email-logs-body">
-            <tr><td colspan="6" class="text-muted">loading...</td></tr>
-          </tbody>
-        </table>
-        <div class="flex-between mt-1">
-          <button class="btn btn-ghost btn-sm" id="email-logs-prev">← Prev</button>
-          <span class="text-muted" id="email-logs-page-info">page 1</span>
-          <button class="btn btn-ghost btn-sm" id="email-logs-next">Next →</button>
-        </div>
-
-        <h3 class="mt-2">Bounce suppression</h3>
-        <p class="text-muted">Addresses that hard-bounced. They're skipped automatically on every future send until removed here.</p>
-        <table>
-          <thead>
-            <tr><th>Email</th><th>Reason</th><th>Since</th><th>Actions</th></tr>
-          </thead>
-          <tbody id="email-bounces-body">
-            <tr><td colspan="4" class="text-muted">loading...</td></tr>
-          </tbody>
-        </table>
       </div>
 
       <div id="stats-panel" class="tab-panel">
@@ -1068,7 +1080,20 @@
       if (data) document.getElementById('email-signature-preview').srcdoc = data.html;
     }
 
+    function setupEmailSubTabs() {
+      const buttons = document.querySelectorAll('#email-panel .subtabs button');
+      buttons.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          buttons.forEach((b) => b.classList.remove('active'));
+          document.querySelectorAll('#email-panel .subtab-panel').forEach((p) => p.classList.remove('active'));
+          btn.classList.add('active');
+          document.getElementById(btn.dataset.subtab).classList.add('active');
+        });
+      });
+    }
+
     function setupEmailTab() {
+      setupEmailSubTabs();
       document.getElementById('email-logs-prev').addEventListener('click', () => {
         if (emailLogsPage > 1) { emailLogsPage--; loadEmailLogs(); }
       });

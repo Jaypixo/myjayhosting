@@ -17,9 +17,12 @@ const LOGO_ORANGE = '#e25728';
 // Most clients block remote images by default, so an unopened "display
 // images" email looked completely blank at the top, no brand, nothing. This
 // renders the wordmark as real HTML text instead (same colors as the actual
-// logo: "MyJay" cream, ".net" orange), so it always shows up.
+// logo: "MyJay" cream, ".net" orange). The background behind it has to be
+// the dark ink color, not terracotta, the real site never puts the orange
+// ".net" on an orange/terracotta background either, same color on same
+// color is illegible regardless of which one it technically is.
 function wordmark() {
-  return `<span style="font-family:${SERIF};font-style:italic;font-size:24px;line-height:1;">` +
+  return `<span style="font-family:${SERIF};font-style:italic;font-size:25px;line-height:1;">` +
     `<span style="color:${LOGO_CREAM};">MyJay</span><span style="color:${LOGO_ORANGE};">.net</span>` +
     `</span>`;
 }
@@ -30,13 +33,15 @@ function wordmark() {
 // fallbacks for when nothing's been saved yet.
 const DEFAULT_SIGNATURE = { name: 'The MyJay Team', tagline: 'Your corner of the web.' };
 
-// There's no dedicated Impressum page on this platform yet (that needs real
-// legal entity details nobody's filled in), so the footer points at the
-// terms page instead until one exists. Swap this if/when /impressum is real.
-const LEGAL_URL = 'https://myjay.net/terms';
+const HOME_URL = 'https://myjay.net';
+const CONTACT_URL = 'https://myjay.net/contact';
 
 function escapeHtml(str) {
   return String(str).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function footerLink(href, label) {
+  return `<a href="${href}" style="color:${MUTED};text-decoration:underline;">${label}</a>`;
 }
 
 function baseLayout({ subject = '', preheader = '', bodyHtml, unsubscribeUrl, signature }) {
@@ -45,9 +50,8 @@ function baseLayout({ subject = '', preheader = '', bodyHtml, unsubscribeUrl, si
     tagline: signature?.tagline ?? DEFAULT_SIGNATURE.tagline,
   };
 
-  const unsubscribeRow = unsubscribeUrl
-    ? `<a href="${unsubscribeUrl}" style="color:${MUTED};text-decoration:underline;">Unsubscribe</a> &middot; `
-    : '';
+  const footerLinks = [footerLink(HOME_URL, 'myjay.net'), footerLink(CONTACT_URL, 'Contact')];
+  if (unsubscribeUrl) footerLinks.push(footerLink(unsubscribeUrl, 'Unsubscribe'));
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -64,9 +68,12 @@ function baseLayout({ subject = '', preheader = '', bodyHtml, unsubscribeUrl, si
       <td align="center" style="padding:24px 12px;">
         <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px;max-width:100%;background-color:#ffffff;">
           <tr>
-            <td style="background-color:${TERRACOTTA};padding:22px 28px;" align="left">
+            <td style="background-color:${INK};padding:24px 28px;" align="left">
               ${wordmark()}
             </td>
+          </tr>
+          <tr>
+            <td style="background-color:${TERRACOTTA};height:4px;line-height:4px;font-size:0;">&nbsp;</td>
           </tr>
           <tr>
             <td style="padding:32px 28px;font-family:${MONO};font-size:15px;line-height:1.6;color:${INK};">
@@ -75,10 +82,10 @@ function baseLayout({ subject = '', preheader = '', bodyHtml, unsubscribeUrl, si
           </tr>
           <tr>
             <td style="padding:24px 28px 20px;border-top:1px solid #e5ddd2;">
-              <div style="font-family:${SERIF};font-style:italic;font-size:16px;color:${INK};margin:0 0 2px;">&mdash; ${escapeHtml(sig.name)}</div>
+              <div style="font-family:${SERIF};font-style:italic;font-size:16px;color:${INK};margin:0 0 2px;">${escapeHtml(sig.name)}</div>
               ${sig.tagline ? `<div style="font-family:${MONO};font-size:12px;color:${MUTED};margin:0 0 16px;">${escapeHtml(sig.tagline)}</div>` : '<div style="margin:0 0 16px;"></div>'}
               <div style="font-family:${MONO};font-size:12px;color:${MUTED};">
-                ${unsubscribeRow}<a href="${LEGAL_URL}" style="color:${MUTED};text-decoration:underline;">Legal</a>
+                ${footerLinks.join(' &middot; ')}
                 <div style="margin-top:8px;">&copy; MyJay.net</div>
               </div>
             </td>
