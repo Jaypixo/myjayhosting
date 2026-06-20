@@ -27,7 +27,14 @@ export async function onRequestPost(context) {
     recipient = { id: user.id, email: user.email, username: user.username, role: user.role, siteTitle: user.site_title };
   } else if (body.email) {
     const email = String(body.email).trim().toLowerCase();
-    recipient = { id: null, email, username: null, role: null, siteTitle: null };
+    // Sending "by email" doesn't mean the address is a stranger, it might
+    // just be the easiest way for the admin to address someone they don't
+    // have the User ID for. Look it up so %username/%sitetitle still
+    // resolve instead of silently falling back as if no account existed.
+    const user = await env.DB.prepare('SELECT id, email, username, role, site_title FROM users WHERE email = ?').bind(email).first();
+    recipient = user
+      ? { id: user.id, email: user.email, username: user.username, role: user.role, siteTitle: user.site_title }
+      : { id: null, email, username: null, role: null, siteTitle: null };
   } else {
     return errorResponse('Provide either userId or email', 400);
   }

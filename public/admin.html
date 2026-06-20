@@ -199,12 +199,38 @@
                   <label for="email-send-template">Template</label>
                   <select id="email-send-template">
                     <option value="">Use a template...</option>
-                    <option value="termination">Account termination notice</option>
-                    <option value="feature_update">Feature / update announcement</option>
-                    <option value="invite">Formal invitation to the platform</option>
-                    <option value="policy_update">Policy / terms update</option>
-                    <option value="storage_warning">Storage limit warning</option>
-                    <option value="reengagement">Re-engagement ("we miss you")</option>
+                    <optgroup label="Account">
+                      <option value="welcome">Welcome message</option>
+                      <option value="suspended">Account suspended (temporary)</option>
+                      <option value="reinstated">Account reinstated</option>
+                      <option value="termination">Account termination notice</option>
+                      <option value="deletion_confirmed">Account deletion confirmation</option>
+                    </optgroup>
+                    <optgroup label="Moderation">
+                      <option value="content_warning">Content warning (first notice)</option>
+                      <option value="dmca">DMCA / copyright takedown notice</option>
+                      <option value="site_unpublished">Site unpublished for policy violation</option>
+                      <option value="abuse_ack">Abuse report acknowledgment</option>
+                    </optgroup>
+                    <optgroup label="Engagement">
+                      <option value="feature_update">Feature / update announcement</option>
+                      <option value="invite">Formal invitation to the platform</option>
+                      <option value="reengagement">Re-engagement ("we miss you")</option>
+                      <option value="milestone">Milestone / thank you</option>
+                    </optgroup>
+                    <optgroup label="Storage & limits">
+                      <option value="storage_warning">Storage limit warning</option>
+                      <option value="storage_reached">Storage limit reached</option>
+                    </optgroup>
+                    <optgroup label="Legal & policy">
+                      <option value="policy_update">Terms update</option>
+                      <option value="privacy_update">Privacy policy update</option>
+                      <option value="maintenance">Scheduled maintenance notice</option>
+                    </optgroup>
+                    <optgroup label="Support">
+                      <option value="support_followup">Support follow-up</option>
+                      <option value="bug_resolved">Bug report resolved</option>
+                    </optgroup>
                   </select>
                 </div>
                 <div class="field">
@@ -1128,10 +1154,45 @@
     // %username/%sitetitle are real substitution placeholders, see
     // _lib/placeholders.js, and get replaced per recipient at send time.
     const ONE_OFF_TEMPLATES = {
+      // Account
+      welcome: {
+        subject: 'Welcome to MyJay.net',
+        body: 'Hi %username,\n\nWelcome aboard. Your site is live at your subdomain, and the dashboard is where you\'ll upload files, manage settings, and publish when you\'re ready.\n\n[Go to your dashboard](https://myjay.net/dashboard "button")\n\nIf anything\'s unclear, the [docs](https://myjay.net/docs) cover the basics.',
+      },
+      suspended: {
+        subject: 'Your MyJay.net account has been temporarily suspended',
+        body: 'Hi %username,\n\nYour account has been temporarily suspended while we look into [reason here].\n\nYour site is offline for now, but your files and account are intact. We\'ll follow up once the review is done.\n\nIf you have questions, reply to this email or use the [contact form](https://myjay.net/contact).',
+      },
+      reinstated: {
+        subject: 'Your MyJay.net account is active again',
+        body: 'Hi %username,\n\nYour account has been reinstated and %sitetitle is back online.\n\n[Visit your dashboard](https://myjay.net/dashboard "button")\n\nThanks for your patience.',
+      },
       termination: {
         subject: 'Your MyJay.net account has been terminated',
         body: 'Hi %username,\n\nThis is a notice that your MyJay.net account has been terminated for violating the platform\'s terms of service.\n\nIf you believe this was a mistake, reply to this email or use the [contact form](https://myjay.net/contact) to reach us.',
       },
+      deletion_confirmed: {
+        subject: 'Your MyJay.net account has been deleted',
+        body: 'Hi %username,\n\nThis confirms that your MyJay.net account and all associated files have been permanently deleted, as requested.\n\nIf you didn\'t request this, contact us immediately through the [contact form](https://myjay.net/contact).',
+      },
+      // Moderation
+      content_warning: {
+        subject: 'A note about content on %sitetitle',
+        body: 'Hi %username,\n\nWe received a report about content on your site, %sitetitle, that may violate our [terms of service](https://myjay.net/terms).\n\nSpecifically: [describe the issue here].\n\nThis is a warning, not a takedown. Please review and update your site within 7 days. Repeated violations can lead to suspension or termination.',
+      },
+      dmca: {
+        subject: 'Copyright takedown notice for %sitetitle',
+        body: 'Hi %username,\n\nWe received a copyright (DMCA) complaint regarding content on your site, %sitetitle.\n\nThe following material has been removed pending review: [describe the content/URL here].\n\nIf you believe this was a mistake, you can file a counter-notice through the [contact form](https://myjay.net/contact).',
+      },
+      site_unpublished: {
+        subject: '%sitetitle has been unpublished',
+        body: 'Hi %username,\n\nYour site, %sitetitle, has been unpublished for violating our [terms of service](https://myjay.net/terms).\n\nReason: [describe the violation here].\n\nYour files are still in your dashboard. Once the issue is resolved, you can republish from there.',
+      },
+      abuse_ack: {
+        subject: 'We received your abuse report',
+        body: 'Hi %username,\n\nThanks for the report. We\'re looking into it and will take action if it violates our [terms of service](https://myjay.net/terms).\n\nWe don\'t always follow up individually on the outcome, but the report has been received and reviewed.',
+      },
+      // Engagement
       feature_update: {
         subject: 'New on MyJay.net',
         body: 'Hi %username,\n\nWe just shipped something new: **[describe the feature here]**.\n\n[Check it out](https://myjay.net/dashboard "button")\n\nLet us know what you think.',
@@ -1140,17 +1201,44 @@
         subject: 'An invitation to MyJay.net',
         body: 'Hello,\n\nYou\'re invited to claim your own corner of the web at MyJay.net: free static hosting, no trackers, no algorithm deciding what you see.\n\n[Claim your subdomain](https://myjay.net/register "button")\n\nNo strings attached.',
       },
-      policy_update: {
-        subject: 'Updates to MyJay.net\'s terms',
-        body: 'Hi %username,\n\nWe\'ve updated our [terms of service](https://myjay.net/terms). The short version: [summarize the change here].\n\nThese changes take effect on [date]. Continued use of your account after that date means you accept the updated terms.',
+      reengagement: {
+        subject: 'We miss you on MyJay.net',
+        body: 'Hi %username,\n\nIt\'s been a while since you last updated %sitetitle. Your site is still live, we just wanted to check in.\n\n[Visit your dashboard](https://myjay.net/dashboard "button")',
       },
+      milestone: {
+        subject: 'Thanks for being part of MyJay.net',
+        body: 'Hi %username,\n\n[Describe the milestone here, e.g. "it\'s been a year since you joined" or "MyJay.net just crossed some number of sites"].\n\nJust wanted to say thanks for being part of it. %sitetitle is one of the reasons this place is worth running.',
+      },
+      // Storage & limits
       storage_warning: {
         subject: 'Your MyJay.net site is close to its storage limit',
         body: 'Hi %username,\n\nYour site (%sitetitle) is approaching its 50MB storage limit. Once you hit it, new uploads will be rejected until you free up space.\n\n[Manage your files](https://myjay.net/dashboard "button")',
       },
-      reengagement: {
-        subject: 'We miss you on MyJay.net',
-        body: 'Hi %username,\n\nIt\'s been a while since you last updated %sitetitle. Your site is still live, we just wanted to check in.\n\n[Visit your dashboard](https://myjay.net/dashboard "button")',
+      storage_reached: {
+        subject: '%sitetitle has reached its storage limit',
+        body: 'Hi %username,\n\n%sitetitle has hit its 50MB storage limit. New uploads will be rejected until you free up space.\n\n[Manage your files](https://myjay.net/dashboard "button")\n\nDelete anything you don\'t need, or get in touch if you think this is a mistake.',
+      },
+      // Legal & policy
+      policy_update: {
+        subject: 'Updates to MyJay.net\'s terms',
+        body: 'Hi %username,\n\nWe\'ve updated our [terms of service](https://myjay.net/terms). The short version: [summarize the change here].\n\nThese changes take effect on [date]. Continued use of your account after that date means you accept the updated terms.',
+      },
+      privacy_update: {
+        subject: 'Updates to MyJay.net\'s privacy policy',
+        body: 'Hi %username,\n\nWe\'ve updated our [privacy policy](https://myjay.net/privacy). The short version: [summarize the change here].\n\nThese changes take effect on [date]. Continued use of your account after that date means you accept the updated policy.',
+      },
+      maintenance: {
+        subject: 'Scheduled maintenance on MyJay.net',
+        body: 'Hi %username,\n\nMyJay.net will be in maintenance mode on [date] from [start time] to [end time]. Your site will be temporarily unreachable during that window.\n\nNo action needed on your end, your files and settings won\'t be affected.',
+      },
+      // Support
+      support_followup: {
+        subject: 'Following up on your message',
+        body: 'Hi %username,\n\nFollowing up on the message you sent us: [summary or response here].\n\nLet us know if that answers it or if you need anything else.',
+      },
+      bug_resolved: {
+        subject: 'The bug you reported has been fixed',
+        body: 'Hi %username,\n\nGood news: the issue you reported ([describe the bug here]) has been fixed and is live now.\n\nThanks for taking the time to report it, it genuinely helps.',
       },
     };
 
