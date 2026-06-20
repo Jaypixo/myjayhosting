@@ -108,6 +108,7 @@ export default {
     const subject = String(body.subject || '');
     const bodyHtml = String(body.bodyHtml || '');
     const userId = body.userId || null;
+    const bypassPrefs = Boolean(body.bypassPrefs);
 
     if (!to || !to.includes('@')) {
       return jsonResponse({ error: 'A valid "to" address is required' }, 400);
@@ -132,7 +133,14 @@ export default {
     // Non-transactional sends respect the recipient's notification_prefs.
     // Transactional sends (verify, reset, security alerts) always go out,
     // an account holder can't opt out of knowing their password changed.
-    if (!transactional && (await isUnsubscribed(env, userId, type))) {
+    // bypassPrefs is the explicit opt-out of that check: send.js sets it
+    // unconditionally for one-off admin_message sends (a one-off is, by
+    // definition, addressed to one specific person on purpose, not a
+    // category someone can blanket-mute), and broadcast.js sets it only
+    // when the admin ticks "bypass preferences" for that specific send.
+    // It never bypasses bounce_suppression above, a hard-bounced address
+    // still can't be delivered to regardless of preferences.
+    if (!transactional && !bypassPrefs && (await isUnsubscribed(env, userId, type))) {
       await logSend(env, { id: logId, recipient: to, type, subject, bodyHtml, status: 'failed', userId, error: `Recipient unsubscribed from "${type}"` });
       return jsonResponse({ ok: false, skipped: 'unsubscribed', logId });
     }

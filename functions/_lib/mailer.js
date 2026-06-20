@@ -2,7 +2,7 @@
 // route that needs to send an email should call sendEmail() rather than
 // constructing the service-binding fetch itself.
 
-export async function sendEmail(env, { to, type, subject, bodyHtml, userId }) {
+export async function sendEmail(env, { to, type, subject, bodyHtml, userId, bypassPrefs }) {
   if (!env.MAILER) {
     // Binding not configured yet (e.g. local dev without it set up, or the
     // dashboard service binding hasn't been added). Fail soft, callers
@@ -14,7 +14,7 @@ export async function sendEmail(env, { to, type, subject, bodyHtml, userId }) {
     const res = await env.MAILER.fetch('https://mailer.internal/', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ to, type, subject, bodyHtml, userId }),
+      body: JSON.stringify({ to, type, subject, bodyHtml, userId, bypassPrefs }),
     });
     return await res.json();
   } catch {

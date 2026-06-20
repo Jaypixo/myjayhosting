@@ -260,6 +260,10 @@ Main: Settings tab:
 - Site title field
 - Bio field
 - Change email / password
+- Email preferences: which automatic, non-transactional emails the
+  platform sends this user (see Notification preferences, below); separate
+  form from the rest, its own save button, since it hits a different
+  endpoint (`/api/user/notification-prefs`, not `/api/user/update`)
 
 ### `explore.html`: Browse Sites
 - Grid of site cards (fetch `/api/explore`)
@@ -360,6 +364,8 @@ GET  /api/auth/check-username?u=slug → { available: bool }
 
 GET  /api/user/me            → { id, username, email, bio, siteTitle, storageUsed }
 POST /api/user/update        { bio?, siteTitle?, email?, password? } → { ok }
+GET  /api/user/notification-prefs   → { broadcast, blogNotification }  (true = subscribed)
+PATCH /api/user/notification-prefs  { broadcast?, blogNotification? } → { broadcast, blogNotification }
 
 GET  /api/site/files         → { files: [{ key, size, modified }] }
 POST /api/site/upload        multipart/form-data → { uploaded: [filenames] }
@@ -420,6 +426,10 @@ don't add a fake row for it, leave it out instead.
 - **No native `alert()` / `confirm()` / `prompt()`.** Use `showAlert()`, `showConfirm()`, `showPrompt()` from `public/assets/main.js` instead, they render an in-page modal styled to match the design system (all async, all return Promises, `await` them). Pass `{ danger: true }` to `showConfirm` for destructive actions (delete, wipe, ban), it swaps the confirm button and top border to the error color.
 - **No native HTML5 validation bubbles.** Every `<form>` should have `novalidate`, then do its own validation in JS on submit using `setFieldError(input, message)` / `clearFieldError(input)` / `clearFormErrors(form)` from `main.js`. These add/remove a red border and a red message paragraph directly under the offending input, they don't touch the generic `.form-error` banner. Keep the HTML `required`/`pattern`/`minlength` attributes for semantics and accessibility, `novalidate` just stops the browser from popping up its own bubble over them.
 - **Server errors should carry a `field` hint when they map to one input.** `errorResponse(message, status, field)` in `_lib/auth.js` takes an optional third argument; when present, the JSON body includes `{ error, field }`. The frontend checks `data.field` and routes the message to that specific input via `setFieldError`, falling back to the `.form-error` banner when there's no field (or when attributing the error to a field would leak information, e.g. login intentionally never says whether the email or the password was wrong).
+- **Custom modals (more than a yes/no or single input) build on `buildModal()`/`attachDismiss()`, exported from `main.js`.** `showAlert`/`showConfirm`/`showPrompt` cover the generic cases; when a popup needs arbitrary content and several specific actions, e.g. the admin Contact tab's message-detail popup, call `buildModal({ title, body, wide })` directly with a hand-built `body` node, then append whatever buttons make sense to the returned `actions` element and wire `attachDismiss(overlay, onCancel)` yourself. Don't hand-roll a second `.modal-overlay`/`.modal-box` from scratch, and don't stretch `showConfirm` to do this by stuffing extra buttons into it after the fact. `wide: true` gets `.modal-wide` (560px instead of the default 420px cap) for content that needs the room, it still shrinks to fit narrow screens the same as the default size.
+- **Don't lengthen a table row to show more of it, popup the row instead.** Expanding a cell in place (the contact table used to do this for the full message) pushes every row below it down and the table stops lining up with itself as you click around. Keep the table row to short, scannable values, remove any action buttons that were sitting in the row, make the row itself clickable (`tr.dataset.clickable = 'true'`, pairs with the `tr[data-clickable]` hover style in `style.css`) to open a `buildModal()` popup with the full content and the actions that used to live in the row.
+- **An inline explainer that's only sometimes present (an email log's failure reason, say) is a hover tooltip, not a second line of text in the cell.** Printing it directly into the cell makes that one row taller than every other row in the table and breaks the table's alignment. Use the `.tooltip` class: a small element with `data-tooltip="..."` content, `tabIndex = 0` so keyboard users can reach it too, no separate block-level node. See the email log's status cell (`public/admin.html`) for the pattern.
+- **Any table that can plausibly get more than 4-5 columns wide should sit inside a `.table-scroll` div** (`<div class="table-scroll"><table>...</table></div>`), so it scrolls horizontally on narrow screens instead of squashing every column down to illegibility or pushing the whole page wider than the viewport. `.table-scroll` also forces `white-space: nowrap` on cells, a table that's allowed to scroll should grow as wide as it needs and scroll, not wrap text first and scroll second, wrapping first just makes rows tall AND still need a scrollbar.
 
 ---
 
@@ -494,31 +504,40 @@ the call site consistent.
 
 Table-based HTML, inline styles only, 600px max width, Gmail-safe (no
 external stylesheet, no web fonts, monospace falls back to `'Courier New',
-Courier, monospace`). `baseLayout()` renders the shared shell: a terracotta
-header bar, a white content area, and a signed-off footer. Six template
-functions sit on top of it: `verifyEmail`, `passwordReset`, `securityAlert`,
-`adminMessage`, `broadcastAnnouncement`, `blogNotification`. Each returns
-`{ subject, html }`.
+Courier, monospace`). `baseLayout()` renders the shared shell: a dark ink
+header bar with a terracotta accent strip beneath it, a white content area,
+and a signed-off footer. Six template functions sit on top of it:
+`verifyEmail`, `passwordReset`, `securityAlert`, `adminMessage`,
+`broadcastAnnouncement`, `blogNotification`. Each returns `{ subject, html }`.
 
 The header is the platform wordmark rendered as real HTML text ("MyJay" in
 cream, ".net" in orange, same colors as the actual logo), not an `<img>`.
 An earlier version pulled the logo from a remote URL, but most clients block
 remote images by default, so an unopened email looked completely blank at
-the top, no brand at all. Text always renders.
+the top, no brand at all. Text always renders. The header background is
+`INK` (`#1a1716`), the same dark color the real site's torn-paper header
+uses, not terracotta, an earlier pass put the wordmark on a terracotta
+background and the orange ".net" was nearly invisible against it, same
+color on same color. The real site never makes that mistake either, the
+logo only ever sits on ink or paper backgrounds, never on its own accent
+color. Don't reintroduce a terracotta (or orange) header background.
 
-The footer ends with a sign-off, `&mdash; {name}` plus an optional tagline
-line beneath it, both pulled from `getEmailSignature(env)`
-(`functions/_lib/settings.js`), which reads the `email_signature_name` /
-`email_signature_tagline` keys out of the existing generic `settings`
-key/value table (the same table maintenance mode and the announcement banner
-live in, see `schema/d1-init.sql`). **Every** template function takes the
-signature as its last argument and threads it into `baseLayout()`, so every
-outgoing email (system or admin-composed) carries the current sign-off,
-there's no separate "branded" vs "unbranded" template path. Every call site
-(`register.js`, `reset.js`, `request-reset.js`, `resend-verification.js`,
-and the three admin routes below) fetches the signature with one
-`getEmailSignature(env)` call before rendering. `broadcast.js` fetches it
-once before its send loop, not per recipient.
+The footer sign-off is just the name in italic serif on its own line, no
+leading dash or punctuation, plus an optional tagline line beneath it, both
+pulled from `getEmailSignature(env)` (`functions/_lib/settings.js`), which
+reads the `email_signature_name` / `email_signature_tagline` keys out of the
+existing generic `settings` key/value table (the same table maintenance mode
+and the announcement banner live in, see `schema/d1-init.sql`). **No em
+dashes anywhere in these templates**, same rule as the rest of the site's
+user-facing copy (see Tone, above), an earlier pass put one before the
+sign-off name and it had to come back out. **Every** template function
+takes the signature as its last argument and threads it into `baseLayout()`,
+so every outgoing email (system or admin-composed) carries the current
+sign-off, there's no separate "branded" vs "unbranded" template path. Every
+call site (`register.js`, `reset.js`, `request-reset.js`,
+`resend-verification.js`, and the three admin routes below) fetches the
+signature with one `getEmailSignature(env)` call before rendering.
+`broadcast.js` fetches it once before its send loop, not per recipient.
 
 The admin Email tab's **Email signature** card (`public/admin.html`) is the
 only place this gets edited: `GET`/`PATCH /api/admin/email/signature`
@@ -527,16 +546,73 @@ keys directly, no separate table, no extra migration. The card has its own
 small live preview that re-renders (debounced, through the preview endpoint
 below) as you type, before you've even saved.
 
+The footer's link row is `myjay.net &middot; Contact` (and `&middot;
+Unsubscribe` when applicable), not a legal link. There's still no
+`/impressum` page and no real legal entity details to put one together,
+that hasn't changed, the footer just doesn't pretend to have one anymore,
+it points at things that actually exist: the homepage and `/contact`. If a
+real Impressum or terms page ever needs a link from these emails, add it
+back deliberately rather than restoring the old one on autopilot.
+
+**`adminMessage()` and `broadcastAnnouncement()` render their `body` as
+Markdown, through the real `marked` package**, not a hand-rolled regex
+subset, that was tried and explicitly rejected. It's imported from
+`functions/_lib/vendor/marked.js`, a **vendored, verbatim copy** of marked's
+own pre-built `lib/marked.esm.js` (a self-contained bundle with zero
+imports of its own), not a bare `import { Marked } from 'marked'`.
+
+That detour exists because the bare import was tried first and broke the
+Cloudflare Pages build with "Could not resolve marked": this project has no
+custom Build command configured (see Cloudflare Setup, above, "leave
+blank, no build step needed for Phase 1"), and in that configuration Pages
+does not reliably run `npm install` before bundling `functions/` with
+esbuild, so a bare npm specifier that resolves fine locally can still fail
+to resolve at deploy time. Vendoring the already-self-contained ESM build
+sidesteps that entirely, no `node_modules` lookup happens at deploy time at
+all, it's just a relative-path import to a file already checked into the
+repo. `marked` itself stays a `devDependency` (used to regenerate the
+vendored file, see the header comment in `vendor/marked.js` for how), it is
+not what actually ships. If a future dependency needs real `node_modules` resolution inside
+`functions/`, configure an explicit Build command (e.g. `npm install`) on
+the Pages project first and confirm a deploy actually picks it up, don't
+assume a bare import will resolve just because it works locally.
+
+The `Marked` instance lives in `email-templates.js` itself (not a separate
+`_lib/markdown.js`) because its only renderer override, `link`, needs the
+module's existing `button()` helper and color constants. `gfm`/`breaks` are
+both on, so a plain message typed without blank lines between paragraphs
+still looks right (single line breaks become `<br>`), matching how the old
+plain-text-only composer behaved. The `link` override has one special case:
+a markdown link whose title is literally `"button"` (`[label](url
+"button")`) renders as the same terracotta CTA button used in the system
+templates, instead of a plain inline link, this is the documented way to
+get a button without writing raw HTML. Every other markdown construct
+(bold, italic, lists, headings, blockquotes, code) is left to marked's
+default output and inherits font/color from the wrapping `<td>` in
+`baseLayout()`, the only element that needed a color override at all was
+`<a>` (browsers default it to blue).
+
+**Raw HTML in the body passes through untouched, on purpose.** `marked`
+doesn't sanitize by default, and nothing here adds sanitization on top.
+Only admins reach this composer, and they already hold equivalent or
+greater trust elsewhere in this same panel (ban/delete users, delete sites,
+read the full send log including rendered bodies). Letting an admin paste
+their own `<table>`-based button or arbitrary markup isn't a new privilege
+boundary, it's the same trust level as everything else they can already do.
+Don't add HTML sanitization here "for safety", it would just break the
+"add buttons into emails" use case this was built for without protecting
+against anything that isn't already covered by admin trust.
+
+The Compose UI surfaces this as a one-line hint under each Message
+textarea, the `"button"` title convention isn't discoverable otherwise.
+Keep that hint in sync (`public/admin.html`, both the one-off Send form and
+the Broadcast form) if the supported syntax changes.
+
 A few adaptations from how this might first get described:
 
 - The asset-path comment for the old logo image is gone along with the
   image itself, the wordmark is plain inline-styled HTML now, nothing to
   host.
-- The footer's legal link points at `/terms`, there's no `/impressum` page,
-  so the link is just labeled "Legal", not "Legal / Impressum". Impressum
-  content needs a real legal entity name and address, neither of which
-  exists in this codebase, don't fabricate one. If a real Impressum page
-  gets built later, repoint `LEGAL_URL` in the templates file.
 - `blogNotification` exists as a template only, nothing calls it. There's no
   blog feature in this build (see Project Overview), it's defined because it
   was asked for by name, not because something triggers it yet.
@@ -605,29 +681,88 @@ from a different category than the one their signed link was for.
 unsubscribed=1)`. The mailer checks this table before every non-transactional
 send, see above, there's no separate enforcement point to keep in sync.
 
+The confirmation page that renders after that write includes a "Didn't mean
+to? Resubscribe" button, `GET /unsubscribe?token=X&action=resub`, same
+handler, same token, just flips the write to `unsubscribed=0` instead. The
+token has no expiry and isn't single-use, it's a stable HMAC over
+`userId:type`, so this works whenever someone notices the misclick, not just
+in the same session. Don't add a separate "are you sure" step here, the
+whole point is that undoing a misclick should be as cheap as the misclick
+itself.
+
+### Notification preferences (logged-in path)
+
+The email footer's unsubscribe link is one way into `notification_prefs`,
+the dashboard's **Email preferences** card (`public/dashboard.html`,
+Settings tab) is the other, both write the exact same table, there's no
+separate "preferences" store. `GET`/`PATCH /api/user/notification-prefs`
+(`functions/api/user/notification-prefs.js`) is a thin, session-gated
+read/write over two specific `type` rows: `broadcast` ("Platform
+announcements" in the UI) and `blog_notification` ("Blog post
+notifications"). The API uses camelCase (`{ broadcast, blogNotification }`,
+`true` meaning subscribed) and maps to the snake_case `type` values
+internally, same `TYPE_MAP` pattern as `getEmailSignature()`. There's no
+toggle for `admin_message`, it can't be gated at all anymore, see below,
+and there never was one for `verify`/`reset`/`security_alert`, those are
+transactional and always send. `blog_notification` is exposed here even
+though nothing sends that type yet (see Templates, above, on
+`blogNotification` existing as a template with no caller), so the
+preference already works correctly the moment a blog feature starts
+sending it, instead of needing a UI change at the same time.
+
+**One-off sends always bypass `notification_prefs` entirely, broadcasts
+respect it by default with an explicit opt-out per send.** This is
+deliberate, not an oversight: a one-off is addressed to one specific
+person on purpose (see `send.js`, `bypassPrefs: true`, hardcoded, no
+admin-facing toggle, it's not a choice to make per-send), it was never a
+"category" of mail someone could have muted in the first place. A
+broadcast is the actual bulk category `notification_prefs` exists to let
+people opt out of, so it respects preferences unless the admin explicitly
+checks "Bypass recipient email preferences for this send" in the
+Broadcast form, which sends `bypassPrefs: true` in the request body
+(`broadcast.js` reads `body.bypassPrefs`, off/`false` unless set). Either
+way, `bypassPrefs` only skips the `notification_prefs` check inside
+`mailer/mailer.js`, it never skips `bounce_suppression`, a hard-bounced
+address still can't be delivered to regardless of anyone's preference.
+The wrapper (`functions/_lib/mailer.js`) just passes the flag through to
+the Worker unchanged, the actual gating logic lives entirely in
+`mailer.js` (`if (!transactional && !bypassPrefs && (await
+isUnsubscribed(...)))`).
+
 ### Admin routes (`functions/api/admin/email/*`)
 
 All under the existing `/api/admin/*` prefix, so the existing
 `role === 'admin'` middleware check covers them for free, no extra
 auth code needed in any of these files.
 
-- `POST /api/admin/email/send`: one-off, by `userId` or raw `email`
-- `POST /api/admin/email/broadcast`: by `segment`, one of `all`, `published`,
-  `unpublished`, `inactive_30d`, or `custom` with a `filter` object
-  (`{ role?, emailVerified? }`). **There is no raw-SQL filter option** and
-  there shouldn't be, an admin panel that runs arbitrary SQL from a request
-  body is a SQL injection / data-exfiltration hole waiting to happen even
-  when only admins can reach it (mistakes and pasted text happen). If a new
-  filter dimension is needed, add a new allowlisted field to
-  `resolveCustomSegment()` in `broadcast.js`, not a free-text SQL clause.
+- `POST /api/admin/email/send`: one-off, by `userId` or raw `email`. There's
+  no separate "send a test email" endpoint, sending a one-off to yourself
+  (or any address) already covers that, a dedicated test-send feature
+  existed briefly and was removed as redundant, don't re-add it.
+- `POST /api/admin/email/broadcast`: by `segment`, one of `all`,
+  `active_7d`, `inactive_30d`, `inactive_90d`, `new_7d`, `published`,
+  `unpublished`, `near_storage_limit`, `no_uploads`, `verified`,
+  `unverified`, `admins`, or `custom` with a `filter` object
+  (`{ role?, emailVerified? }`). The dropdown groups these into Activity /
+  Site status / Storage / Account in `public/admin.html`, but the backend
+  doesn't care about the grouping, it's purely a `SEGMENT_QUERIES` lookup in
+  `broadcast.js`, see that file for the exact SQL behind each one (e.g.
+  `near_storage_limit` is 80%+ of the 50MB quota, `no_uploads` is exactly
+  zero bytes stored). Accepts an optional `bypassPrefs: boolean`, see
+  "Notification preferences" below. **There is no raw-SQL filter option**
+  and there shouldn't be, an admin panel that runs arbitrary SQL from a
+  request body is a SQL injection / data-exfiltration hole waiting to
+  happen even when only admins can reach it (mistakes and pasted text
+  happen). If a new filter dimension is needed, add a new allowlisted field
+  to `resolveCustomSegment()` in `broadcast.js`, not a free-text SQL
+  clause. A new *named* segment (the common case, vs. `custom`) just needs
+  a new `SEGMENT_QUERIES` entry and a matching `<option>` in both the
+  Broadcast select and `SEGMENT_LABELS` in `admin.html`, nothing enforces
+  the three stay in sync, a mismatch just silently shows the raw key
+  instead of a friendly label in the confirm dialog.
   `paid`/`free`/`blog_subscribers` from an earlier description of this
   feature don't correspond to anything real, there's no billing and no blog,
   they were replaced with the segments above.
-- `POST /api/admin/email/test`: sends a real template (default `admin_message`)
-  through the real pipeline to a chosen address (defaults to the admin's own
-  email). This exists specifically to answer "is sending actually working"
-  without registering a throwaway account, see "Diagnosing a non-sending
-  setup" below.
 - `POST /api/admin/email/preview`: renders a draft through the real
   templates without sending, see "Live preview" above
 - `GET`/`PATCH /api/admin/email/signature`: reads/writes the sign-off name
@@ -651,17 +786,102 @@ auth code needed in any of these files.
 - `POST /api/admin/email/resend/:logId`: re-sends using the stored
   `body_html` from the original log row
 
-The admin dashboard's **Email** tab (`public/admin.html`) covers all of this:
-a health banner that only shows up when something looks wrong (nothing has
-ever sent, or most recent sends are failing), a "send a test email" card next
-to the signature editor, stat cards (now including total failed), a 30-day
-chart, a top-failure-reasons table, the one-off **Send** and **Broadcast**
-cards (each full width, form on the left, a live preview iframe on the
-right), and a searchable/filterable send log with Preview, Resend, and
-Delete actions per row plus a "Clear log" button above the table, and the
-bounce suppression list. It follows the same patterns as every other admin
-tab (`showConfirm`/`showAlert` from `main.js`, no native dialogs, table +
-badge + card layout).
+The admin dashboard's **Email** tab (`public/admin.html`) covers all of
+this, split into its own three-way sub-nav (`Overview` / `Compose` / `Log`,
+the `.subtabs` / `.subtab-panel` classes, scoped JS in `setupEmailSubTabs()`)
+because before the split this was one single long scroll through every
+card at once. **`.subtabs`/`.subtab-panel` are deliberately separate
+classes from the page-level `.tabs`/`.tab-panel`**: `setupTabs()` queries
+`.tabs button` / `.tab-panel` globally with no scoping, so reusing those
+classes for a nested tab bar would make clicking a sub-tab also toggle every
+other top-level admin panel. If another tab ever needs this same kind of
+internal split, reuse `.subtabs`/`.subtab-panel` and write a scoped handler
+the way `setupEmailSubTabs()` does, querying within `#email-panel`, not the
+shared one.
+
+- **Overview**: the health banner (only shows up when something looks
+  wrong, nothing has ever sent, or most recent sends are failing), stat
+  cards (now including total failed), the 30-day chart, and the
+  top-failure-reasons table.
+- **Compose**: the signature editor, then the one-off **Send** and
+  **Broadcast** cards (each full width, form on the left, a live preview
+  iframe on the right). The Send form has a **Template** dropdown, see
+  "Templates and placeholders for admin-composed mail" below.
+- **Log**: the searchable/filterable send log with Preview, Resend, and
+  Delete actions per row plus a "Clear log" button above the table, and the
+  bounce suppression list.
+
+### Templates and placeholders for admin-composed mail
+
+Two separate things share the word "template" here, don't conflate them:
+the six system **template functions** in `email-templates.js`
+(`verifyEmail`, `adminMessage`, etc., the HTML layout), and the **canned
+starting text** in `ONE_OFF_TEMPLATES` (`public/admin.html`, 23 options
+grouped into seven `<optgroup>`s: Account, Moderation, Engagement, Admin,
+Storage & limits, Legal & policy, Support). Despite the variable's name,
+this list is shared by **both** the one-off Send form and Broadcast now,
+the Broadcast `<select>` starts empty in the markup and gets its
+`<option>`/`<optgroup>` markup cloned from the Send form's select at
+runtime (`setupEmailTab()`), specifically so a 24th template only ever
+means editing one `<select>`, not two that have to stay in sync by hand.
+The dropdown is purely client-side prefill, picking one just sets the
+Subject/Message fields so the admin can edit before sending, there's no
+server-side concept of a "template id" anywhere, nothing is stored.
+Bracketed text like `[describe the issue here]` is a spot for the admin to
+fill in by hand, it's not a placeholder and nothing substitutes it. If the
+fields already have content, picking a template asks for confirmation
+before overwriting it (`setupTemplatePicker()`, parameterized by which
+form's fields/preview it's wired to). When adding a new template, add both
+the `<option>` (inside the right `<optgroup>`, in the Send form's select
+only, Broadcast's clones from it) and the matching key in
+`ONE_OFF_TEMPLATES`, they're cross-checked by key but nothing enforces
+that automatically, a mismatch just silently does nothing when picked.
+
+`%placeholder` substitution (`functions/_lib/placeholders.js`,
+`applyPlaceholders(text, recipient)`) is the separate, actually-dynamic
+piece: `%username`, `%email`, `%sitetitle`, `%role` in either the Subject
+or Message of a one-off send or broadcast get replaced with that specific
+recipient's values at send time, case-insensitively, word-boundary matched
+(so `%USERNAME` works, but `50% off` is untouched, "off" isn't a known
+placeholder name). `%username` falls back to the literal string `"User"`
+when the recipient has no account (a one-off sent to a raw email with no
+matching user row) or no username; `%sitetitle` falls back to `"your
+site"`; `%role` falls back to `"user"`; `%email` is always the address
+being sent to, no fallback needed. Substitution runs on the raw markdown
+*before* it reaches `marked`, so a substituted value is just plain text and
+gets escaped the same as anything else the admin typed, there's no separate
+escaping step to keep in sync.
+
+Both `send.js` and `broadcast.js` now select `username, role, site_title`
+alongside `id, email` wherever they look up a recipient, specifically so
+these placeholders have something to substitute; if a new placeholder ever
+needs a column that isn't already selected, add it to the `PLACEHOLDERS`
+map in `placeholders.js` *and* to every `SELECT` that builds a recipient
+object in both files, otherwise it'll silently render as empty/fallback for
+real sends even though it looked fine when you tested it with the one
+field you remembered to add.
+
+**`send.js`'s "by email" path looks the address up against `users` too,
+it doesn't just stuff the raw email into the recipient object.** The first
+version didn't, so sending a one-off to someone's email address (instead
+of their User ID) always rendered `%username` as the fallback "User" even
+when that exact address belonged to a real, registered account, the lookup
+was just never attempted. "By email" means "I don't have/want the User
+ID," not "this address has no account," and the two need to be handled the
+same once a match is found. If a future change adds another "by X" way to
+address a one-off send, make sure it resolves a real user row the same way
+rather than assuming an unmatched-account shape.
+
+`preview.js` has no real recipient to substitute with (it's a generic
+preview, not addressed to anyone yet), so it runs the same substitution
+against `SAMPLE_RECIPIENT` (`sampleuser`, `sample@example.com`, "Sample
+Site", `user`) instead of the real fallbacks. Showing the real fallback
+values (`"User"`, empty string for email) in a preview would look like the
+feature was broken, the sample values make it obvious something was
+actually substituted.
+
+It follows the same patterns as every other admin tab (`showConfirm`/`showAlert`
+from `main.js`, no native dialogs, table + badge + card layout).
 
 ### Diagnosing a non-sending setup
 
@@ -674,11 +894,14 @@ without the mailer ever seeing the request, so nothing gets logged). If
 `email_log` has `failed` rows with a populated `error` column, the binding is
 fine and Resend itself rejected the send, the most common reason being the
 sending domain (`myjay.net`, for the `noreply@myjay.net` From address in
-`mailer/mailer.js`) isn't verified yet in the Resend dashboard. Use
-`POST /api/admin/email/test` (the dashboard's "Send a test email" card) to
-check this directly: it goes through the exact same path a real signup or
-broadcast would, and its log entry's `error` column will say so explicitly
-either way.
+`mailer/mailer.js`) isn't verified yet in the Resend dashboard. Check this
+directly by sending yourself a one-off message from the Compose tab (leave
+User ID blank, put your own address in Email): it goes through the exact
+same path a real signup or broadcast would, and its log entry's `error`
+column will say so explicitly either way. (An earlier build had a separate
+"send a test email" feature for this specifically; it was removed since a
+one-off send to your own address does the same thing with no extra code to
+maintain.)
 
 ### Webhook (`functions/api/webhooks/resend.js`)
 

@@ -51,6 +51,11 @@ export async function onRequestPost(context) {
     subject: emailSubject,
     bodyHtml: html,
     userId: recipient.id,
+    // One-off sends always go out regardless of notification_prefs, this
+    // is a message addressed to one specific person, not a bulk category
+    // they could have muted. There's no admin-facing toggle for this one,
+    // unlike broadcast.js, it's automatic by design.
+    bypassPrefs: true,
   });
 
   const status = result.ok === false && !result.skipped ? 502 : 200;

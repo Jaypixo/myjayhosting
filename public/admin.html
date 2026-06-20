@@ -205,6 +205,7 @@
                       <option value="reinstated">Account reinstated</option>
                       <option value="termination">Account termination notice</option>
                       <option value="deletion_confirmed">Account deletion confirmation</option>
+                      <option value="verify_reminder">Email verification reminder</option>
                     </optgroup>
                     <optgroup label="Moderation">
                       <option value="content_warning">Content warning (first notice)</option>
@@ -217,6 +218,10 @@
                       <option value="invite">Formal invitation to the platform</option>
                       <option value="reengagement">Re-engagement ("we miss you")</option>
                       <option value="milestone">Milestone / thank you</option>
+                      <option value="getting_started">Getting started nudge</option>
+                    </optgroup>
+                    <optgroup label="Admin">
+                      <option value="admin_update">Update for fellow admins</option>
                     </optgroup>
                     <optgroup label="Storage & limits">
                       <option value="storage_warning">Storage limit warning</option>
@@ -255,6 +260,10 @@
                     filled in per recipient (falls back to something generic, like "User", if unknown).
                   </p>
                 </div>
+                <p class="text-muted" style="font-size:0.75rem;margin:0 0 0.6rem;">
+                  Always sends regardless of the recipient's email preferences, a one-off
+                  is addressed to one person on purpose, not a category they can mute.
+                </p>
                 <button type="submit" class="btn btn-sm" id="email-send-submit">Send</button>
                 <span class="text-ok hidden" id="email-send-success">Sent.</span>
               </form>
@@ -270,12 +279,32 @@
               <form id="email-broadcast-form">
                 <div class="form-error" id="email-broadcast-error"></div>
                 <div class="field">
+                  <label for="email-broadcast-template">Template</label>
+                  <select id="email-broadcast-template"></select>
+                </div>
+                <div class="field">
                   <label for="email-broadcast-segment">Segment</label>
                   <select id="email-broadcast-segment">
                     <option value="all">All users</option>
-                    <option value="published">Sites that are published</option>
-                    <option value="unpublished">Sites that are unpublished</option>
-                    <option value="inactive_30d">Inactive 30+ days</option>
+                    <optgroup label="Activity">
+                      <option value="active_7d">Active in the last 7 days</option>
+                      <option value="inactive_30d">Inactive 30+ days</option>
+                      <option value="inactive_90d">Inactive 90+ days</option>
+                      <option value="new_7d">Joined in the last 7 days</option>
+                    </optgroup>
+                    <optgroup label="Site status">
+                      <option value="published">Sites that are published</option>
+                      <option value="unpublished">Sites that are unpublished</option>
+                    </optgroup>
+                    <optgroup label="Storage">
+                      <option value="near_storage_limit">Near their storage limit (80%+)</option>
+                      <option value="no_uploads">Haven't uploaded anything</option>
+                    </optgroup>
+                    <optgroup label="Account">
+                      <option value="verified">Email verified</option>
+                      <option value="unverified">Email not verified</option>
+                      <option value="admins">Admins only</option>
+                    </optgroup>
                     <option value="custom">Custom filter</option>
                   </select>
                 </div>
@@ -307,6 +336,14 @@
                     filled in per recipient (falls back to something generic, like "User", if unknown).
                   </p>
                 </div>
+                <label class="checkbox-label mt-1">
+                  <input type="checkbox" id="email-broadcast-bypass-prefs">
+                  Bypass recipient email preferences for this send
+                </label>
+                <p class="text-muted" style="font-size:0.75rem;margin:0.2rem 0 0.6rem;">
+                  Off by default: recipients who opted out of platform announcements are skipped.
+                  Check this to reach everyone in the segment regardless.
+                </p>
                 <button type="submit" class="btn btn-danger btn-sm" id="email-broadcast-submit">Send broadcast</button>
                 <span class="text-ok hidden" id="email-broadcast-result"></span>
               </form>
@@ -1175,6 +1212,10 @@
         subject: 'Your MyJay.net account has been deleted',
         body: 'Hi %username,\n\nThis confirms that your MyJay.net account and all associated files have been permanently deleted, as requested.\n\nIf you didn\'t request this, contact us immediately through the [contact form](https://myjay.net/contact).',
       },
+      verify_reminder: {
+        subject: 'Please verify your MyJay.net email',
+        body: 'Hi %username,\n\nYour email address isn\'t verified yet. Until it is, you won\'t be able to log back in if you ever get signed out.\n\nCheck your inbox for the verification email, or resend it from the login page.',
+      },
       // Moderation
       content_warning: {
         subject: 'A note about content on %sitetitle',
@@ -1209,6 +1250,15 @@
         subject: 'Thanks for being part of MyJay.net',
         body: 'Hi %username,\n\n[Describe the milestone here, e.g. "it\'s been a year since you joined" or "MyJay.net just crossed some number of sites"].\n\nJust wanted to say thanks for being part of it. %sitetitle is one of the reasons this place is worth running.',
       },
+      getting_started: {
+        subject: 'Getting started on MyJay.net',
+        body: 'Hi %username,\n\nYou signed up but haven\'t uploaded anything yet. Your subdomain is ready and waiting.\n\n[Get started](https://myjay.net/dashboard "button")\n\nThe [docs](https://myjay.net/docs) walk through uploading your first file if you want a hand.',
+      },
+      // Admin
+      admin_update: {
+        subject: 'Update for MyJay.net admins',
+        body: 'Hi %username,\n\n[Describe the admin-facing update here: new tooling, a policy change, anything that only affects how admins operate].\n\nLet the rest of the team know if you have questions.',
+      },
       // Storage & limits
       storage_warning: {
         subject: 'Your MyJay.net site is close to its storage limit',
@@ -1242,6 +1292,23 @@
       },
     };
 
+    // Just for the confirm-before-sending dialog text, the segment select's
+    // own <option> labels are the source of truth for the dropdown itself.
+    const SEGMENT_LABELS = {
+      all: 'all users',
+      active_7d: 'users active in the last 7 days',
+      inactive_30d: 'users inactive 30+ days',
+      inactive_90d: 'users inactive 90+ days',
+      new_7d: 'users who joined in the last 7 days',
+      published: 'users with a published site',
+      unpublished: 'users with an unpublished site',
+      near_storage_limit: 'users near their storage limit',
+      no_uploads: 'users who haven\'t uploaded anything',
+      verified: 'users with a verified email',
+      unverified: 'users without a verified email',
+      admins: 'admins only',
+    };
+
     function setupEmailSubTabs() {
       const buttons = document.querySelectorAll('#email-panel .subtabs button');
       buttons.forEach((btn) => {
@@ -1266,23 +1333,33 @@
       document.getElementById('email-log-status-filter').addEventListener('change', () => { emailLogsPage = 1; loadEmailLogs(); });
       document.getElementById('email-logs-clear-btn').addEventListener('click', clearEmailLogs);
 
-      document.getElementById('email-send-template').addEventListener('change', async (e) => {
-        const key = e.target.value;
-        if (!key) return;
-        const tpl = ONE_OFF_TEMPLATES[key];
-        const subjectInput = document.getElementById('email-send-subject');
-        const bodyInput = document.getElementById('email-send-body');
+      // Broadcast gets the same template list as the one-off Send form,
+      // cloned from its <select> rather than duplicated in the markup, so
+      // adding a 21st template only ever means editing one <select>.
+      document.getElementById('email-broadcast-template').innerHTML = document.getElementById('email-send-template').innerHTML;
 
-        if (subjectInput.value.trim() || bodyInput.value.trim()) {
-          const ok = await showConfirm('Replace the current subject and message with this template?', { title: 'Use template', confirmText: 'Replace' });
-          if (!ok) { e.target.value = ''; return; }
-        }
+      function setupTemplatePicker(selectId, subjectId, bodyId, refresh) {
+        document.getElementById(selectId).addEventListener('change', async (e) => {
+          const key = e.target.value;
+          if (!key) return;
+          const tpl = ONE_OFF_TEMPLATES[key];
+          const subjectInput = document.getElementById(subjectId);
+          const bodyInput = document.getElementById(bodyId);
 
-        subjectInput.value = tpl.subject;
-        bodyInput.value = tpl.body;
-        e.target.value = '';
-        refreshSendPreview();
-      });
+          if (subjectInput.value.trim() || bodyInput.value.trim()) {
+            const ok = await showConfirm('Replace the current subject and message with this template?', { title: 'Use template', confirmText: 'Replace' });
+            if (!ok) { e.target.value = ''; return; }
+          }
+
+          subjectInput.value = tpl.subject;
+          bodyInput.value = tpl.body;
+          e.target.value = '';
+          refresh();
+        });
+      }
+
+      setupTemplatePicker('email-send-template', 'email-send-subject', 'email-send-body', refreshSendPreview);
+      setupTemplatePicker('email-broadcast-template', 'email-broadcast-subject', 'email-broadcast-body', refreshBroadcastPreview);
 
       let emailSearchTimer;
       document.getElementById('email-log-search').addEventListener('input', (e) => {
@@ -1399,14 +1476,16 @@
         const segment = document.getElementById('email-broadcast-segment').value;
         const subject = document.getElementById('email-broadcast-subject').value;
         const body = document.getElementById('email-broadcast-body').value;
+        const bypassPrefs = document.getElementById('email-broadcast-bypass-prefs').checked;
 
-        const confirmMsg = segment === 'custom'
+        let confirmMsg = segment === 'custom'
           ? 'Send this broadcast to everyone matching the custom filter?'
-          : `Send this broadcast to the "${segment}" segment? This can reach a lot of inboxes at once.`;
+          : `Send this broadcast to "${SEGMENT_LABELS[segment] || segment}"? This can reach a lot of inboxes at once.`;
+        if (bypassPrefs) confirmMsg += ' This send will also bypass recipient email preferences, reaching people who opted out of announcements.';
         const ok = await showConfirm(confirmMsg, { title: 'Send broadcast', confirmText: 'Send', danger: true });
         if (!ok) return;
 
-        const payload = { segment, subject, body };
+        const payload = { segment, subject, body, bypassPrefs };
         if (segment === 'custom') {
           const role = document.getElementById('email-broadcast-role').value;
           const verified = document.getElementById('email-broadcast-verified').value;

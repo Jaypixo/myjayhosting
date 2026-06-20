@@ -8,12 +8,23 @@ import { broadcastAnnouncement } from '../../../_lib/email-templates.js';
 // Segments are a fixed, known-safe set of queries, not raw SQL from the
 // request body, an admin panel that accepts arbitrary SQL is one bad paste
 // away from a very bad day. "custom" covers the rest via a small set of
-// allowed, parameterized filters instead.
+// allowed, parameterized filters instead. 40MB is 80% of the 50MB quota
+// (MAX_UPLOAD_BYTES, enforced in functions/api/site/upload.js).
+const NEAR_LIMIT_BYTES = 40 * 1024 * 1024;
+
 const SEGMENT_QUERIES = {
   all: 'SELECT id, email, username, role, site_title FROM users WHERE banned = 0',
   published: `SELECT u.id, u.email, u.username, u.role, u.site_title FROM users u JOIN sites s ON s.user_id = u.id WHERE u.banned = 0 AND s.published = 1`,
   unpublished: `SELECT u.id, u.email, u.username, u.role, u.site_title FROM users u JOIN sites s ON s.user_id = u.id WHERE u.banned = 0 AND s.published = 0`,
+  active_7d: `SELECT u.id, u.email, u.username, u.role, u.site_title FROM users u JOIN sites s ON s.user_id = u.id WHERE u.banned = 0 AND s.updated_at >= datetime('now', '-7 days')`,
   inactive_30d: `SELECT u.id, u.email, u.username, u.role, u.site_title FROM users u JOIN sites s ON s.user_id = u.id WHERE u.banned = 0 AND s.updated_at < datetime('now', '-30 days')`,
+  inactive_90d: `SELECT u.id, u.email, u.username, u.role, u.site_title FROM users u JOIN sites s ON s.user_id = u.id WHERE u.banned = 0 AND s.updated_at < datetime('now', '-90 days')`,
+  new_7d: `SELECT id, email, username, role, site_title FROM users WHERE banned = 0 AND created_at >= datetime('now', '-7 days')`,
+  verified: `SELECT id, email, username, role, site_title FROM users WHERE banned = 0 AND email_verified = 1`,
+  unverified: `SELECT id, email, username, role, site_title FROM users WHERE banned = 0 AND email_verified = 0`,
+  admins: `SELECT id, email, username, role, site_title FROM users WHERE banned = 0 AND role = 'admin'`,
+  near_storage_limit: `SELECT u.id, u.email, u.username, u.role, u.site_title FROM users u JOIN sites s ON s.user_id = u.id WHERE u.banned = 0 AND s.storage_bytes >= ${NEAR_LIMIT_BYTES}`,
+  no_uploads: `SELECT u.id, u.email, u.username, u.role, u.site_title FROM users u JOIN sites s ON s.user_id = u.id WHERE u.banned = 0 AND s.storage_bytes = 0`,
 };
 
 async function resolveCustomSegment(env, filter) {
@@ -47,6 +58,12 @@ export async function onRequestPost(context) {
   const segment = String(body.segment || '');
   const subject = String(body.subject || '').trim();
   const message = String(body.body || '').trim();
+  // Off by default: a broadcast normally respects each recipient's
+  // notification_prefs same as anything else non-transactional. This is the
+  // admin's explicit, per-send override for when it shouldn't, e.g. a
+  // security-relevant announcement that isn't "transactional" by type but
+  // still needs to reach everyone in the segment.
+  const bypassPrefs = Boolean(body.bypassPrefs);
 
   if (!subject || !message) {
     return errorResponse('subject and body are required', 400);
@@ -90,6 +107,7 @@ export async function onRequestPost(context) {
       subject: emailSubject,
       bodyHtml: html,
       userId: recipient.id,
+      bypassPrefs,
     });
     if (result.ok) sent += 1;
     else if (result.skipped) skipped += 1;

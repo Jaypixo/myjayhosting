@@ -175,6 +175,22 @@
 
           <button type="submit" class="btn">Save changes</button>
         </form>
+
+        <h2 class="mt-2">Email preferences</h2>
+        <form id="email-prefs-form" novalidate>
+          <div class="form-error" id="email-prefs-message"></div>
+          <p class="text-muted">
+            Choose which emails MyJay.net sends you automatically. This doesn't affect
+            account-critical emails like password resets or security alerts, those always go out.
+          </p>
+          <label class="checkbox-label">
+            <input type="checkbox" id="prefs-broadcast"> Platform announcements
+          </label>
+          <label class="checkbox-label mt-1">
+            <input type="checkbox" id="prefs-blog"> Blog post notifications
+          </label>
+          <button type="submit" class="btn btn-sm mt-1">Save preferences</button>
+        </form>
       </div>
     </main>
   </div>
@@ -741,6 +757,39 @@
       });
     }
 
+    async function loadEmailPrefs() {
+      const res = await apiFetch('/api/user/notification-prefs');
+      if (!res.ok) return;
+      const data = await res.json();
+      document.getElementById('prefs-broadcast').checked = data.broadcast;
+      document.getElementById('prefs-blog').checked = data.blogNotification;
+    }
+
+    function setupEmailPrefs() {
+      document.getElementById('email-prefs-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const msgEl = document.getElementById('email-prefs-message');
+        msgEl.textContent = '';
+
+        const res = await apiFetch('/api/user/notification-prefs', {
+          method: 'PATCH',
+          body: JSON.stringify({
+            broadcast: document.getElementById('prefs-broadcast').checked,
+            blogNotification: document.getElementById('prefs-blog').checked,
+          }),
+        });
+
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          msgEl.textContent = data.error || 'Something went wrong.';
+          msgEl.className = 'form-error';
+          return;
+        }
+        msgEl.textContent = 'Saved.';
+        msgEl.className = 'text-ok';
+      });
+    }
+
     // ── Stats ────────────────────────────────────────────────────────────────
 
     function countryFlag(code) {
@@ -813,6 +862,7 @@
       if (!user) return;
       await loadFiles();
       await loadStats();
+      await loadEmailPrefs();
       setupTabs();
       setupUpload();
       setupNewFolder();
@@ -820,6 +870,7 @@
       setupViewer();
       setupPublish();
       setupSettings();
+      setupEmailPrefs();
       document.getElementById('logout-btn').addEventListener('click', logout);
     }
 
