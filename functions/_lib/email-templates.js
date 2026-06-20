@@ -4,6 +4,8 @@
 // they're not worth the risk here. Keep new templates inside this file and
 // reusing baseLayout(), don't hand-roll a one-off HTML string elsewhere.
 
+import { Marked } from 'marked';
+
 const TERRACOTTA = '#c7522a';
 const INK = '#1a1716';
 const MUTED = '#7a6f63';
@@ -108,6 +110,45 @@ function button(url, label) {
   </table>`;
 }
 
+// Markdown for admin-composed bodies (one-off send, broadcast), via the real
+// `marked` library, not a hand-rolled subset. **bold**/*italic*/lists/etc.
+// render normally, and `breaks: true` turns single line breaks into <br>
+// so plain text typed without blank lines between paragraphs still looks
+// right, matching how the old plain-text composer behaved.
+//
+// The only renderer override is `link`: a markdown link whose title is
+// literally "button" (`[Click here](https://example.com "button")`) renders
+// as the same terracotta CTA button used elsewhere in these templates,
+// instead of a plain inline link. Document this convention in the admin
+// Compose UI, it's not discoverable otherwise.
+//
+// Raw HTML in the body (an admin pasting their own <table> button, a <b>,
+// whatever) passes through untouched, marked doesn't sanitize by default
+// and this is intentionally left that way: only admins can reach this
+// composer, and they already have equivalent-or-greater trust elsewhere in
+// this panel (ban/delete users, delete sites). It's the same reasoning as
+// the SQL-injection note on broadcast segments not applying here, there's
+// no privilege boundary being crossed, an admin's own composed email is
+// already fully under their control.
+const markdown = new Marked({
+  gfm: true,
+  breaks: true,
+  renderer: {
+    link(token) {
+      const href = escapeHtml(token.href || '');
+      if ((token.title || '').trim().toLowerCase() === 'button') {
+        return button(href, token.text);
+      }
+      const label = this.parser.parseInline(token.tokens);
+      return `<a href="${href}" style="color:${TERRACOTTA};text-decoration:underline;">${label}</a>`;
+    },
+  },
+});
+
+function renderMarkdown(source) {
+  return markdown.parse(String(source ?? ''));
+}
+
 export function verifyEmail(token, signature) {
   const url = `https://myjay.net/auth/verify?token=${encodeURIComponent(token)}`;
   const subject = 'Confirm your MyJay.net account';
@@ -174,7 +215,7 @@ export function adminMessage(subject, body, signature) {
       subject,
       signature,
       preheader: subject,
-      bodyHtml: `<div style="white-space:pre-line;">${escapeHtml(body)}</div>`,
+      bodyHtml: renderMarkdown(body),
     }),
   };
 }
@@ -186,7 +227,7 @@ export function broadcastAnnouncement(subject, body, unsubscribeUrl, signature) 
       subject,
       signature,
       preheader: subject,
-      bodyHtml: `<div style="white-space:pre-line;">${escapeHtml(body)}</div>`,
+      bodyHtml: renderMarkdown(body),
       unsubscribeUrl,
     }),
   };
