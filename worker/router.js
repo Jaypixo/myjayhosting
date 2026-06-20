@@ -38,12 +38,19 @@ function escapeHtml(str) {
   return str.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
+// Both error pages below are deliberately plain prose plus the mascot, not
+// a terminal-log block, the same call made for the main site's 404.html
+// and maintenance.html: a terminal block is for genuinely log-like
+// content, not the one paragraph a confused visitor actually needs to
+// read. The mascot is fetched from the main domain (myjay.net), this
+// Worker only ever has R2 user files and no static assets of its own.
 function pageShell(title, bodyHtml) {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
 <title>${title}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@1,300&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -61,11 +68,12 @@ function pageShell(title, bodyHtml) {
     background: var(--paper); color: var(--ink); font-family: 'IBM Plex Mono', monospace;
     text-align: center; padding: 2rem;
   }
-  .box { max-width: 480px; }
-  h1 { font-family: 'Crimson Pro', serif; font-style: italic; font-weight: 300; font-size: 2.2rem; margin: 0 0 0.5rem; }
-  p { color: var(--muted); }
-  .terminal { background: var(--ink); color: var(--paper); padding: 1rem; text-align: left; font-size: 0.8rem; margin-top: 1.5rem; line-height: 1.6; }
-  a { color: var(--primary); text-decoration: none; border-bottom: 1px dashed var(--primary); }
+  .box { max-width: 420px; }
+  h1 { font-family: 'Crimson Pro', serif; font-style: italic; font-weight: 300; font-size: 2.6rem; margin: 0 0 0.5rem; }
+  p { color: var(--muted); line-height: 1.5; }
+  .mascot { display: block; max-width: 200px; width: 100%; margin: 1.5rem auto; }
+  a.btn { display: inline-block; margin-top: 0.5rem; padding: 0.7em 1.4em; border: 1px solid var(--ink); color: var(--ink); text-decoration: none; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; }
+  a.btn:hover { background: var(--ink); color: var(--paper); }
 </style>
 </head>
 <body>
@@ -77,13 +85,10 @@ function pageShell(title, bodyHtml) {
 function siteNotPublishedResponse(username) {
   const safe = escapeHtml(username);
   const html = pageShell(`${safe}.myjay.net`, `
-    <h1><em>nothing here yet.</em></h1>
+    <h1><em>Nothing here yet.</em></h1>
     <p><strong>${safe}.myjay.net</strong> hasn't published a site, or doesn't exist.</p>
-    <div class="terminal">
-$ curl ${safe}.myjay.net<br>
-status: 404, site not published<br>
-hint: claim this name at <a href="https://myjay.net/register">myjay.net</a>
-    </div>
+    <img src="https://myjay.net/assets/img/MyJayErrorMascot.png" alt="" class="mascot" onerror="this.style.display='none'">
+    <a class="btn" href="https://myjay.net/register">Claim this name</a>
   `);
   return new Response(html, { status: 404, headers: { 'Content-Type': 'text/html; charset=utf-8' } });
 }
@@ -93,10 +98,8 @@ function fileNotFoundResponse(username) {
   const html = pageShell(`${safe}.myjay.net | 404`, `
     <h1><em>404</em></h1>
     <p>That page doesn't exist on <strong>${safe}.myjay.net</strong>.</p>
-    <div class="terminal">
-$ ls sites/${safe}/<br>
-error: ENOENT, no such file
-    </div>
+    <img src="https://myjay.net/assets/img/MyJayErrorMascot.png" alt="" class="mascot" onerror="this.style.display='none'">
+    <a class="btn" href="/">Back to the homepage</a>
   `);
   return new Response(html, { status: 404, headers: { 'Content-Type': 'text/html; charset=utf-8' } });
 }
@@ -133,6 +136,20 @@ export default {
     }
 
     if (!object) {
+      // Users can style their own 404 by uploading a 404.html to their
+      // site, same as any other static host. Served with a real 404
+      // status either way, search engines and link checkers should still
+      // see this as "not found," not a normal 200 page.
+      const custom404 = await env.SITES.get(`sites/${username}/404.html`);
+      if (custom404) {
+        return new Response(custom404.body, {
+          status: 404,
+          headers: {
+            'Content-Type': custom404.httpMetadata?.contentType || 'text/html; charset=utf-8',
+            'ETag': custom404.httpEtag,
+          },
+        });
+      }
       return fileNotFoundResponse(username);
     }
 

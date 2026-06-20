@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -30,81 +31,178 @@
     </nav>
   </header>
 
-  <main class="wrapper">
-    <section>
-      <h1>Privacy.</h1>
-      <p class="text-muted">
-        This is short because there isn't much to say. No ad network, no
-        analytics vendor, nothing to sell.
-      </p>
-    </section>
+<main class="wrapper">
+  <section>
+    <h1>Privacy Policy</h1>
+    <p class="text-muted">
+      MyJay.net is designed to collect as little personal information as
+      possible. This policy explains what data we collect, why we collect it,
+      and how it is used.
+    </p>
+    <p class="text-muted">
+      By using MyJay.net, you agree to the practices described in this policy.
+    </p>
+  </section>
 
-    <section>
-      <h2>What we collect.</h2>
-      <div class="terminal-log">
-<span class="dim">$ myjay privacy --data-collected</span>
-email:           required for login, account recovery (manual, for now)
-username:        your subdomain, public by definition
-password:        never stored in plain text, PBKDF2-SHA256, salted
-site files:      whatever you upload, public if your site is published
-bio / site title: optional, public if you fill them in
-session cookie:  random token, HttpOnly + Secure, expires after 30 days
-ip address:      transient, in our request logs, we don't query these
-      </div>
-    </section>
+  <section>
+    <h2>Information We Collect</h2>
 
-    <section>
-      <h2>What we don't do.</h2>
-      <ul>
-        <li>No analytics scripts on <code>myjay.net</code> or the dashboard. View counts on your published site are a single number in our database, incremented server-side. No per-visitor tracking.</li>
-        <li>No third-party trackers, pixels, or ad networks anywhere on the platform.</li>
-        <li>No selling, renting, or sharing account data with anyone. There's no one to sell it to, and we wouldn't if there were.</li>
-        <li>No reading the contents of your files except when an admin action requires it (e.g. investigating abuse reports).</li>
-      </ul>
-    </section>
+<table>
+  <thead>
+    <tr>
+      <th>Data</th>
+      <th>Purpose</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Email address</td>
+      <td>Account creation, login, and account recovery.</td>
+    </tr>
+    <tr>
+      <td>Username</td>
+      <td>Used to identify your account and create your public subdomain.</td>
+    </tr>
+    <tr>
+      <td>Password hash</td>
+      <td>Stored in hashed form using PBKDF2-SHA256 with a unique salt. Passwords are never stored in plain text.</td>
+    </tr>
+    <tr>
+      <td>Site files and content</td>
+      <td>Required to host and serve your website.</td>
+    </tr>
+    <tr>
+      <td>Profile information</td>
+      <td>Optional information such as a site title or biography that you choose to publish.</td>
+    </tr>
+    <tr>
+      <td>Session cookie</td>
+      <td>Keeps you signed in to your account.</td>
+    </tr>
+    <tr>
+      <td>Server logs</td>
+      <td>May temporarily contain IP addresses and technical request information for security, debugging, and abuse prevention.</td>
+    </tr>
+  </tbody>
+</table>
 
-    <section>
-      <h2>Your published site is yours.</h2>
-      <p>
-        If you add your own analytics, trackers, or ads to <em>your</em>
-        <code>username.myjay.net</code> site, that's between you and your
-        visitors. MyJay doesn't inject anything into your pages, but it also
-        can't stop you from doing this, and it's on you to disclose it
-        per whatever laws apply to you. See <a href="/terms">terms</a>.
-      </p>
-    </section>
+  </section>
 
-    <section>
-      <h2>Cookies.</h2>
-      <p>
-        One cookie: <code>session</code>, set after login, used purely to
-        keep you signed in. It's <code>HttpOnly</code>, <code>Secure</code>,
-        and <code>SameSite=Lax</code>, so it isn't readable by JavaScript and
-        isn't sent to third parties. No cookie banner, because there's
-        nothing to consent to beyond "stay logged in."
-      </p>
-    </section>
+  <section>
+    <h2>How We Use Your Information</h2>
+    <ul>
+      <li>To provide and maintain the MyJay.net platform.</li>
+      <li>To authenticate users and secure accounts.</li>
+      <li>To host and publish user-created websites.</li>
+      <li>To investigate abuse, spam, security incidents, or violations of our Terms.</li>
+      <li>To communicate important service-related information.</li>
+    </ul>
+  </section>
 
-    <section>
-      <h2>Deleting your account.</h2>
-      <p>
-        Deleting your account removes your user record and every file in
-        your <code>sites/{username}/</code> storage. This is permanent and
-        immediate, there's no 30-day grace period or backup to restore from.
-        Currently this is an admin action; a self-service "delete my account"
-        button is on the roadmap.
-      </p>
-    </section>
+  <section>
+    <h2>What We Do Not Do</h2>
+    <ul>
+      <li>No third-party advertising networks.</li>
+      <li>No third-party analytics services.</li>
+      <li>No tracking pixels or cross-site tracking technologies.</li>
+      <li>No sale, rental, or brokerage of personal data.</li>
+      <li>No profiling of users for advertising purposes.</li>
+    </ul>
 
-    <section>
-      <h2>Changes.</h2>
-      <p class="text-muted">
-        If this policy changes in a way that matters, it'll be mentioned in
-        the announcement banner and in <a href="/about">the dev log</a>.
-        Last meaningfully updated: Phase 1 launch.
-      </p>
-    </section>
-  </main>
+<p>
+  Basic page view counters may be provided for hosted sites. These are
+  generated server-side and do not identify individual visitors.
+</p>
+
+  </section>
+
+  <section>
+    <h2>User Content</h2>
+    <p>
+      Content you upload to MyJay.net is stored and served as part of the
+      hosting service. Published websites are publicly accessible by design.
+    </p>
+
+<p>
+  MyJay.net does not routinely review user content. However, administrators
+  may access files when reasonably necessary to investigate abuse reports,
+  security issues, legal complaints, or violations of our Terms.
+</p>
+
+  </section>
+
+  <section>
+    <h2>Cookies</h2>
+    <p>
+      MyJay.net uses a single session cookie to authenticate logged-in users.
+      This cookie is necessary for the service to function and cannot be used
+      to track you across other websites.
+    </p>
+
+<p>
+  The cookie is configured with appropriate security settings, including
+  <code>HttpOnly</code>, <code>Secure</code>, and
+  <code>SameSite=Lax</code>.
+</p>
+
+  </section>
+
+  <section>
+    <h2>Data Retention</h2>
+    <p>
+      Account information and hosted content are retained while your account
+      remains active.
+    </p>
+
+<p>
+  Server logs are retained only for as long as reasonably necessary for
+  operational, security, and troubleshooting purposes.
+</p>
+
+  </section>
+
+  <section>
+    <h2>Account Deletion</h2>
+    <p>
+      When an account is deleted, the associated account record, hosted files,
+      and published website content are permanently removed from the platform.
+    </p>
+
+<p>
+  Some technical records, such as temporary server logs, may persist for a
+  limited period before automatic deletion.
+</p>
+
+<p>
+  Account deletion is currently performed by an administrator. A
+  self-service deletion feature may be added in the future.
+</p>
+
+  </section>
+
+  <section>
+    <h2>Your Rights</h2>
+    <p>
+      Depending on your jurisdiction, you may have rights regarding your
+      personal data, including the right to request access, correction, or
+      deletion of information associated with your account.
+    </p>
+  </section>
+
+  <section>
+    <h2>Changes to This Policy</h2>
+    <p class="text-muted">
+      This policy may be updated from time to time. Significant changes will be
+      announced through the platform or development updates.
+    </p>
+
+<p class="text-muted">
+  Last updated: June 2026.
+</p>
+
+  </section>
+</main>
+
 
   <footer class="footer">
     <span class="footnote">[1] Questions about this policy? There's no contact form yet, see <a href="/about">about</a>.</span>
