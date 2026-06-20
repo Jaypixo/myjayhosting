@@ -8,6 +8,8 @@ const DEFAULTS = {
   announcement: '',
   announcement_enabled: '0',
   registration_enabled: '1',
+  email_signature_name: 'The MyJay Team',
+  email_signature_tagline: 'Your corner of the web.',
 };
 
 function toPublicShape(map) {
@@ -32,6 +34,18 @@ export async function getSettingsMap(env) {
 
 export async function getSettings(env) {
   return toPublicShape(await getSettingsMap(env));
+}
+
+// Separate from getSettings()/toPublicShape() on purpose: those back the
+// public /api/settings endpoint (used by status.html), and the signature
+// has no reason to be exposed there. Used by email-templates.js call sites
+// and the admin signature editor instead.
+export async function getEmailSignature(env) {
+  const map = await getSettingsMap(env);
+  return {
+    name: map.email_signature_name,
+    tagline: map.email_signature_tagline,
+  };
 }
 
 export async function setSetting(env, key, value) {

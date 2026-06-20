@@ -51,6 +51,8 @@ INSERT OR IGNORE INTO settings (key, value) VALUES ('maintenance_mode', '0');
 INSERT OR IGNORE INTO settings (key, value) VALUES ('announcement', '');
 INSERT OR IGNORE INTO settings (key, value) VALUES ('announcement_enabled', '0');
 INSERT OR IGNORE INTO settings (key, value) VALUES ('registration_enabled', '1');
+INSERT OR IGNORE INTO settings (key, value) VALUES ('email_signature_name', 'The MyJay Team');
+INSERT OR IGNORE INTO settings (key, value) VALUES ('email_signature_tagline', 'Your corner of the web.');
 
 -- Contact form submissions (public/contact.html), reviewed from the admin panel.
 CREATE TABLE IF NOT EXISTS contact_messages (

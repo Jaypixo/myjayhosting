@@ -1,5 +1,6 @@
 import { isValidEmail, errorResponse, json } from '../../_lib/auth.js';
 import { sendEmail } from '../../_lib/mailer.js';
+import { getEmailSignature } from '../../_lib/settings.js';
 import { passwordReset } from '../../_lib/email-templates.js';
 
 const RESET_TTL_SECONDS = 60 * 60; // 1 hour
@@ -26,7 +27,8 @@ export async function onRequestPost(context) {
   if (user) {
     const token = crypto.randomUUID();
     await env.SESSIONS.put(`reset:${token}`, user.id, { expirationTtl: RESET_TTL_SECONDS });
-    const { subject, html } = passwordReset(token);
+    const signature = await getEmailSignature(env);
+    const { subject, html } = passwordReset(token, signature);
     await sendEmail(env, { to: user.email, type: 'reset', subject, bodyHtml: html, userId: user.id });
   }
 

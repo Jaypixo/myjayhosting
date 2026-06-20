@@ -1,5 +1,6 @@
 import { errorResponse, json } from '../../../_lib/auth.js';
 import { sendEmail } from '../../../_lib/mailer.js';
+import { getEmailSignature } from '../../../_lib/settings.js';
 import { buildUnsubscribeToken, unsubscribeUrl } from '../../../_lib/unsubscribe.js';
 import { broadcastAnnouncement } from '../../../_lib/email-templates.js';
 
@@ -71,9 +72,11 @@ export async function onRequestPost(context) {
   let skipped = 0;
   let failed = 0;
 
+  const signature = await getEmailSignature(env);
+
   for (const recipient of recipients) {
     const token = await buildUnsubscribeToken(env, recipient.id, 'broadcast');
-    const { subject: emailSubject, html } = broadcastAnnouncement(subject, message, unsubscribeUrl(token, 'broadcast'));
+    const { subject: emailSubject, html } = broadcastAnnouncement(subject, message, unsubscribeUrl(token, 'broadcast'), signature);
     const result = await sendEmail(env, {
       to: recipient.email,
       type: 'broadcast',

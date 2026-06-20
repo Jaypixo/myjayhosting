@@ -4,12 +4,31 @@
 // they're not worth the risk here. Keep new templates inside this file and
 // reusing baseLayout(), don't hand-roll a one-off HTML string elsewhere.
 
-const LOGO_URL = 'https://myjay.net/assets/img/logo.png';
 const TERRACOTTA = '#c7522a';
 const INK = '#1a1716';
 const MUTED = '#7a6f63';
 const PAPER = '#f5f0e8';
 const MONO = "'Courier New', Courier, monospace";
+const SERIF = "Georgia, 'Times New Roman', serif";
+const LOGO_CREAM = '#e8dacb';
+const LOGO_ORANGE = '#e25728';
+
+// The header used to be a single <img> pulling the logo from myjay.net/assets.
+// Most clients block remote images by default, so an unopened "display
+// images" email looked completely blank at the top, no brand, nothing. This
+// renders the wordmark as real HTML text instead (same colors as the actual
+// logo: "MyJay" cream, ".net" orange), so it always shows up.
+function wordmark() {
+  return `<span style="font-family:${SERIF};font-style:italic;font-size:24px;line-height:1;">` +
+    `<span style="color:${LOGO_CREAM};">MyJay</span><span style="color:${LOGO_ORANGE};">.net</span>` +
+    `</span>`;
+}
+
+// Sign-off shown at the bottom of every email. Configurable from the admin
+// panel's Email tab (functions/api/admin/email/signature.js), stored in the
+// settings table, see _lib/settings.js. These are just the hardcoded
+// fallbacks for when nothing's been saved yet.
+const DEFAULT_SIGNATURE = { name: 'The MyJay Team', tagline: 'Your corner of the web.' };
 
 // There's no dedicated Impressum page on this platform yet (that needs real
 // legal entity details nobody's filled in), so the footer points at the
@@ -20,7 +39,12 @@ function escapeHtml(str) {
   return String(str).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
-function baseLayout({ preheader = '', bodyHtml, unsubscribeUrl }) {
+function baseLayout({ subject = '', preheader = '', bodyHtml, unsubscribeUrl, signature }) {
+  const sig = {
+    name: signature?.name || DEFAULT_SIGNATURE.name,
+    tagline: signature?.tagline ?? DEFAULT_SIGNATURE.tagline,
+  };
+
   const unsubscribeRow = unsubscribeUrl
     ? `<a href="${unsubscribeUrl}" style="color:${MUTED};text-decoration:underline;">Unsubscribe</a> &middot; `
     : '';
@@ -31,7 +55,7 @@ function baseLayout({ preheader = '', bodyHtml, unsubscribeUrl }) {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="color-scheme" content="light">
-<title></title>
+<title>${escapeHtml(subject)}</title>
 </head>
 <body style="margin:0;padding:0;background-color:${PAPER};">
   <div style="display:none;max-height:0;overflow:hidden;opacity:0;">${escapeHtml(preheader)}</div>
@@ -40,8 +64,8 @@ function baseLayout({ preheader = '', bodyHtml, unsubscribeUrl }) {
       <td align="center" style="padding:24px 12px;">
         <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px;max-width:100%;background-color:#ffffff;">
           <tr>
-            <td style="background-color:${TERRACOTTA};padding:20px 28px;" align="left">
-              <img src="${LOGO_URL}" alt="MyJay.net" height="28" style="display:block;border:0;height:28px;">
+            <td style="background-color:${TERRACOTTA};padding:22px 28px;" align="left">
+              ${wordmark()}
             </td>
           </tr>
           <tr>
@@ -50,9 +74,13 @@ function baseLayout({ preheader = '', bodyHtml, unsubscribeUrl }) {
             </td>
           </tr>
           <tr>
-            <td style="padding:20px 28px;border-top:1px solid #e5ddd2;font-family:${MONO};font-size:12px;color:${MUTED};">
-              ${unsubscribeRow}<a href="${LEGAL_URL}" style="color:${MUTED};text-decoration:underline;">Legal / Impressum</a>
-              <div style="margin-top:8px;">&copy; MyJay.net</div>
+            <td style="padding:24px 28px 20px;border-top:1px solid #e5ddd2;">
+              <div style="font-family:${SERIF};font-style:italic;font-size:16px;color:${INK};margin:0 0 2px;">&mdash; ${escapeHtml(sig.name)}</div>
+              ${sig.tagline ? `<div style="font-family:${MONO};font-size:12px;color:${MUTED};margin:0 0 16px;">${escapeHtml(sig.tagline)}</div>` : '<div style="margin:0 0 16px;"></div>'}
+              <div style="font-family:${MONO};font-size:12px;color:${MUTED};">
+                ${unsubscribeRow}<a href="${LEGAL_URL}" style="color:${MUTED};text-decoration:underline;">Legal</a>
+                <div style="margin-top:8px;">&copy; MyJay.net</div>
+              </div>
             </td>
           </tr>
         </table>
@@ -73,11 +101,14 @@ function button(url, label) {
   </table>`;
 }
 
-export function verifyEmail(token) {
+export function verifyEmail(token, signature) {
   const url = `https://myjay.net/auth/verify?token=${encodeURIComponent(token)}`;
+  const subject = 'Confirm your MyJay.net account';
   return {
-    subject: 'Confirm your MyJay.net account',
+    subject,
     html: baseLayout({
+      subject,
+      signature,
       preheader: 'Confirm your email to finish setting up your account.',
       bodyHtml: `
         <p style="margin:0 0 16px;">One step left: confirm this is your email address.</p>
@@ -89,11 +120,14 @@ export function verifyEmail(token) {
   };
 }
 
-export function passwordReset(token) {
+export function passwordReset(token, signature) {
   const url = `https://myjay.net/auth/reset?token=${encodeURIComponent(token)}`;
+  const subject = 'Reset your MyJay.net password';
   return {
-    subject: 'Reset your MyJay.net password',
+    subject,
     html: baseLayout({
+      subject,
+      signature,
       preheader: 'Reset your password.',
       bodyHtml: `
         <p style="margin:0 0 16px;">Someone (hopefully you) asked to reset the password on this account.</p>
@@ -105,10 +139,13 @@ export function passwordReset(token) {
   };
 }
 
-export function securityAlert(event, ip, location) {
+export function securityAlert(event, ip, location, signature) {
+  const subject = `Security notice: ${event}`;
   return {
-    subject: `Security notice: ${event}`,
+    subject,
     html: baseLayout({
+      subject,
+      signature,
       preheader: `Security notice for your account: ${event}`,
       bodyHtml: `
         <p style="margin:0 0 16px;">This is an automatic notice about a security-relevant event on your account.</p>
@@ -123,20 +160,24 @@ export function securityAlert(event, ip, location) {
   };
 }
 
-export function adminMessage(subject, body) {
+export function adminMessage(subject, body, signature) {
   return {
     subject,
     html: baseLayout({
+      subject,
+      signature,
       preheader: subject,
       bodyHtml: `<div style="white-space:pre-line;">${escapeHtml(body)}</div>`,
     }),
   };
 }
 
-export function broadcastAnnouncement(subject, body, unsubscribeUrl) {
+export function broadcastAnnouncement(subject, body, unsubscribeUrl, signature) {
   return {
     subject,
     html: baseLayout({
+      subject,
+      signature,
       preheader: subject,
       bodyHtml: `<div style="white-space:pre-line;">${escapeHtml(body)}</div>`,
       unsubscribeUrl,
@@ -144,10 +185,13 @@ export function broadcastAnnouncement(subject, body, unsubscribeUrl) {
   };
 }
 
-export function blogNotification(siteName, postTitle, postUrl, unsubscribeUrl) {
+export function blogNotification(siteName, postTitle, postUrl, unsubscribeUrl, signature) {
+  const subject = `${siteName} just posted: ${postTitle}`;
   return {
-    subject: `${siteName} just posted: ${postTitle}`,
+    subject,
     html: baseLayout({
+      subject,
+      signature,
       preheader: `New post from ${siteName}: ${postTitle}`,
       bodyHtml: `
         <p style="margin:0 0 16px;"><strong>${escapeHtml(siteName)}</strong> just published something new.</p>

@@ -1,5 +1,6 @@
 import { isValidEmail, errorResponse, json } from '../../_lib/auth.js';
 import { sendEmail } from '../../_lib/mailer.js';
+import { getEmailSignature } from '../../_lib/settings.js';
 import { verifyEmail } from '../../_lib/email-templates.js';
 
 const VERIFY_TTL_SECONDS = 60 * 60 * 24; // 24 hours
@@ -29,7 +30,8 @@ export async function onRequestPost(context) {
   if (user && !user.email_verified) {
     const token = crypto.randomUUID();
     await env.SESSIONS.put(`verify:${token}`, user.id, { expirationTtl: VERIFY_TTL_SECONDS });
-    const { subject, html } = verifyEmail(token);
+    const signature = await getEmailSignature(env);
+    const { subject, html } = verifyEmail(token, signature);
     await sendEmail(env, { to: user.email, type: 'verify', subject, bodyHtml: html, userId: user.id });
   }
 

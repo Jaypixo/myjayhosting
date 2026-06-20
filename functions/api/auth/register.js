@@ -8,7 +8,7 @@ import {
   json,
   errorResponse,
 } from '../../_lib/auth.js';
-import { getSettings } from '../../_lib/settings.js';
+import { getSettings, getEmailSignature } from '../../_lib/settings.js';
 import { sendEmail } from '../../_lib/mailer.js';
 import { verifyEmail } from '../../_lib/email-templates.js';
 
@@ -88,7 +88,8 @@ export async function onRequestPost(context) {
   const verifyToken = crypto.randomUUID();
   await env.SESSIONS.put(`verify:${verifyToken}`, userId, { expirationTtl: VERIFY_TTL_SECONDS });
 
-  const { subject, html } = verifyEmail(verifyToken);
+  const signature = await getEmailSignature(env);
+  const { subject, html } = verifyEmail(verifyToken, signature);
   await sendEmail(env, { to: email, type: 'verify', subject, bodyHtml: html, userId });
 
   // No session cookie here on purpose, login is blocked until the address

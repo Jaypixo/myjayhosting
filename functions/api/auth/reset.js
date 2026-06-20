@@ -1,5 +1,6 @@
 import { hashPassword, errorResponse, json } from '../../_lib/auth.js';
 import { sendEmail } from '../../_lib/mailer.js';
+import { getEmailSignature } from '../../_lib/settings.js';
 import { securityAlert } from '../../_lib/email-templates.js';
 
 export async function onRequestPost(context) {
@@ -40,7 +41,8 @@ export async function onRequestPost(context) {
   // changed whether or not they're the one who triggered it.
   const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
   const location = [request.cf?.city, request.cf?.country].filter(Boolean).join(', ') || 'unknown';
-  const { subject, html } = securityAlert('Password changed', ip, location);
+  const signature = await getEmailSignature(env);
+  const { subject, html } = securityAlert('Password changed', ip, location, signature);
   await sendEmail(env, { to: user.email, type: 'security_alert', subject, bodyHtml: html, userId: user.id });
 
   return json({ ok: true });

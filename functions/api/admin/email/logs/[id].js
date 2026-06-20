@@ -29,3 +29,9 @@ export async function onRequestGet(context) {
     createdAt: log.created_at,
   });
 }
+
+export async function onRequestDelete(context) {
+  const { env, params } = context;
+  await env.DB.prepare('DELETE FROM email_log WHERE id = ?').bind(params.id).run();
+  return json({ ok: true });
+}

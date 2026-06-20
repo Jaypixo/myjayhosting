@@ -494,25 +494,72 @@ the call site consistent.
 
 Table-based HTML, inline styles only, 600px max width, Gmail-safe (no
 external stylesheet, no web fonts, monospace falls back to `'Courier New',
-Courier, monospace`). `baseLayout()` renders the shared shell (terracotta
-header bar with the logo, white content area, muted footer with an
-unsubscribe link when one's given, a legal link, `© MyJay.net`). Six
-template functions sit on top of it: `verifyEmail`, `passwordReset`,
-`securityAlert`, `adminMessage`, `broadcastAnnouncement`, `blogNotification`.
-Each returns `{ subject, html }`.
+Courier, monospace`). `baseLayout()` renders the shared shell: a terracotta
+header bar, a white content area, and a signed-off footer. Six template
+functions sit on top of it: `verifyEmail`, `passwordReset`, `securityAlert`,
+`adminMessage`, `broadcastAnnouncement`, `blogNotification`. Each returns
+`{ subject, html }`.
+
+The header is the platform wordmark rendered as real HTML text ("MyJay" in
+cream, ".net" in orange, same colors as the actual logo), not an `<img>`.
+An earlier version pulled the logo from a remote URL, but most clients block
+remote images by default, so an unopened email looked completely blank at
+the top, no brand at all. Text always renders.
+
+The footer ends with a sign-off, `&mdash; {name}` plus an optional tagline
+line beneath it, both pulled from `getEmailSignature(env)`
+(`functions/_lib/settings.js`), which reads the `email_signature_name` /
+`email_signature_tagline` keys out of the existing generic `settings`
+key/value table (the same table maintenance mode and the announcement banner
+live in, see `schema/d1-init.sql`). **Every** template function takes the
+signature as its last argument and threads it into `baseLayout()`, so every
+outgoing email (system or admin-composed) carries the current sign-off,
+there's no separate "branded" vs "unbranded" template path. Every call site
+(`register.js`, `reset.js`, `request-reset.js`, `resend-verification.js`,
+and the three admin routes below) fetches the signature with one
+`getEmailSignature(env)` call before rendering. `broadcast.js` fetches it
+once before its send loop, not per recipient.
+
+The admin Email tab's **Email signature** card (`public/admin.html`) is the
+only place this gets edited: `GET`/`PATCH /api/admin/email/signature`
+(`functions/api/admin/email/signature.js`) read and write those two settings
+keys directly, no separate table, no extra migration. The card has its own
+small live preview that re-renders (debounced, through the preview endpoint
+below) as you type, before you've even saved.
 
 A few adaptations from how this might first get described:
 
-- The logo URL is `https://myjay.net/assets/img/logo.png` (the actual asset
-  path), not anywhere under `/public/`, that's the local build directory
-  name, never a real URL segment.
-- The footer's legal link points at `/terms`, there's no `/impressum` page.
-  Impressum content needs a real legal entity name and address, neither of
-  which exists in this codebase, don't fabricate one. If a real Impressum
-  page gets built later, repoint `LEGAL_URL` in the templates file.
+- The asset-path comment for the old logo image is gone along with the
+  image itself, the wordmark is plain inline-styled HTML now, nothing to
+  host.
+- The footer's legal link points at `/terms`, there's no `/impressum` page,
+  so the link is just labeled "Legal", not "Legal / Impressum". Impressum
+  content needs a real legal entity name and address, neither of which
+  exists in this codebase, don't fabricate one. If a real Impressum page
+  gets built later, repoint `LEGAL_URL` in the templates file.
 - `blogNotification` exists as a template only, nothing calls it. There's no
   blog feature in this build (see Project Overview), it's defined because it
   was asked for by name, not because something triggers it yet.
+
+### Live preview (`POST /api/admin/email/preview`)
+
+Renders through `adminMessage()` / `broadcastAnnouncement()`, the exact same
+functions a real send uses, so the preview can never drift from what
+actually goes out, there's no separate "preview renderer" to keep in sync.
+Takes `{ subject, body, broadcast?, signatureName?, signatureTagline? }` and
+returns `{ subject, html }`. The two `signature*` fields are optional
+overrides: the signature editor passes the currently-typed (possibly
+unsaved) name/tagline so its preview reflects what you're about to save; the
+compose forms below omit them and get whatever's currently saved, which is
+what a real send right now would actually use.
+
+The admin panel's one-off **Send** and **Broadcast** cards
+(`public/admin.html`) each have a live preview pane next to the form, an
+`<iframe sandbox="">` whose `srcdoc` is refreshed (debounced ~350ms) against
+this endpoint as you type the subject/body. `sandbox=""` with no flags
+blocks scripts entirely; the content is just tables and inline styles, it
+never needs script execution, isolating it from the parent page costs
+nothing and is good practice regardless.
 
 ### Auth integration
 
@@ -564,8 +611,8 @@ All under the existing `/api/admin/*` prefix, so the existing
 `role === 'admin'` middleware check covers them for free, no extra
 auth code needed in any of these files.
 
-- `POST /api/admin/email/send` — one-off, by `userId` or raw `email`
-- `POST /api/admin/email/broadcast` — by `segment`: `all`, `published`,
+- `POST /api/admin/email/send`: one-off, by `userId` or raw `email`
+- `POST /api/admin/email/broadcast`: by `segment`, one of `all`, `published`,
   `unpublished`, `inactive_30d`, or `custom` with a `filter` object
   (`{ role?, emailVerified? }`). **There is no raw-SQL filter option** and
   there shouldn't be, an admin panel that runs arbitrary SQL from a request
@@ -576,20 +623,62 @@ auth code needed in any of these files.
   `paid`/`free`/`blog_subscribers` from an earlier description of this
   feature don't correspond to anything real, there's no billing and no blog,
   they were replaced with the segments above.
-- `GET /api/admin/email/logs` — paginated, filters: `type`, `status`, `since`
-- `GET /api/admin/email/stats` — sent today, total, delivery rate, open
-  rate, suppressed-bounce count, unsubscribe count
+- `POST /api/admin/email/test`: sends a real template (default `admin_message`)
+  through the real pipeline to a chosen address (defaults to the admin's own
+  email). This exists specifically to answer "is sending actually working"
+  without registering a throwaway account, see "Diagnosing a non-sending
+  setup" below.
+- `POST /api/admin/email/preview`: renders a draft through the real
+  templates without sending, see "Live preview" above
+- `GET`/`PATCH /api/admin/email/signature`: reads/writes the sign-off name
+  and tagline, see "Templates" above
+- `GET /api/admin/email/logs`: paginated, filters: `type`, `status`, `since`,
+  and `q` (matches `recipient` or `subject`, case-insensitive `LIKE`)
+- `DELETE /api/admin/email/logs`: clears the **entire** log, no filters, no
+  partial delete, it's the "start fresh" button, not a filtered bulk delete.
+  If filtered bulk delete is ever wanted, add it as its own thing rather than
+  overloading this one.
+- `GET /api/admin/email/logs/:id`: one full row including `body_html`, used
+  by the dashboard's Preview action, deliberately left out of the list
+  endpoint above since it can be large and isn't needed for the table view
+- `DELETE /api/admin/email/logs/:id`: deletes one row
+- `GET /api/admin/email/stats`: sent today, total sent, total failed,
+  delivery rate, open rate, suppressed-bounce count, unsubscribe count,
+  `last30Days` (daily sent/failed counts, for the chart), and `topErrors`
+  (the 5 most common `error` values among failed sends, top one is what the
+  health banner quotes)
 - `GET /api/admin/email/bounces` / `DELETE /api/admin/email/bounces/:email`
-- `POST /api/admin/email/resend/:logId` — re-sends using the stored
+- `POST /api/admin/email/resend/:logId`: re-sends using the stored
   `body_html` from the original log row
 
 The admin dashboard's **Email** tab (`public/admin.html`) covers all of this:
-stat cards, a one-off send form, a broadcast form (segment select, with the
-custom-filter fields only shown when "Custom filter" is picked), a
-filterable/paginated send log with a Resend button on failed rows, and the
-bounce suppression list with a Remove action. It follows the same patterns
-as every other admin tab (`showConfirm`/`showAlert` from `main.js`, no
-native dialogs, table + badge + card layout).
+a health banner that only shows up when something looks wrong (nothing has
+ever sent, or most recent sends are failing), a "send a test email" card next
+to the signature editor, stat cards (now including total failed), a 30-day
+chart, a top-failure-reasons table, the one-off **Send** and **Broadcast**
+cards (each full width, form on the left, a live preview iframe on the
+right), and a searchable/filterable send log with Preview, Resend, and
+Delete actions per row plus a "Clear log" button above the table, and the
+bounce suppression list. It follows the same patterns as every other admin
+tab (`showConfirm`/`showAlert` from `main.js`, no native dialogs, table +
+badge + card layout).
+
+### Diagnosing a non-sending setup
+
+`email_log` staying completely empty (not even `failed` rows) means requests
+aren't reaching the mailer Worker at all, most likely the `MAILER` service
+binding was never actually added on the Pages project (it has to be done in
+the dashboard, see "Manual steps" below, `sendEmail()` in `_lib/mailer.js`
+fails soft and returns `{ ok: false, error: 'MAILER binding not configured' }`
+without the mailer ever seeing the request, so nothing gets logged). If
+`email_log` has `failed` rows with a populated `error` column, the binding is
+fine and Resend itself rejected the send, the most common reason being the
+sending domain (`myjay.net`, for the `noreply@myjay.net` From address in
+`mailer/mailer.js`) isn't verified yet in the Resend dashboard. Use
+`POST /api/admin/email/test` (the dashboard's "Send a test email" card) to
+check this directly: it goes through the exact same path a real signup or
+broadcast would, and its log entry's `error` column will say so explicitly
+either way.
 
 ### Webhook (`functions/api/webhooks/resend.js`)
 

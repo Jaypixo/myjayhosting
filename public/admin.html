@@ -115,35 +115,58 @@
           <p class="text-muted" id="email-health-body"></p>
         </div>
 
-        <div class="flex-between">
-          <h3>Send a test email</h3>
-        </div>
-        <div class="card">
-          <p class="text-muted">
-            Sends a real email through the real pipeline (this panel &rarr; mailer &rarr; Resend),
-            logged below like anything else. The fastest way to check whether <code>noreply@myjay.net</code>
-            sending actually works.
-          </p>
-          <form id="email-test-form">
-            <div class="form-error" id="email-test-error"></div>
-            <div class="field">
-              <label for="email-test-to">Send to</label>
-              <input type="email" id="email-test-to" placeholder="defaults to your own admin email">
+        <div class="layout-2col">
+          <div>
+            <h3>Send a test email</h3>
+            <div class="card">
+              <p class="text-muted">
+                Sends a real email through the real pipeline (this panel &rarr; mailer &rarr; Resend),
+                logged below like anything else. The fastest way to check whether <code>noreply@myjay.net</code>
+                sending actually works.
+              </p>
+              <form id="email-test-form">
+                <div class="form-error" id="email-test-error"></div>
+                <div class="field">
+                  <label for="email-test-to">Send to</label>
+                  <input type="email" id="email-test-to" placeholder="defaults to your own admin email">
+                </div>
+                <div class="field">
+                  <label for="email-test-template">Template</label>
+                  <select id="email-test-template">
+                    <option value="admin_message">Admin message</option>
+                    <option value="verify">Verify email</option>
+                    <option value="reset">Password reset</option>
+                    <option value="security_alert">Security alert</option>
+                    <option value="broadcast">Broadcast announcement</option>
+                    <option value="blog_notification">Blog notification</option>
+                  </select>
+                </div>
+                <button type="submit" class="btn btn-sm" id="email-test-submit">Send test</button>
+                <span class="text-ok hidden" id="email-test-success">Sent, check the log below.</span>
+              </form>
             </div>
-            <div class="field">
-              <label for="email-test-template">Template</label>
-              <select id="email-test-template">
-                <option value="admin_message">Admin message</option>
-                <option value="verify">Verify email</option>
-                <option value="reset">Password reset</option>
-                <option value="security_alert">Security alert</option>
-                <option value="broadcast">Broadcast announcement</option>
-                <option value="blog_notification">Blog notification</option>
-              </select>
+          </div>
+
+          <div>
+            <h3>Email signature</h3>
+            <div class="card">
+              <p class="text-muted">Shown at the bottom of every email this platform sends, edits apply immediately to future sends.</p>
+              <form id="email-signature-form">
+                <div class="form-error" id="email-signature-error"></div>
+                <div class="field">
+                  <label for="email-signature-name">Sign-off name</label>
+                  <input type="text" id="email-signature-name" maxlength="60" required>
+                </div>
+                <div class="field">
+                  <label for="email-signature-tagline">Tagline</label>
+                  <input type="text" id="email-signature-tagline" maxlength="120" placeholder="optional">
+                </div>
+                <button type="submit" class="btn btn-sm" id="email-signature-submit">Save signature</button>
+                <span class="text-ok hidden" id="email-signature-success">Saved.</span>
+              </form>
+              <iframe class="email-preview-frame email-preview-frame-sm mt-1" id="email-signature-preview" title="Signature preview" sandbox=""></iframe>
             </div>
-            <button type="submit" class="btn btn-sm" id="email-test-submit">Send test</button>
-            <span class="text-ok hidden" id="email-test-success">Sent, check the log below.</span>
-          </form>
+          </div>
         </div>
 
         <div class="feature-grid mt-2">
@@ -188,80 +211,85 @@
           </table>
         </div>
 
-        <div class="layout-2col mt-2">
-          <div>
-            <h3>Send a one-off message</h3>
-            <div class="card">
-              <form id="email-send-form">
-                <div class="form-error" id="email-send-error"></div>
-                <div class="field">
-                  <label for="email-send-userid">User ID</label>
-                  <input type="text" id="email-send-userid" placeholder="leave blank if sending by email instead">
-                </div>
-                <div class="field">
-                  <label for="email-send-email">Email</label>
-                  <input type="email" id="email-send-email" placeholder="leave blank if sending by user ID instead">
-                </div>
-                <div class="field">
-                  <label for="email-send-subject">Subject</label>
-                  <input type="text" id="email-send-subject" required>
-                </div>
-                <div class="field">
-                  <label for="email-send-body">Message</label>
-                  <textarea id="email-send-body" rows="4" required></textarea>
-                </div>
-                <button type="submit" class="btn btn-sm" id="email-send-submit">Send</button>
-                <span class="text-ok hidden" id="email-send-success">Sent.</span>
-              </form>
+        <h3 class="mt-2">Send a one-off message</h3>
+        <div class="card">
+          <div class="layout-2col">
+            <form id="email-send-form">
+              <div class="form-error" id="email-send-error"></div>
+              <div class="field">
+                <label for="email-send-userid">User ID</label>
+                <input type="text" id="email-send-userid" placeholder="leave blank if sending by email instead">
+              </div>
+              <div class="field">
+                <label for="email-send-email">Email</label>
+                <input type="email" id="email-send-email" placeholder="leave blank if sending by user ID instead">
+              </div>
+              <div class="field">
+                <label for="email-send-subject">Subject</label>
+                <input type="text" id="email-send-subject" required>
+              </div>
+              <div class="field">
+                <label for="email-send-body">Message</label>
+                <textarea id="email-send-body" rows="6" required></textarea>
+              </div>
+              <button type="submit" class="btn btn-sm" id="email-send-submit">Send</button>
+              <span class="text-ok hidden" id="email-send-success">Sent.</span>
+            </form>
+            <div>
+              <iframe class="email-preview-frame" id="email-send-preview" title="Message preview" sandbox=""></iframe>
             </div>
           </div>
+        </div>
 
-          <div>
-            <h3>Broadcast</h3>
-            <div class="card">
-              <form id="email-broadcast-form">
-                <div class="form-error" id="email-broadcast-error"></div>
-                <div class="field">
-                  <label for="email-broadcast-segment">Segment</label>
-                  <select id="email-broadcast-segment">
-                    <option value="all">All users</option>
-                    <option value="published">Sites that are published</option>
-                    <option value="unpublished">Sites that are unpublished</option>
-                    <option value="inactive_30d">Inactive 30+ days</option>
-                    <option value="custom">Custom filter</option>
-                  </select>
-                </div>
-                <div class="field hidden" id="email-broadcast-custom-fields">
-                  <label for="email-broadcast-role">Role</label>
-                  <select id="email-broadcast-role">
-                    <option value="">Any role</option>
-                    <option value="user">User</option>
-                    <option value="admin">Admin</option>
-                  </select>
-                  <label for="email-broadcast-verified" class="mt-1">Email verified</label>
-                  <select id="email-broadcast-verified">
-                    <option value="">Doesn't matter</option>
-                    <option value="true">Verified only</option>
-                    <option value="false">Unverified only</option>
-                  </select>
-                </div>
-                <div class="field">
-                  <label for="email-broadcast-subject">Subject</label>
-                  <input type="text" id="email-broadcast-subject" required>
-                </div>
-                <div class="field">
-                  <label for="email-broadcast-body">Message</label>
-                  <textarea id="email-broadcast-body" rows="4" required></textarea>
-                </div>
-                <button type="submit" class="btn btn-danger btn-sm" id="email-broadcast-submit">Send broadcast</button>
-                <span class="text-ok hidden" id="email-broadcast-result"></span>
-              </form>
+        <h3 class="mt-2">Broadcast</h3>
+        <div class="card">
+          <div class="layout-2col">
+            <form id="email-broadcast-form">
+              <div class="form-error" id="email-broadcast-error"></div>
+              <div class="field">
+                <label for="email-broadcast-segment">Segment</label>
+                <select id="email-broadcast-segment">
+                  <option value="all">All users</option>
+                  <option value="published">Sites that are published</option>
+                  <option value="unpublished">Sites that are unpublished</option>
+                  <option value="inactive_30d">Inactive 30+ days</option>
+                  <option value="custom">Custom filter</option>
+                </select>
+              </div>
+              <div class="field hidden" id="email-broadcast-custom-fields">
+                <label for="email-broadcast-role">Role</label>
+                <select id="email-broadcast-role">
+                  <option value="">Any role</option>
+                  <option value="user">User</option>
+                  <option value="admin">Admin</option>
+                </select>
+                <label for="email-broadcast-verified" class="mt-1">Email verified</label>
+                <select id="email-broadcast-verified">
+                  <option value="">Doesn't matter</option>
+                  <option value="true">Verified only</option>
+                  <option value="false">Unverified only</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="email-broadcast-subject">Subject</label>
+                <input type="text" id="email-broadcast-subject" required>
+              </div>
+              <div class="field">
+                <label for="email-broadcast-body">Message</label>
+                <textarea id="email-broadcast-body" rows="6" required></textarea>
+              </div>
+              <button type="submit" class="btn btn-danger btn-sm" id="email-broadcast-submit">Send broadcast</button>
+              <span class="text-ok hidden" id="email-broadcast-result"></span>
+            </form>
+            <div>
+              <iframe class="email-preview-frame" id="email-broadcast-preview" title="Broadcast preview" sandbox=""></iframe>
             </div>
           </div>
         </div>
 
         <div class="flex-between mt-2">
           <h3>Send log</h3>
+          <button class="btn btn-danger btn-sm" id="email-logs-clear-btn">Clear log</button>
         </div>
         <div class="flex-between" style="flex-wrap:wrap;gap:0.5rem">
           <div class="field" style="margin:0;flex:1;min-width:200px">
@@ -888,6 +916,12 @@
           actions.appendChild(retryBtn);
         }
 
+        const deleteLogBtn = document.createElement('button');
+        deleteLogBtn.className = 'btn btn-danger btn-sm';
+        deleteLogBtn.textContent = 'Delete';
+        deleteLogBtn.addEventListener('click', () => deleteEmailLog(log.id));
+        actions.appendChild(deleteLogBtn);
+
         tr.appendChild(td(formatDate(log.createdAt)));
         tr.appendChild(td(log.recipient));
         tr.appendChild(td(log.type));
@@ -932,6 +966,26 @@
       await loadEmailStats();
     }
 
+    async function deleteEmailLog(logId) {
+      const ok = await showConfirm('Delete this log entry permanently?', { title: 'Delete log entry', confirmText: 'Delete', danger: true });
+      if (!ok) return;
+      await apiFetch(`/api/admin/email/logs/${logId}`, { method: 'DELETE' });
+      await loadEmailLogs();
+      await loadEmailStats();
+    }
+
+    async function clearEmailLogs() {
+      const ok = await showConfirm(
+        `Permanently delete all ${emailLogsTotal} logged message${emailLogsTotal === 1 ? '' : 's'}? This can't be undone.`,
+        { title: 'Clear send log', confirmText: 'Delete all', danger: true }
+      );
+      if (!ok) return;
+      await apiFetch('/api/admin/email/logs', { method: 'DELETE' });
+      emailLogsPage = 1;
+      await loadEmailLogs();
+      await loadEmailStats();
+    }
+
     async function loadEmailBounces() {
       const res = await apiFetch('/api/admin/email/bounces');
       const data = await res.json();
@@ -972,6 +1026,48 @@
       await loadEmailStats();
     }
 
+    async function loadEmailSignature() {
+      const res = await apiFetch('/api/admin/email/signature');
+      if (!res.ok) return;
+      const data = await res.json();
+      document.getElementById('email-signature-name').value = data.name;
+      document.getElementById('email-signature-tagline').value = data.tagline;
+      refreshSignaturePreview();
+    }
+
+    async function fetchEmailPreview(payload) {
+      const res = await apiFetch('/api/admin/email/preview', { method: 'POST', body: JSON.stringify(payload) });
+      if (!res.ok) return null;
+      return res.json();
+    }
+
+    async function refreshSendPreview() {
+      const data = await fetchEmailPreview({
+        subject: document.getElementById('email-send-subject').value,
+        body: document.getElementById('email-send-body').value,
+      });
+      if (data) document.getElementById('email-send-preview').srcdoc = data.html;
+    }
+
+    async function refreshBroadcastPreview() {
+      const data = await fetchEmailPreview({
+        subject: document.getElementById('email-broadcast-subject').value,
+        body: document.getElementById('email-broadcast-body').value,
+        broadcast: true,
+      });
+      if (data) document.getElementById('email-broadcast-preview').srcdoc = data.html;
+    }
+
+    async function refreshSignaturePreview() {
+      const data = await fetchEmailPreview({
+        subject: 'Sample email',
+        body: 'This is what your emails will look like with the current signature and branding.',
+        signatureName: document.getElementById('email-signature-name').value,
+        signatureTagline: document.getElementById('email-signature-tagline').value,
+      });
+      if (data) document.getElementById('email-signature-preview').srcdoc = data.html;
+    }
+
     function setupEmailTab() {
       document.getElementById('email-logs-prev').addEventListener('click', () => {
         if (emailLogsPage > 1) { emailLogsPage--; loadEmailLogs(); }
@@ -981,6 +1077,7 @@
       });
       document.getElementById('email-log-type-filter').addEventListener('change', () => { emailLogsPage = 1; loadEmailLogs(); });
       document.getElementById('email-log-status-filter').addEventListener('change', () => { emailLogsPage = 1; loadEmailLogs(); });
+      document.getElementById('email-logs-clear-btn').addEventListener('click', clearEmailLogs);
 
       let emailSearchTimer;
       document.getElementById('email-log-search').addEventListener('input', (e) => {
@@ -990,6 +1087,58 @@
           emailLogsPage = 1;
           loadEmailLogs();
         }, 300);
+      });
+
+      let sendPreviewTimer;
+      ['email-send-subject', 'email-send-body'].forEach((id) => {
+        document.getElementById(id).addEventListener('input', () => {
+          clearTimeout(sendPreviewTimer);
+          sendPreviewTimer = setTimeout(refreshSendPreview, 350);
+        });
+      });
+
+      let broadcastPreviewTimer;
+      ['email-broadcast-subject', 'email-broadcast-body'].forEach((id) => {
+        document.getElementById(id).addEventListener('input', () => {
+          clearTimeout(broadcastPreviewTimer);
+          broadcastPreviewTimer = setTimeout(refreshBroadcastPreview, 350);
+        });
+      });
+
+      let signaturePreviewTimer;
+      ['email-signature-name', 'email-signature-tagline'].forEach((id) => {
+        document.getElementById(id).addEventListener('input', () => {
+          clearTimeout(signaturePreviewTimer);
+          signaturePreviewTimer = setTimeout(refreshSignaturePreview, 350);
+        });
+      });
+
+      document.getElementById('email-signature-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const errorEl = document.getElementById('email-signature-error');
+        const successEl = document.getElementById('email-signature-success');
+        const submitBtn = document.getElementById('email-signature-submit');
+        errorEl.textContent = '';
+        successEl.classList.add('hidden');
+
+        submitBtn.disabled = true;
+        const res = await apiFetch('/api/admin/email/signature', {
+          method: 'PATCH',
+          body: JSON.stringify({
+            name: document.getElementById('email-signature-name').value,
+            tagline: document.getElementById('email-signature-tagline').value,
+          }),
+        });
+        const data = await res.json().catch(() => ({}));
+        submitBtn.disabled = false;
+
+        if (!res.ok) {
+          errorEl.textContent = data.error || 'Could not save signature.';
+          return;
+        }
+        successEl.classList.remove('hidden');
+        setTimeout(() => successEl.classList.add('hidden'), 2000);
+        refreshSignaturePreview();
       });
 
       document.getElementById('email-test-form').addEventListener('submit', async (e) => {
@@ -1272,7 +1421,8 @@
       setupEmailTab();
       await Promise.all([
         loadUsers(), loadSites(), loadContact(), loadStats(), loadSettings(),
-        loadEmailStats(), loadEmailLogs(), loadEmailBounces(),
+        loadEmailStats(), loadEmailLogs(), loadEmailBounces(), loadEmailSignature(),
+        refreshSendPreview(), refreshBroadcastPreview(),
       ]);
     }
 

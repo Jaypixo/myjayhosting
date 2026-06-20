@@ -1,5 +1,6 @@
 import { errorResponse, json } from '../../../_lib/auth.js';
 import { sendEmail } from '../../../_lib/mailer.js';
+import { getEmailSignature } from '../../../_lib/settings.js';
 import { adminMessage } from '../../../_lib/email-templates.js';
 
 export async function onRequestPost(context) {
@@ -30,7 +31,8 @@ export async function onRequestPost(context) {
     return errorResponse('Provide either userId or email', 400);
   }
 
-  const { subject: emailSubject, html } = adminMessage(subject, message);
+  const signature = await getEmailSignature(env);
+  const { subject: emailSubject, html } = adminMessage(subject, message, signature);
   const result = await sendEmail(env, {
     to: recipient.email,
     type: 'admin_message',
