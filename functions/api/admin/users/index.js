@@ -13,7 +13,7 @@ export async function onRequestGet(context) {
   const params = q ? [`%${q}%`, `%${q}%`] : [];
 
   const users = await env.DB.prepare(
-    `SELECT id, email, username, role, banned, created_at FROM users ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`
+    `SELECT id, email, username, role, banned, email_verified, admin_notes, created_at FROM users ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`
   )
     .bind(...params, PAGE_SIZE, offset)
     .all();
@@ -29,6 +29,8 @@ export async function onRequestGet(context) {
       username: u.username,
       role: u.role,
       banned: Boolean(u.banned),
+      emailVerified: Boolean(u.email_verified),
+      adminNotes: u.admin_notes || '',
       createdAt: u.created_at,
       isRootAdmin: isRootAdmin(env, u.email),
     })),

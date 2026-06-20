@@ -1,6 +1,6 @@
-// HMAC-signed unsubscribe tokens, payload "userId:type" signed with
-// SESSION_SECRET. Signing prevents anyone from forging a link that
-// unsubscribes (or "resubscribes") a different account than their own.
+// HMAC-signed unsubscribe tokens. Payload is "userId:type" signed with
+// SESSION_SECRET. Signature prevents anyone from forging a link to unsubscribe
+// (or "resubscribe") someone else's account. Only they can control their own shit.
 
 async function hmacKey(secret) {
   return crypto.subtle.importKey(
@@ -30,8 +30,8 @@ export async function buildUnsubscribeToken(env, userId, type) {
   return `${toBase64Url(new TextEncoder().encode(payload))}.${toBase64Url(sig)}`;
 }
 
-// Returns { userId, type } from a verified token, or null if the signature
-// doesn't check out (tampered, or signed with a different secret).
+// Verified token returns { userId, type }, or null if the signature is broken
+// (tampered, or signed with a different secret). Can't trust the query params.
 export async function verifyUnsubscribeToken(env, token) {
   const parts = String(token || '').split('.');
   if (parts.length !== 2) return null;

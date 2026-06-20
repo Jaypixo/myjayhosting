@@ -1,8 +1,7 @@
 import { json } from '../_lib/auth.js';
 
-// Real, live checks against the systems this platform depends on. Each one
-// does the smallest possible read so this stays cheap to call on every
-// /status.html page load.
+// Live, real-time checks against all the stuff we depend on.
+// Each does the bare minimum read to keep this cheap on every /status page load.
 async function check(fn) {
   const start = Date.now();
   try {

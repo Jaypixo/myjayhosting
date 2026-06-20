@@ -1,6 +1,6 @@
 import { isValidEmail, json, errorResponse } from '../../_lib/auth.js';
 
-// Keep this in sync with the <select> options in public/contact.html.
+// Keep this list synced with the <select> in public/contact.html.
 const CATEGORIES = new Set([
   'general', 'account', 'billing', 'feature',
   'abuse', 'dmca', 'security', 'privacy',

@@ -1,4 +1,4 @@
-// Why the fuck is this in its own file? Whatever.
+// Why is this in its own file? Dunno, whatever.
 import { listSiteObjects } from '../../../_lib/storage.js';
 import { json, errorResponse, hashPassword, isRootAdmin } from '../../../_lib/auth.js';
 
@@ -50,6 +50,12 @@ export async function onRequestPatch(context) {
     values.push(await hashPassword(body.password));
   }
 
+  // Internal-only, never shown to the user themselves, see Users tab.
+  if (typeof body.adminNotes === 'string') {
+    updates.push('admin_notes = ?');
+    values.push(body.adminNotes.slice(0, 2000));
+  }
+
   if (updates.length === 0) {
     // Why the hell did you even call this endpoint if you aren't changing anything? 
     // Stop wasting my fucking CPU cycles.
@@ -67,7 +73,7 @@ export async function onRequestDelete(context) {
   const { env, params, data } = context;
   const { id } = params;
 
-  // Guard against the admin nuking himself because he's a fucking idiot.
+  // Don't let admins delete themselves like idiots.
   if (data.user.id === id) {
     return errorResponse("You can't delete your own account", 400);
   }
@@ -77,20 +83,19 @@ export async function onRequestDelete(context) {
     return errorResponse('User not found', 404);
   }
 
-  // Same deal as PATCH: the original admin can't be deleted by anyone else.
+  // Root admin protection applies here too.
   if (isRootAdmin(env, target.email) && !isRootAdmin(env, data.user.email)) {
     return errorResponse("The original admin account can't be deleted by other admins", 403);
   }
 
-  // R2 is basically a black hole for data. Let's hope this cleanup actually works.
+  // R2 is basically a data void. Hope the cleanup works.
   const objects = await listSiteObjects(env, target.username);
   if (objects.length > 0) {
-    // Nuke their files from orbit. It's the only way to be sure.
+    // Obliterate all their files.
     await env.SITES.delete(objects.map((obj) => obj.key));
   }
 
-  // If this batch fails, we're left with orphaned data and I'm going to scream.
-  // SQL transactions in a serverless environment... what could go wrong?
+  // If this batch fails, we're screwed with orphaned data everywhere.
   await env.DB.batch([
     env.DB.prepare('DELETE FROM sites WHERE user_id = ?').bind(id),
     env.DB.prepare('DELETE FROM users WHERE id = ?').bind(id),

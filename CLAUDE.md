@@ -159,14 +159,59 @@ The dashboard file manager shows a tree of the user's R2 files. Use `env.SITES.l
 ### Subdomain Router Worker
 When a request comes in for `noah.myjay.net/about.html`:
 1. Extract username from hostname: `noah`
-2. Look up user in D1: `SELECT published FROM sites WHERE username = ?`
-3. If not found or `published = 0`: return a friendly "this site doesn't exist yet" page (styled in the design system)
+2. Look up the site in D1: `SELECT id, published FROM sites WHERE username = ?`
+3. No row at all → `siteNotClaimedResponse`. A row exists but
+   `published = 0` → `siteNotPublishedResponse`. **These are deliberately
+   different responses, not one generic "doesn't exist" page.** Every
+   account gets a `sites` row at signup, before they ever publish (see
+   `functions/api/auth/register.js`'s `env.DB.batch([...])`), so "no row"
+   reliably means nobody has registered that username, and "row, but
+   `published = 0`" reliably means someone has and just hasn't published
+   yet. The first case invites the visitor to claim it (`Claim this name`
+   → `/register`); the second doesn't, it's already someone's, there's
+   nothing for a random visitor to do, so it just links back to MyJay.net.
+   Don't collapse these back into one response, the distinction is the
+   point.
 4. Fetch from R2: `sites/noah/about.html`
 5. If R2 returns null and path doesn't have extension: try `path/index.html`
-6. If still null: return a 404 page styled in the design system, with the user's username visible
+6. If still null: check R2 for `sites/noah/404.html`, a custom 404 page the
+   site owner uploaded themselves. If it exists, serve it (still with a
+   real `404` status, not `200`, search engines and link checkers need the
+   status to be honest even though the body is user content). If it
+   doesn't exist, fall back to `fileNotFoundResponse`, the platform's own
+   styled 404.
 7. Stream the R2 response back with the correct `Content-Type`
 
 The Worker must handle directory-style URLs: `noah.myjay.net/blog/` should try `sites/noah/blog/index.html`.
+
+All three of the Worker's own error pages (`siteNotClaimedResponse`,
+`siteNotPublishedResponse`, `fileNotFoundResponse` in `worker/router.js`)
+and the main site's `public/404.html` share the same look: a short heading,
+one line of plain-English explanation, the error mascot
+(`MyJayErrorMascot.png`), and a single link back to somewhere useful. **No
+terminal-log block on any of these**, that component is for genuinely
+log-like or code-like content (see Tone, in the Design System section, and
+`docs/getting-started.html`'s actual HTML code sample for a legitimate use),
+not the one sentence a confused visitor needs to actually read.
+`maintenance.html` had a `$ myjay status` terminal block for the same
+reason and lost it for the same reason, don't reintroduce one on an
+error/status page. Since `worker/router.js` is a separate Worker with no
+static assets of its own, its error pages reference the mascot via the
+full `https://myjay.net/assets/img/...` URL, not a relative path.
+
+`fileNotFoundResponse`'s heading and description are **word-for-word
+identical** to `public/404.html` ("404" / "This page doesn't exist. It may
+have been moved, renamed, or never existed in the first place."), on
+purpose, "serve our exact 404 page" was the literal ask. The only thing
+that's allowed to differ between the two is the one link: the main site's
+says "Back to MyJay.net" and goes to `/`; the Worker's says "Back to
+{username}.myjay.net" and *also* goes to `/`, which already resolves to
+that subdomain's own root since the response is served from
+`username.myjay.net` itself. If the main 404's copy ever changes, update
+`fileNotFoundResponse` to match, they're meant to drift together, not
+independently (there's no shared source to fetch from at runtime, the
+Worker is intentionally self-contained and doesn't depend on the Pages
+site being reachable, so this has to be kept in sync by hand).
 
 ### D1 Schema
 See `schema/d1-init.sql`. Tables:
@@ -178,9 +223,12 @@ users (
   username TEXT UNIQUE NOT NULL, -- slug, 3-32 chars, [a-z0-9-]
   password_hash TEXT NOT NULL,   -- "salt:hash" from PBKDF2
   role TEXT DEFAULT 'user',      -- 'user' | 'admin'
+  banned INTEGER DEFAULT 0,      -- added by migrate-002, see schema/
   created_at TEXT NOT NULL,      -- ISO 8601
   bio TEXT,
-  site_title TEXT
+  site_title TEXT,
+  email_verified INTEGER DEFAULT 0, -- added by migrate-004-email.sql
+  admin_notes TEXT               -- added by migrate-006, internal-only, see "Users tab" below
 )
 
 sites (
@@ -193,6 +241,13 @@ sites (
   storage_bytes INTEGER DEFAULT 0
 )
 ```
+
+This block is the Phase 1 baseline plus the columns later migrations added
+to these two tables specifically; it's not a full re-derivation of every
+table in the schema (`settings`, `notification_prefs`, `email_log`,
+`email_templates`, etc. all exist too, each documented in the section
+that actually uses it rather than re-listed here). `schema/*.sql` is the
+authoritative source if this drifts.
 
 No separate files table, enumerate R2 directly. This keeps D1 lean.
 
@@ -273,8 +328,25 @@ Main: Settings tab:
 
 ### `admin.html`: Owner Panel (role: admin only)
 - Redirect to `/login.html` if not admin
-- Tabs: Users / Sites / Stats
-- Users tab: paginated table of all users, with ban/delete actions
+- Tabs: Users / Sites / Contact / Email / Stats / Settings (this list grew
+  well past the original Phase 1 sketch of just Users/Sites/Stats, see the
+  Email Infrastructure section above for everything under the Email tab)
+- Users tab: paginated table of all users. Per-row actions: Ban/Unban,
+  Make admin/Demote, Reset password (admin generates and is shown a
+  plaintext password once), **Email reset link** (sends the normal
+  self-service reset email instead, via the public
+  `/api/auth/request-reset` endpoint, so the admin never sees or handles a
+  plaintext password at all), **Resend verification** (only rendered when
+  the user isn't verified yet, calls the public
+  `/api/auth/resend-verification` endpoint), **Notes** (internal-only
+  freeform text via `admin_notes` on `users`, never shown to the user
+  themselves, button label gets a `*` suffix when notes already exist so
+  it's visible at a glance without opening the modal), and Delete. The
+  Status column shows an `unverified` badge next to active/banned when
+  applicable, there's no separate column for it. Email reset link and
+  Resend verification deliberately reuse the existing public, session-less
+  auth endpoints rather than adding admin-specific versions, they're
+  already idempotent and safe to call from an authenticated context.
 - Sites tab: table of all published sites, with unpublish/delete actions
 - Stats tab: total users, total sites, total storage used (aggregate from D1)
 
@@ -378,13 +450,18 @@ GET  /api/health             → { checkedAt, database: {ok,ms}, storage: {ok,ms
 POST /api/contact            { category, username?, email, message } → { ok }  (public, no session)
 
 GET  /api/admin/users        → { users: [...] }
-PATCH /api/admin/users/:id   { role?, banned?, password? } → { ok }
+PATCH /api/admin/users/:id   { role?, banned?, password?, adminNotes? } → { ok }
 DELETE /api/admin/users/:id  → { ok }
 GET  /api/admin/sites        → { sites: [...] }
 DELETE /api/admin/sites/:id  → { ok }
 GET  /api/admin/contact      → { messages: [{ id, category, username, email, message, status, createdAt }] }
 PATCH /api/admin/contact/:id { status: 'new'|'read'|'replied' } → { ok }
 DELETE /api/admin/contact/:id → { ok }
+
+GET  /api/admin/email/templates        → { templates: [{ id, label, category, subject, body }] }
+POST /api/admin/email/templates        { label, category, subject, body } → { id, label, category, subject, body }
+PATCH /api/admin/email/templates/:id   { label?, category?, subject?, body? } → { id, label, category, subject, body }
+DELETE /api/admin/email/templates/:id  → { ok }
 ```
 
 Contact form categories (`functions/api/contact/index.js`, mirrored in the `<select>` in
@@ -767,6 +844,9 @@ auth code needed in any of these files.
   templates without sending, see "Live preview" above
 - `GET`/`PATCH /api/admin/email/signature`: reads/writes the sign-off name
   and tagline, see "Templates" above
+- `GET`/`POST /api/admin/email/templates`, `PATCH`/`DELETE
+  /api/admin/email/templates/:id`: CRUD over the `email_templates` table,
+  see "Templates and placeholders for admin-composed mail" above
 - `GET /api/admin/email/logs`: paginated, filters: `type`, `status`, `since`,
   and `q` (matches `recipient` or `subject`, case-insensitive `LIKE`)
 - `DELETE /api/admin/email/logs`: clears the **entire** log, no filters, no
@@ -787,17 +867,18 @@ auth code needed in any of these files.
   `body_html` from the original log row
 
 The admin dashboard's **Email** tab (`public/admin.html`) covers all of
-this, split into its own three-way sub-nav (`Overview` / `Compose` / `Log`,
-the `.subtabs` / `.subtab-panel` classes, scoped JS in `setupEmailSubTabs()`)
-because before the split this was one single long scroll through every
-card at once. **`.subtabs`/`.subtab-panel` are deliberately separate
-classes from the page-level `.tabs`/`.tab-panel`**: `setupTabs()` queries
-`.tabs button` / `.tab-panel` globally with no scoping, so reusing those
-classes for a nested tab bar would make clicking a sub-tab also toggle every
-other top-level admin panel. If another tab ever needs this same kind of
-internal split, reuse `.subtabs`/`.subtab-panel` and write a scoped handler
-the way `setupEmailSubTabs()` does, querying within `#email-panel`, not the
-shared one.
+this, split into its own four-way sub-nav (`Overview` / `Compose` /
+`Templates` / `Log`, the `.subtabs` / `.subtab-panel` classes, scoped JS in
+`setupEmailSubTabs()`) because before the split this was one single long
+scroll through every card at once. **`.subtabs`/`.subtab-panel` are
+deliberately separate classes from the page-level `.tabs`/`.tab-panel`**:
+`setupTabs()` queries `.tabs button` / `.tab-panel` globally with no
+scoping, so reusing those classes for a nested tab bar would make clicking
+a sub-tab also toggle every other top-level admin panel. If another tab
+ever needs this same kind of internal split, reuse
+`.subtabs`/`.subtab-panel` and write a scoped handler the way
+`setupEmailSubTabs()` does, querying within `#email-panel`, not the shared
+one.
 
 - **Overview**: the health banner (only shows up when something looks
   wrong, nothing has ever sent, or most recent sends are failing), stat
@@ -805,8 +886,12 @@ shared one.
   top-failure-reasons table.
 - **Compose**: the signature editor, then the one-off **Send** and
   **Broadcast** cards (each full width, form on the left, a live preview
-  iframe on the right). The Send form has a **Template** dropdown, see
-  "Templates and placeholders for admin-composed mail" below.
+  iframe on the right). Both have a **Template** dropdown, see "Templates
+  and placeholders for admin-composed mail" below.
+- **Templates**: add/edit/delete the canned starting text the Template
+  dropdowns above pull from. A table (Label, Category, Subject, Actions)
+  plus an "Add template" button that opens the same modal as Edit, just
+  with empty fields.
 - **Log**: the searchable/filterable send log with Preview, Resend, and
   Delete actions per row plus a "Clear log" button above the table, and the
   bounce suppression list.
@@ -815,27 +900,38 @@ shared one.
 
 Two separate things share the word "template" here, don't conflate them:
 the six system **template functions** in `email-templates.js`
-(`verifyEmail`, `adminMessage`, etc., the HTML layout), and the **canned
-starting text** in `ONE_OFF_TEMPLATES` (`public/admin.html`, 23 options
-grouped into seven `<optgroup>`s: Account, Moderation, Engagement, Admin,
-Storage & limits, Legal & policy, Support). Despite the variable's name,
-this list is shared by **both** the one-off Send form and Broadcast now,
-the Broadcast `<select>` starts empty in the markup and gets its
-`<option>`/`<optgroup>` markup cloned from the Send form's select at
-runtime (`setupEmailTab()`), specifically so a 24th template only ever
-means editing one `<select>`, not two that have to stay in sync by hand.
-The dropdown is purely client-side prefill, picking one just sets the
+(`verifyEmail`, `adminMessage`, etc., the HTML layout), and the
+**admin-editable canned starting text** stored in the `email_templates` D1
+table (`schema/migrate-005-email-templates.sql`) and managed from the
+Email tab's **Templates** sub-tab. This used to be a hardcoded
+`ONE_OFF_TEMPLATES` object in `public/admin.html`; it's real, editable data
+now, specifically so adding/changing one doesn't require a code change or
+a deploy. `id` is a UUID for anything created through the UI (the original
+23 keep their old string ids, e.g. `welcome`, `termination`, for
+continuity with the pre-migration version, that's cosmetic, nothing reads
+meaning into the id format). `category` is free text, not an enum, the
+dropdown groups by whatever distinct category strings actually exist in
+the table, typing a new one creates a new group with no code change.
+
+`GET /api/admin/email/templates` (`functions/api/admin/email/templates.js`)
+returns all of them; `POST` adds one; `PATCH`/`DELETE
+/api/admin/email/templates/:id` (`functions/api/admin/email/templates/
+[id].js`) edit or remove one. The Send and Broadcast `<select>`s are both
+populated client-side from this same list (`emailTemplates`, fetched once
+in `init()` via `loadEmailTemplates()`, re-fetched after any add/edit/
+delete) rather than one cloning the other's markup, so there's exactly one
+place template data lives, in the database, not two DOM trees that have to
+agree. Picking one is still purely a client-side prefill, it just sets the
 Subject/Message fields so the admin can edit before sending, there's no
-server-side concept of a "template id" anywhere, nothing is stored.
-Bracketed text like `[describe the issue here]` is a spot for the admin to
-fill in by hand, it's not a placeholder and nothing substitutes it. If the
-fields already have content, picking a template asks for confirmation
-before overwriting it (`setupTemplatePicker()`, parameterized by which
-form's fields/preview it's wired to). When adding a new template, add both
-the `<option>` (inside the right `<optgroup>`, in the Send form's select
-only, Broadcast's clones from it) and the matching key in
-`ONE_OFF_TEMPLATES`, they're cross-checked by key but nothing enforces
-that automatically, a mismatch just silently does nothing when picked.
+"currently selected template" concept server-side and editing or deleting
+a template never touches messages that were already sent (the rendered
+`body_html` is what's stored in `email_log`, not a reference back to the
+template it started from). Bracketed text like `[describe the issue
+here]` is a spot for the admin to fill in by hand, it's not a placeholder
+and nothing substitutes it, unlike `%username`/`%sitetitle` etc. below. If
+the Subject/Message fields already have content, picking a template asks
+for confirmation before overwriting it (`setupTemplatePicker()`,
+parameterized by which form's fields/preview it's wired to).
 
 `%placeholder` substitution (`functions/_lib/placeholders.js`,
 `applyPlaceholders(text, recipient)`) is the separate, actually-dynamic

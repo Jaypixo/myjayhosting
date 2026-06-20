@@ -1,11 +1,10 @@
-// %placeholder substitution for admin-composed emails (one-off send,
-// broadcast). Runs on the raw markdown source before it hits marked, so a
-// substituted value is just plain text and gets escaped like any other
-// text token, no separate escaping needed here.
+// %placeholder substitution for admin-composed emails (one-off send, broadcast).
+// Runs on raw markdown BEFORE marked touches it, so substituted values are just
+// plain text and get escaped like everything else. No extra escaping needed.
 //
-// Only known placeholder names get replaced, anything else starting with
-// % (a literal "50% off", a typo, whatever) passes through untouched, see
-// the regex below: it only matches names in PLACEHOLDERS, not bare "%word".
+// Only known placeholders get replaced, anything else starting with %
+// ("50% off", typos, whatever) passes through untouched. The regex below only
+// matches names in PLACEHOLDERS, not bare %words.
 
 const PLACEHOLDERS = {
   username: (r) => r.username || 'User',
@@ -20,9 +19,9 @@ export function applyPlaceholders(text, recipient = {}) {
   return String(text ?? '').replace(PATTERN, (_match, name) => PLACEHOLDERS[name.toLowerCase()](recipient));
 }
 
-// Obviously-fake but obviously-substituted values, used by the live preview
-// endpoint where there's no real recipient yet. Real fallbacks ("User", "")
-// would make it look like nothing happened.
+// Fake-but-obvious placeholder values for the live preview endpoint.
+// No real recipient yet, so using real fallbacks ("User", empty string)
+// would make it look like nothing actually got substituted.
 export const SAMPLE_RECIPIENT = {
   username: 'sampleuser',
   email: 'sample@example.com',

@@ -1,11 +1,10 @@
-// Global Pages Functions middleware.
+// Global Pages Functions middleware. Every fucking request gets filtered through here.
 //
-// Runs for every request, including static asset requests. For anything
-// outside /api/, it only checks maintenance mode (redirecting non-admins to
-// /maintenance.html) and otherwise passes the request straight through. For
-// API routes it handles CORS, validates the session cookie against KV, loads
-// the user from D1, and attaches it to context.data.user for downstream
-// handlers. Admin routes additionally require user.role === 'admin'.
+// For non-API shit: just check if we're in maintenance mode and whether this admin
+// fuckhead gets a free pass. Everything else goes through unchanged. For API routes?
+// That's where the real party starts: CORS validation, session cookie bullshit, load
+// the user from D1, and shove it into context.data.user for the handlers to deal with.
+// Admin routes get the special treatment of also requiring user.role === 'admin'.
 
 import { getCookie, getUserIdForSession, getUserById, errorResponse } from './_lib/auth.js';
 import { getSettingsMap } from './_lib/settings.js';
@@ -28,12 +27,13 @@ const PUBLIC_API_PATHS = new Set([
   '/api/webhooks/resend',
 ]);
 
-// Paths that must stay reachable even while maintenance mode is on: the
-// maintenance page itself, shared assets, the login page (so an admin who
-// isn't currently logged in can still get in to turn it back off), and the
-// crawler-facing SEO files (no reason to 302 Googlebot mid-crawl).
-// Cloudflare Pages 308-redirects "/foo.html" to "/foo", so both forms of
-// each path need to be allowlisted to avoid a redirect loop.
+// Paths that DON'T get yeeted to /maintenance even when we're in maintenance mode:
+// the maintenance page itself (duh), shared assets, and the login page (otherwise
+// the admin's locked out of their own site until maintenance is over, which is a
+// special kind of fucked up). Also SEO files so Googlebot doesn't get hammered with
+// 302 redirects (that would be hilarious but also bad). Cloudflare Pages does that
+// stupid 308 redirect thing from "/foo.html" to "/foo", so we gotta allowlist both
+// or end up in redirect hell.
 const MAINTENANCE_ALLOWLIST = new Set([
   '/maintenance.html', '/maintenance',
   '/login.html', '/login',
@@ -66,14 +66,14 @@ function withCors(response, headers) {
 }
 
 export async function onRequest(context) {
-  // Destructure context. Because we love typing.
+  // Destructure context because apparently that's easier than typing it out a thousand times.
   const { request, env, next } = context;
   const url = new URL(request.url);
   const path = url.pathname;
 
   // If it's not an API call, we only care about maintenance mode.
   if (!path.startsWith('/api/')) {
-    // Assets and maintenance allowlist paths get a free pass. Thank god.
+    // Assets and allowlist paths bypass all the bullshit. Thank fucking god.
     if (path.startsWith('/assets/') || MAINTENANCE_ALLOWLIST.has(path)) {
       return next();
     }
@@ -85,19 +85,19 @@ export async function onRequest(context) {
       const token = getCookie(request, 'session');
       const userId = await getUserIdForSession(env, token);
       const user = userId ? await getUserById(env, userId) : null;
-      // If not an admin, or banned (because we don't want banned admins fixing things), redirect.
+      // Not an admin, or banned? Get fucked, you're going to /maintenance.
       if (!user || user.role !== 'admin' || user.banned) {
         return Response.redirect(new URL('/maintenance', request.url).toString(), 302);
       }
     }
 
-    // If not an API call and not in maintenance mode, just let it through.
+    // Not an API call and not in maintenance hell? Send it through.
     return next();
   }
 
-  // Okay, it's an API call. Now the real fun begins.
+  // Alright, we got an API call. Time to do the annoying shit.
   const origin = request.headers.get('Origin');
-  // Set up CORS headers. Because security is a pain in the ass.
+  // CORS headers because browsers are paranoid as fuck.
   const cors = corsHeaders(origin);
 
   if (origin && !isAllowedOrigin(origin)) {

@@ -1,10 +1,9 @@
 // GET /unsubscribe?token=X&type=Y[&action=resub]. The type in the query
-// string is only for display before we've verified anything; the actual
-// write uses the type embedded in the signed token, never the raw query
-// param, so nobody can edit the URL to unsubscribe a different category
-// than they were sent. action=resub reverses it using that same token, so
-// a misclick is one more click away from undone, not a trip to account
-// settings, the token has no expiry so this works whenever someone notices.
+// string is just for display, nothing more. The actual write uses the type
+// from the signed token, NOT the query param, so you can't edit the URL to
+// unsubscribe from something else. action=resub undoes it with the same
+// token, so a misclick is just one click away from fixed, not a trip to
+// account settings. Token never expires so this works whenever.
 import { verifyUnsubscribeToken } from './_lib/unsubscribe.js';
 
 const TYPE_LABELS = {

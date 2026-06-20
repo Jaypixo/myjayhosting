@@ -1,4 +1,4 @@
-// Shared R2 storage helpers for site files.
+// Shared R2 storage bullshit. Everything file-related goes through here.
 
 export const CONTENT_TYPES = {
   html: 'text/html; charset=utf-8',
@@ -34,8 +34,8 @@ export function isAllowedFile(filename) {
   return extensionOf(filename) in CONTENT_TYPES;
 }
 
-// Strips path traversal segments and leading slashes, returning a clean
-// relative path safe to append after `sites/{username}/`.
+// This cleans up path traversal attacks and other garbage people try to pull.
+// Returns a safe relative path for R2 keys. No null bytes. No funny business.
 export function sanitizeFilePath(path) {
   return String(path)
     .split('/')

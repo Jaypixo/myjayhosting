@@ -24,8 +24,8 @@ export async function onRequestPatch(context) {
   return json({ ok: true });
 }
 
-// Wipes a site's files and resets it to an empty, unpublished state.
-// The sites row is kept (one row per user is a schema invariant).
+// Nukes all a site's files and resets it to unpublished/empty.
+// The sites row stays (one per user is a database invariant).
 export async function onRequestDelete(context) {
   const { env, params } = context;
   const { id } = params;

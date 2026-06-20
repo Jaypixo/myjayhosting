@@ -1,7 +1,7 @@
 import { json } from '../../../_lib/auth.js';
 
-// Recent-first, capped at 200. Add pagination here if the inbox ever
-// genuinely needs it.
+// Recent-first, 200 message limit. If the inbox ever actually needs pagination,
+// add it then. Not before.
 const LIMIT = 200;
 
 export async function onRequestGet(context) {

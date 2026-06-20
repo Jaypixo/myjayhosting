@@ -27,10 +27,9 @@ export async function onRequestPost(context) {
     recipient = { id: user.id, email: user.email, username: user.username, role: user.role, siteTitle: user.site_title };
   } else if (body.email) {
     const email = String(body.email).trim().toLowerCase();
-    // Sending "by email" doesn't mean the address is a stranger, it might
-    // just be the easiest way for the admin to address someone they don't
-    // have the User ID for. Look it up so %username/%sitetitle still
-    // resolve instead of silently falling back as if no account existed.
+    // Sending "by email" doesn't mean it's a stranger. Might just be easier
+    // for the admin than looking up the User ID. Check if we have an account
+    // so %username/%sitetitle still resolve instead of silently defaulting.
     const user = await env.DB.prepare('SELECT id, email, username, role, site_title FROM users WHERE email = ?').bind(email).first();
     recipient = user
       ? { id: user.id, email: user.email, username: user.username, role: user.role, siteTitle: user.site_title }
@@ -51,10 +50,9 @@ export async function onRequestPost(context) {
     subject: emailSubject,
     bodyHtml: html,
     userId: recipient.id,
-    // One-off sends always go out regardless of notification_prefs, this
-    // is a message addressed to one specific person, not a bulk category
-    // they could have muted. There's no admin-facing toggle for this one,
-    // unlike broadcast.js, it's automatic by design.
+    // One-off sends bypass notification_prefs automatically. They're addressed
+    // to one person on purpose, not a bulk thing they could have muted.
+    // No admin toggle, it's by design.
     bypassPrefs: true,
   });
 

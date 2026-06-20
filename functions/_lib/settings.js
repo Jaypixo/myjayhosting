@@ -14,19 +14,19 @@ const DEFAULTS = {
 
 function toPublicShape(map) {
   return {
-    maintenanceMode: map.maintenance_mode === '1', // Is the site a flaming dumpster fire right now?
-    announcement: map.announcement || '', // What fresh hell are we announcing today?
-    announcementEnabled: map.announcement_enabled === '1', // Should we even bother showing it?
-    registrationEnabled: map.registration_enabled !== '0', // Are we letting more idiots in?
+    maintenanceMode: map.maintenance_mode === '1', // Dumpster fire status: yes or no?
+    announcement: map.announcement || '', // What bullshit are we saying today?
+    announcementEnabled: map.announcement_enabled === '1', // Should we even show it?
+    registrationEnabled: map.registration_enabled !== '0', // Are we accepting randoms?
   };
 }
 
 export async function getSettingsMap(env) {
-  // Fetch all the "important" settings from the DB. Hope it's not empty.
+  // Fetch all the settings from D1. Pray nothing's broken.
   const { results } = await env.DB.prepare('SELECT key, value FROM settings').all();
   const map = { ...DEFAULTS };
   for (const row of results) {
-    // Overwrite defaults with whatever garbage is in the database.
+    // Overwrite defaults with whatever's actually in the DB.
     map[row.key] = row.value;
   }
   return map;

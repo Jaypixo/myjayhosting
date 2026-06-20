@@ -22,8 +22,8 @@ export async function onRequestPost(context) {
 
   const user = await env.DB.prepare('SELECT id, email FROM users WHERE email = ?').bind(email).first();
 
-  // Same response either way, this endpoint must not reveal whether an
-  // account exists for a given email.
+  // Same response either way. This endpoint must NOT reveal if an account
+  // exists for a given email. That's not optional.
   if (user) {
     const token = crypto.randomUUID();
     await env.SESSIONS.put(`reset:${token}`, user.id, { expirationTtl: RESET_TTL_SECONDS });

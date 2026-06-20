@@ -5,11 +5,10 @@ import { applyPlaceholders } from '../../../_lib/placeholders.js';
 import { buildUnsubscribeToken, unsubscribeUrl } from '../../../_lib/unsubscribe.js';
 import { broadcastAnnouncement } from '../../../_lib/email-templates.js';
 
-// Segments are a fixed, known-safe set of queries, not raw SQL from the
-// request body, an admin panel that accepts arbitrary SQL is one bad paste
-// away from a very bad day. "custom" covers the rest via a small set of
-// allowed, parameterized filters instead. 40MB is 80% of the 50MB quota
-// (MAX_UPLOAD_BYTES, enforced in functions/api/site/upload.js).
+// Segments are pre-defined queries, NOT raw SQL from the request body.
+// An admin panel that accepts arbitrary SQL is one bad paste away from a data
+// breach. Only 'custom' allows filters, and that's locked to a small set of
+// allowed, parameterized fields. 40MB = 80% of the 50MB quota.
 const NEAR_LIMIT_BYTES = 40 * 1024 * 1024;
 
 const SEGMENT_QUERIES = {
@@ -58,11 +57,9 @@ export async function onRequestPost(context) {
   const segment = String(body.segment || '');
   const subject = String(body.subject || '').trim();
   const message = String(body.body || '').trim();
-  // Off by default: a broadcast normally respects each recipient's
-  // notification_prefs same as anything else non-transactional. This is the
-  // admin's explicit, per-send override for when it shouldn't, e.g. a
-  // security-relevant announcement that isn't "transactional" by type but
-  // still needs to reach everyone in the segment.
+  // Default: broadcasts respect notification_prefs like everything else.
+  // This is the admin's explicit override for when they need to nuke it all,
+  // e.g. security announcement. Otherwise set to false.
   const bypassPrefs = Boolean(body.bypassPrefs);
 
   if (!subject || !message) {

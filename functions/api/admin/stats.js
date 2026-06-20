@@ -20,7 +20,7 @@ export async function onRequestGet(context) {
     ).all();
     topCountries = result.results;
   } catch {
-    // site_view_stats doesn't exist yet (migration not run).
+    // site_view_stats table doesn't exist (migration hasn't run yet).
   }
 
   return json({

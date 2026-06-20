@@ -28,8 +28,9 @@ export async function onRequestPost(context) {
   const email = String(body.email || '').trim().toLowerCase();
   const password = String(body.password || '');
 
-  // admin email always gets through even if registration is closed, otherwise
-  // a "close registration" click could permanently lock me out of my own site
+  // Admin email ALWAYS gets through even if registration is slammed shut. Because
+  // if we block it when closing registrations, I'll lock myself out of my own damn site.
+  // That would be the most embarrassing fuck-up possible.
   const isAdminSignup = isRootAdmin(env, email);
   if (!isAdminSignup) {
     const settings = await getSettings(env);
@@ -63,9 +64,9 @@ export async function onRequestPost(context) {
   const now = new Date().toISOString();
   const passwordHash = await hashPassword(password);
   const role = isAdminSignup ? 'admin' : 'user';
-  // The bootstrap admin signup can't depend on the mailer working, so it's
-  // exempt from email verification, same reasoning as the registration-closed
-  // bypass above: this account has to work on the very first try.
+  // Bootstrap admin signup can't wait for the mailer to work because if it breaks
+  // I'm totally screwed. Same reason as the registration bypass: first time setup
+  // HAS to work or the whole thing is dead on arrival.
   const emailVerified = isAdminSignup ? 1 : 0;
 
   await env.DB.batch([
@@ -92,7 +93,7 @@ export async function onRequestPost(context) {
   const { subject, html } = verifyEmail(verifyToken, signature);
   await sendEmail(env, { to: email, type: 'verify', subject, bodyHtml: html, userId });
 
-  // No session cookie here on purpose, login is blocked until the address
-  // is verified, see functions/api/auth/login.js.
+  // NO session cookie intentionally. The user can't log in until they verify
+  // their email address. Yes, it sucks, but that's how this works, go check login.js.
   return json({ userId, username, verified: false }, { status: 201 });
 }

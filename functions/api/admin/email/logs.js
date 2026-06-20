@@ -51,8 +51,8 @@ export async function onRequestGet(context) {
   });
 }
 
-// Clears the whole log. Individual rows are deleted via logs/[id].js instead,
-// this is the "start fresh" button, not a filtered bulk delete.
+// Deletes the ENTIRE email log. This is "start fresh", not filtered bulk delete.
+// Individual rows go through logs/[id].js instead.
 export async function onRequestDelete(context) {
   const { env } = context;
   await env.DB.prepare('DELETE FROM email_log').run();

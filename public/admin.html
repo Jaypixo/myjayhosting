@@ -118,6 +118,7 @@
         <div class="subtabs">
           <button class="active" data-subtab="email-overview-panel">Overview</button>
           <button data-subtab="email-compose-panel">Compose</button>
+          <button data-subtab="email-templates-panel">Templates</button>
           <button data-subtab="email-log-panel">Log</button>
         </div>
 
@@ -199,43 +200,6 @@
                   <label for="email-send-template">Template</label>
                   <select id="email-send-template">
                     <option value="">Use a template...</option>
-                    <optgroup label="Account">
-                      <option value="welcome">Welcome message</option>
-                      <option value="suspended">Account suspended (temporary)</option>
-                      <option value="reinstated">Account reinstated</option>
-                      <option value="termination">Account termination notice</option>
-                      <option value="deletion_confirmed">Account deletion confirmation</option>
-                      <option value="verify_reminder">Email verification reminder</option>
-                    </optgroup>
-                    <optgroup label="Moderation">
-                      <option value="content_warning">Content warning (first notice)</option>
-                      <option value="dmca">DMCA / copyright takedown notice</option>
-                      <option value="site_unpublished">Site unpublished for policy violation</option>
-                      <option value="abuse_ack">Abuse report acknowledgment</option>
-                    </optgroup>
-                    <optgroup label="Engagement">
-                      <option value="feature_update">Feature / update announcement</option>
-                      <option value="invite">Formal invitation to the platform</option>
-                      <option value="reengagement">Re-engagement ("we miss you")</option>
-                      <option value="milestone">Milestone / thank you</option>
-                      <option value="getting_started">Getting started nudge</option>
-                    </optgroup>
-                    <optgroup label="Admin">
-                      <option value="admin_update">Update for fellow admins</option>
-                    </optgroup>
-                    <optgroup label="Storage & limits">
-                      <option value="storage_warning">Storage limit warning</option>
-                      <option value="storage_reached">Storage limit reached</option>
-                    </optgroup>
-                    <optgroup label="Legal & policy">
-                      <option value="policy_update">Terms update</option>
-                      <option value="privacy_update">Privacy policy update</option>
-                      <option value="maintenance">Scheduled maintenance notice</option>
-                    </optgroup>
-                    <optgroup label="Support">
-                      <option value="support_followup">Support follow-up</option>
-                      <option value="bug_resolved">Bug report resolved</option>
-                    </optgroup>
                   </select>
                 </div>
                 <div class="field">
@@ -280,7 +244,9 @@
                 <div class="form-error" id="email-broadcast-error"></div>
                 <div class="field">
                   <label for="email-broadcast-template">Template</label>
-                  <select id="email-broadcast-template"></select>
+                  <select id="email-broadcast-template">
+                    <option value="">Use a template...</option>
+                  </select>
                 </div>
                 <div class="field">
                   <label for="email-broadcast-segment">Segment</label>
@@ -351,6 +317,23 @@
                 <iframe class="email-preview-frame" id="email-broadcast-preview" title="Broadcast preview" sandbox=""></iframe>
               </div>
             </div>
+          </div>
+        </div>
+
+        <div id="email-templates-panel" class="subtab-panel">
+          <div class="flex-between">
+            <h3>Email templates</h3>
+            <button class="btn btn-sm" id="email-template-add-btn">Add template</button>
+          </div>
+          <p class="text-muted">
+            Canned starting points for the Send and Broadcast composers in the Compose tab. Editing one
+            here updates the dropdown immediately, it never touches messages that were already sent.
+          </p>
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>Label</th><th>Category</th><th>Subject</th><th>Actions</th></tr></thead>
+              <tbody id="email-templates-body"><tr><td colspan="4" class="text-muted">loading...</td></tr></tbody>
+            </table>
           </div>
         </div>
 
@@ -576,6 +559,17 @@
           resetBtn.textContent = 'Reset password';
           resetBtn.addEventListener('click', () => resetPassword(u.id, u.username));
 
+          const emailResetBtn = document.createElement('button');
+          emailResetBtn.className = 'btn btn-ghost btn-sm';
+          emailResetBtn.textContent = 'Email reset link';
+          emailResetBtn.addEventListener('click', () => emailResetLink(u.email));
+
+          const notesBtn = document.createElement('button');
+          notesBtn.className = 'btn btn-ghost btn-sm';
+          notesBtn.textContent = u.adminNotes ? 'Notes *' : 'Notes';
+          notesBtn.title = u.adminNotes ? 'This user has admin notes' : 'No notes yet';
+          notesBtn.addEventListener('click', () => openNotesModal(u.id, u.username, u.adminNotes));
+
           const delBtn = document.createElement('button');
           delBtn.className = 'btn btn-danger btn-sm';
           delBtn.textContent = 'Delete';
@@ -584,6 +578,15 @@
           actions.appendChild(banBtn);
           actions.appendChild(roleBtn);
           actions.appendChild(resetBtn);
+          actions.appendChild(emailResetBtn);
+          if (!u.emailVerified) {
+            const resendVerifyBtn = document.createElement('button');
+            resendVerifyBtn.className = 'btn btn-ghost btn-sm';
+            resendVerifyBtn.textContent = 'Resend verification';
+            resendVerifyBtn.addEventListener('click', () => resendVerification(u.email));
+            actions.appendChild(resendVerifyBtn);
+          }
+          actions.appendChild(notesBtn);
           actions.appendChild(delBtn);
         }
 
@@ -592,6 +595,13 @@
         statusSpan.className = u.banned ? 'text-error' : 'text-ok';
         statusSpan.textContent = u.banned ? 'banned' : 'active';
         statusTd.appendChild(statusSpan);
+        if (!u.emailVerified) {
+          const unverifiedBadge = document.createElement('span');
+          unverifiedBadge.className = 'badge badge-warn';
+          unverifiedBadge.textContent = 'unverified';
+          unverifiedBadge.style.marginLeft = '0.4rem';
+          statusTd.appendChild(unverifiedBadge);
+        }
 
         const usernameTd = document.createElement('td');
         usernameTd.textContent = u.username;
@@ -673,6 +683,63 @@
         `New password for "${username}":\n\n${newPassword}\n\nThis is shown once. Share it with the user securely, they should change it after logging in.`,
         { title: 'Password reset' }
       );
+    }
+
+    // Goes through the same public, self-service endpoint a user would hit
+    // themselves, just triggered by an admin on their behalf. No new
+    // backend code needed, and unlike "Reset password" above, the admin
+    // never sees or handles a plaintext password at all.
+    async function emailResetLink(email) {
+      const ok = await showConfirm(`Send a password reset link to ${email}?`, { title: 'Email reset link', confirmText: 'Send' });
+      if (!ok) return;
+      await apiFetch('/api/auth/request-reset', { method: 'POST', body: JSON.stringify({ email }) });
+      await showAlert(`Reset link sent to ${email}.`);
+    }
+
+    // Same idea: reuses the public resend-verification endpoint instead of
+    // making the user dig up the login page themselves.
+    async function resendVerification(email) {
+      const ok = await showConfirm(`Resend the verification email to ${email}?`, { title: 'Resend verification', confirmText: 'Send' });
+      if (!ok) return;
+      await apiFetch('/api/auth/resend-verification', { method: 'POST', body: JSON.stringify({ email }) });
+      await showAlert(`Verification email sent to ${email}.`);
+    }
+
+    // Internal-only, the user never sees this, see admin_notes on `users`.
+    function openNotesModal(userId, username, currentNotes) {
+      const textarea = document.createElement('textarea');
+      textarea.rows = 6;
+      textarea.style.width = '100%';
+      textarea.value = currentNotes || '';
+      textarea.placeholder = 'Internal notes about this user, not visible to them.';
+
+      const { overlay, actions } = buildModal({ title: `Notes: ${username}`, body: textarea });
+
+      function finish() {
+        detach();
+        overlay.remove();
+      }
+      const detach = attachDismiss(overlay, finish);
+
+      const cancelBtn = document.createElement('button');
+      cancelBtn.className = 'btn btn-ghost btn-sm';
+      cancelBtn.textContent = 'Cancel';
+      cancelBtn.addEventListener('click', finish);
+
+      const saveBtn = document.createElement('button');
+      saveBtn.className = 'btn btn-sm';
+      saveBtn.textContent = 'Save';
+      saveBtn.addEventListener('click', async () => {
+        saveBtn.disabled = true;
+        await apiFetch(`/api/admin/users/${userId}`, { method: 'PATCH', body: JSON.stringify({ adminNotes: textarea.value }) });
+        saveBtn.disabled = false;
+        finish();
+        await loadUsers();
+      });
+
+      actions.appendChild(cancelBtn);
+      actions.appendChild(saveBtn);
+      textarea.focus();
     }
 
     async function loadSites() {
@@ -1184,113 +1251,177 @@
       if (data) document.getElementById('email-signature-preview').srcdoc = data.html;
     }
 
-    // Canned starting points for the one-off composer, not a separate
-    // template "type" stored anywhere, just text that prefills the
-    // subject/body fields below for the admin to edit before sending.
-    // Bracketed text is a placeholder for the admin to fill in by hand;
-    // %username/%sitetitle are real substitution placeholders, see
-    // _lib/placeholders.js, and get replaced per recipient at send time.
-    const ONE_OFF_TEMPLATES = {
-      // Account
-      welcome: {
-        subject: 'Welcome to MyJay.net',
-        body: 'Hi %username,\n\nWelcome aboard. Your site is live at your subdomain, and the dashboard is where you\'ll upload files, manage settings, and publish when you\'re ready.\n\n[Go to your dashboard](https://myjay.net/dashboard "button")\n\nIf anything\'s unclear, the [docs](https://myjay.net/docs) cover the basics.',
-      },
-      suspended: {
-        subject: 'Your MyJay.net account has been temporarily suspended',
-        body: 'Hi %username,\n\nYour account has been temporarily suspended while we look into [reason here].\n\nYour site is offline for now, but your files and account are intact. We\'ll follow up once the review is done.\n\nIf you have questions, reply to this email or use the [contact form](https://myjay.net/contact).',
-      },
-      reinstated: {
-        subject: 'Your MyJay.net account is active again',
-        body: 'Hi %username,\n\nYour account has been reinstated and %sitetitle is back online.\n\n[Visit your dashboard](https://myjay.net/dashboard "button")\n\nThanks for your patience.',
-      },
-      termination: {
-        subject: 'Your MyJay.net account has been terminated',
-        body: 'Hi %username,\n\nThis is a notice that your MyJay.net account has been terminated for violating the platform\'s terms of service.\n\nIf you believe this was a mistake, reply to this email or use the [contact form](https://myjay.net/contact) to reach us.',
-      },
-      deletion_confirmed: {
-        subject: 'Your MyJay.net account has been deleted',
-        body: 'Hi %username,\n\nThis confirms that your MyJay.net account and all associated files have been permanently deleted, as requested.\n\nIf you didn\'t request this, contact us immediately through the [contact form](https://myjay.net/contact).',
-      },
-      verify_reminder: {
-        subject: 'Please verify your MyJay.net email',
-        body: 'Hi %username,\n\nYour email address isn\'t verified yet. Until it is, you won\'t be able to log back in if you ever get signed out.\n\nCheck your inbox for the verification email, or resend it from the login page.',
-      },
-      // Moderation
-      content_warning: {
-        subject: 'A note about content on %sitetitle',
-        body: 'Hi %username,\n\nWe received a report about content on your site, %sitetitle, that may violate our [terms of service](https://myjay.net/terms).\n\nSpecifically: [describe the issue here].\n\nThis is a warning, not a takedown. Please review and update your site within 7 days. Repeated violations can lead to suspension or termination.',
-      },
-      dmca: {
-        subject: 'Copyright takedown notice for %sitetitle',
-        body: 'Hi %username,\n\nWe received a copyright (DMCA) complaint regarding content on your site, %sitetitle.\n\nThe following material has been removed pending review: [describe the content/URL here].\n\nIf you believe this was a mistake, you can file a counter-notice through the [contact form](https://myjay.net/contact).',
-      },
-      site_unpublished: {
-        subject: '%sitetitle has been unpublished',
-        body: 'Hi %username,\n\nYour site, %sitetitle, has been unpublished for violating our [terms of service](https://myjay.net/terms).\n\nReason: [describe the violation here].\n\nYour files are still in your dashboard. Once the issue is resolved, you can republish from there.',
-      },
-      abuse_ack: {
-        subject: 'We received your abuse report',
-        body: 'Hi %username,\n\nThanks for the report. We\'re looking into it and will take action if it violates our [terms of service](https://myjay.net/terms).\n\nWe don\'t always follow up individually on the outcome, but the report has been received and reviewed.',
-      },
-      // Engagement
-      feature_update: {
-        subject: 'New on MyJay.net',
-        body: 'Hi %username,\n\nWe just shipped something new: **[describe the feature here]**.\n\n[Check it out](https://myjay.net/dashboard "button")\n\nLet us know what you think.',
-      },
-      invite: {
-        subject: 'An invitation to MyJay.net',
-        body: 'Hello,\n\nYou\'re invited to claim your own corner of the web at MyJay.net: free static hosting, no trackers, no algorithm deciding what you see.\n\n[Claim your subdomain](https://myjay.net/register "button")\n\nNo strings attached.',
-      },
-      reengagement: {
-        subject: 'We miss you on MyJay.net',
-        body: 'Hi %username,\n\nIt\'s been a while since you last updated %sitetitle. Your site is still live, we just wanted to check in.\n\n[Visit your dashboard](https://myjay.net/dashboard "button")',
-      },
-      milestone: {
-        subject: 'Thanks for being part of MyJay.net',
-        body: 'Hi %username,\n\n[Describe the milestone here, e.g. "it\'s been a year since you joined" or "MyJay.net just crossed some number of sites"].\n\nJust wanted to say thanks for being part of it. %sitetitle is one of the reasons this place is worth running.',
-      },
-      getting_started: {
-        subject: 'Getting started on MyJay.net',
-        body: 'Hi %username,\n\nYou signed up but haven\'t uploaded anything yet. Your subdomain is ready and waiting.\n\n[Get started](https://myjay.net/dashboard "button")\n\nThe [docs](https://myjay.net/docs) walk through uploading your first file if you want a hand.',
-      },
-      // Admin
-      admin_update: {
-        subject: 'Update for MyJay.net admins',
-        body: 'Hi %username,\n\n[Describe the admin-facing update here: new tooling, a policy change, anything that only affects how admins operate].\n\nLet the rest of the team know if you have questions.',
-      },
-      // Storage & limits
-      storage_warning: {
-        subject: 'Your MyJay.net site is close to its storage limit',
-        body: 'Hi %username,\n\nYour site (%sitetitle) is approaching its 50MB storage limit. Once you hit it, new uploads will be rejected until you free up space.\n\n[Manage your files](https://myjay.net/dashboard "button")',
-      },
-      storage_reached: {
-        subject: '%sitetitle has reached its storage limit',
-        body: 'Hi %username,\n\n%sitetitle has hit its 50MB storage limit. New uploads will be rejected until you free up space.\n\n[Manage your files](https://myjay.net/dashboard "button")\n\nDelete anything you don\'t need, or get in touch if you think this is a mistake.',
-      },
-      // Legal & policy
-      policy_update: {
-        subject: 'Updates to MyJay.net\'s terms',
-        body: 'Hi %username,\n\nWe\'ve updated our [terms of service](https://myjay.net/terms). The short version: [summarize the change here].\n\nThese changes take effect on [date]. Continued use of your account after that date means you accept the updated terms.',
-      },
-      privacy_update: {
-        subject: 'Updates to MyJay.net\'s privacy policy',
-        body: 'Hi %username,\n\nWe\'ve updated our [privacy policy](https://myjay.net/privacy). The short version: [summarize the change here].\n\nThese changes take effect on [date]. Continued use of your account after that date means you accept the updated policy.',
-      },
-      maintenance: {
-        subject: 'Scheduled maintenance on MyJay.net',
-        body: 'Hi %username,\n\nMyJay.net will be in maintenance mode on [date] from [start time] to [end time]. Your site will be temporarily unreachable during that window.\n\nNo action needed on your end, your files and settings won\'t be affected.',
-      },
-      // Support
-      support_followup: {
-        subject: 'Following up on your message',
-        body: 'Hi %username,\n\nFollowing up on the message you sent us: [summary or response here].\n\nLet us know if that answers it or if you need anything else.',
-      },
-      bug_resolved: {
-        subject: 'The bug you reported has been fixed',
-        body: 'Hi %username,\n\nGood news: the issue you reported ([describe the bug here]) has been fixed and is live now.\n\nThanks for taking the time to report it, it genuinely helps.',
-      },
-    };
+    // Canned starting points for the one-off composer (and Broadcast), now
+    // admin-editable from the Templates sub-tab instead of hardcoded here.
+    // emailTemplates is loaded once at init and re-fetched after any
+    // add/edit/delete; picking one in either composer just prefills the
+    // subject/body fields, there's no server-side "currently selected
+    // template" concept, and editing a template never touches messages
+    // that already went out. Bracketed text like [describe here] is a spot
+    // for the admin to fill in by hand; %username/%sitetitle are the real
+    // substitution placeholders, see _lib/placeholders.js, filled in per
+    // recipient at send time.
+    let emailTemplates = [];
+
+    function escapeHtmlClient(str) {
+      return String(str).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+
+    function populateTemplateSelects() {
+      const byCategory = {};
+      emailTemplates.forEach((t) => {
+        (byCategory[t.category] ||= []).push(t);
+      });
+
+      const optionsHtml = '<option value="">Use a template...</option>' +
+        Object.keys(byCategory).sort().map((cat) => {
+          const opts = byCategory[cat]
+            .map((t) => `<option value="${t.id}">${escapeHtmlClient(t.label)}</option>`)
+            .join('');
+          return `<optgroup label="${escapeHtmlClient(cat)}">${opts}</optgroup>`;
+        }).join('');
+
+      document.getElementById('email-send-template').innerHTML = optionsHtml;
+      document.getElementById('email-broadcast-template').innerHTML = optionsHtml;
+    }
+
+    function renderTemplatesTable() {
+      const body = document.getElementById('email-templates-body');
+      body.innerHTML = '';
+
+      if (emailTemplates.length === 0) {
+        body.innerHTML = '<tr><td colspan="4" class="text-muted">No templates yet.</td></tr>';
+        return;
+      }
+
+      for (const t of emailTemplates) {
+        const tr = document.createElement('tr');
+
+        const editBtn = document.createElement('button');
+        editBtn.className = 'btn btn-ghost btn-sm';
+        editBtn.textContent = 'Edit';
+        editBtn.addEventListener('click', () => openTemplateModal(t));
+
+        const delBtn = document.createElement('button');
+        delBtn.className = 'btn btn-danger btn-sm';
+        delBtn.textContent = 'Delete';
+        delBtn.addEventListener('click', () => deleteTemplate(t.id, t.label));
+
+        const actions = document.createElement('td');
+        actions.style.display = 'flex';
+        actions.style.gap = '0.4rem';
+        actions.style.flexWrap = 'wrap';
+        actions.appendChild(editBtn);
+        actions.appendChild(delBtn);
+
+        tr.appendChild(td(t.label));
+        tr.appendChild(td(t.category));
+        tr.appendChild(td(t.subject));
+        tr.appendChild(actions);
+        body.appendChild(tr);
+      }
+    }
+
+    async function loadEmailTemplates() {
+      const res = await apiFetch('/api/admin/email/templates');
+      if (!res.ok) return;
+      const data = await res.json();
+      emailTemplates = data.templates;
+      populateTemplateSelects();
+      renderTemplatesTable();
+    }
+
+    async function deleteTemplate(id, label) {
+      const ok = await showConfirm(`Delete the "${label}" template? This can't be undone.`, { title: 'Delete template', confirmText: 'Delete', danger: true });
+      if (!ok) return;
+      await apiFetch(`/api/admin/email/templates/${id}`, { method: 'DELETE' });
+      await loadEmailTemplates();
+    }
+
+    function openTemplateModal(template) {
+      const isEdit = Boolean(template);
+
+      function fieldEl(labelText, inputEl) {
+        const field = document.createElement('div');
+        field.className = 'field';
+        const label = document.createElement('label');
+        label.textContent = labelText;
+        field.appendChild(label);
+        field.appendChild(inputEl);
+        return field;
+      }
+
+      const labelInput = document.createElement('input');
+      labelInput.type = 'text';
+      labelInput.maxLength = 100;
+      labelInput.value = template?.label || '';
+
+      const categoryInput = document.createElement('input');
+      categoryInput.type = 'text';
+      categoryInput.maxLength = 50;
+      categoryInput.placeholder = 'e.g. Account, Engagement, Support...';
+      categoryInput.value = template?.category || '';
+
+      const subjectInput = document.createElement('input');
+      subjectInput.type = 'text';
+      subjectInput.value = template?.subject || '';
+
+      const bodyInput = document.createElement('textarea');
+      bodyInput.rows = 8;
+      bodyInput.value = template?.body || '';
+
+      const wrapper = document.createElement('div');
+      wrapper.appendChild(fieldEl('Label', labelInput));
+      wrapper.appendChild(fieldEl('Category', categoryInput));
+      wrapper.appendChild(fieldEl('Subject', subjectInput));
+      wrapper.appendChild(fieldEl('Message', bodyInput));
+
+      const { overlay, actions } = buildModal({ title: isEdit ? 'Edit template' : 'Add template', body: wrapper, wide: true });
+
+      function finish() {
+        detach();
+        overlay.remove();
+      }
+      const detach = attachDismiss(overlay, finish);
+
+      const cancelBtn = document.createElement('button');
+      cancelBtn.className = 'btn btn-ghost btn-sm';
+      cancelBtn.textContent = 'Cancel';
+      cancelBtn.addEventListener('click', finish);
+
+      const saveBtn = document.createElement('button');
+      saveBtn.className = 'btn btn-sm';
+      saveBtn.textContent = 'Save';
+      saveBtn.addEventListener('click', async () => {
+        const payload = {
+          label: labelInput.value.trim(),
+          category: categoryInput.value.trim(),
+          subject: subjectInput.value.trim(),
+          body: bodyInput.value.trim(),
+        };
+        if (!payload.label || !payload.subject || !payload.body) {
+          await showAlert('Label, subject, and message are all required.');
+          return;
+        }
+
+        const url = isEdit ? `/api/admin/email/templates/${template.id}` : '/api/admin/email/templates';
+        const method = isEdit ? 'PATCH' : 'POST';
+        saveBtn.disabled = true;
+        const res = await apiFetch(url, { method, body: JSON.stringify(payload) });
+        saveBtn.disabled = false;
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          await showAlert(data.error || 'Could not save that template.');
+          return;
+        }
+        finish();
+        await loadEmailTemplates();
+      });
+
+      actions.appendChild(cancelBtn);
+      actions.appendChild(saveBtn);
+      labelInput.focus();
+    }
 
     // Just for the confirm-before-sending dialog text, the segment select's
     // own <option> labels are the source of truth for the dropdown itself.
@@ -1333,16 +1464,15 @@
       document.getElementById('email-log-status-filter').addEventListener('change', () => { emailLogsPage = 1; loadEmailLogs(); });
       document.getElementById('email-logs-clear-btn').addEventListener('click', clearEmailLogs);
 
-      // Broadcast gets the same template list as the one-off Send form,
-      // cloned from its <select> rather than duplicated in the markup, so
-      // adding a 21st template only ever means editing one <select>.
-      document.getElementById('email-broadcast-template').innerHTML = document.getElementById('email-send-template').innerHTML;
-
+      // Both composers share the same template list, loaded from the API
+      // (loadEmailTemplates(), called in init()) rather than duplicated in
+      // the markup, see the Templates sub-tab for add/edit/delete.
       function setupTemplatePicker(selectId, subjectId, bodyId, refresh) {
         document.getElementById(selectId).addEventListener('change', async (e) => {
-          const key = e.target.value;
-          if (!key) return;
-          const tpl = ONE_OFF_TEMPLATES[key];
+          const id = e.target.value;
+          if (!id) return;
+          const tpl = emailTemplates.find((t) => t.id === id);
+          if (!tpl) return;
           const subjectInput = document.getElementById(subjectId);
           const bodyInput = document.getElementById(bodyId);
 
@@ -1360,6 +1490,7 @@
 
       setupTemplatePicker('email-send-template', 'email-send-subject', 'email-send-body', refreshSendPreview);
       setupTemplatePicker('email-broadcast-template', 'email-broadcast-subject', 'email-broadcast-body', refreshBroadcastPreview);
+      document.getElementById('email-template-add-btn').addEventListener('click', () => openTemplateModal(null));
 
       let emailSearchTimer;
       document.getElementById('email-log-search').addEventListener('input', (e) => {
@@ -1674,7 +1805,7 @@
       await Promise.all([
         loadUsers(), loadSites(), loadContact(), loadStats(), loadSettings(),
         loadEmailStats(), loadEmailLogs(), loadEmailBounces(), loadEmailSignature(),
-        refreshSendPreview(), refreshBroadcastPreview(),
+        loadEmailTemplates(), refreshSendPreview(), refreshBroadcastPreview(),
       ]);
     }
 

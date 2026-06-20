@@ -1,8 +1,6 @@
-// Email templates: table-based layout, inline styles only, 600px max width.
-// This is what actually renders correctly in Gmail/Outlook/etc, CSS classes
-// and stylesheets get stripped or ignored by enough mail clients that
-// they're not worth the risk here. Keep new templates inside this file and
-// reusing baseLayout(), don't hand-roll a one-off HTML string elsewhere.
+// Email templates: table-based HTML, inline styles only, 600px width max.
+// This is the ONLY way anything renders correctly across Gmail/Outlook/etc.
+// CSS classes and stylesheets get fucked by enough clients that it's not worth the risk.
 
 import { Marked } from './vendor/marked.js';
 
@@ -15,24 +13,21 @@ const SERIF = "Georgia, 'Times New Roman', serif";
 const LOGO_CREAM = '#e8dacb';
 const LOGO_ORANGE = '#e25728';
 
-// The header used to be a single <img> pulling the logo from myjay.net/assets.
-// Most clients block remote images by default, so an unopened "display
-// images" email looked completely blank at the top, no brand, nothing. This
-// renders the wordmark as real HTML text instead (same colors as the actual
-// logo: "MyJay" cream, ".net" orange). The background behind it has to be
-// the dark ink color, not terracotta, the real site never puts the orange
-// ".net" on an orange/terracotta background either, same color on same
-// color is illegible regardless of which one it technically is.
+// The header used to pull a remote logo image from myjay.net/assets.
+// Most email clients block remote images by default, so unconfirmed emails
+// looked completely blank at the top. Now it's real HTML text instead (same
+// colors as the real logo: cream "MyJay" + orange ".net"). Background is dark
+// ink, NOT terracotta, the site never puts orange text on orange backgrounds
+// because that would be invisible. We're not stupid.
 function wordmark() {
   return `<span style="font-family:${SERIF};font-style:italic;font-size:25px;line-height:1;">` +
     `<span style="color:${LOGO_CREAM};">MyJay</span><span style="color:${LOGO_ORANGE};">.net</span>` +
     `</span>`;
 }
 
-// Sign-off shown at the bottom of every email. Configurable from the admin
-// panel's Email tab (functions/api/admin/email/signature.js), stored in the
-// settings table, see _lib/settings.js. These are just the hardcoded
-// fallbacks for when nothing's been saved yet.
+// Email sign-off at the bottom. Configurable from the admin Email tab
+// (functions/api/admin/email/signature.js), stored in settings table.
+// These are the fallbacks.
 const DEFAULT_SIGNATURE = { name: 'The MyJay Team', tagline: 'Your corner of the web.' };
 
 const HOME_URL = 'https://myjay.net';

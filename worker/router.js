@@ -1,8 +1,8 @@
-// myjay-router: serves published user sites from R2 at username.myjay.net.
+// myjay-router: throws published user sites at you from R2 at username.myjay.net.
 //
 // Deploy: wrangler deploy worker/router.js --name myjay-router
-// Trigger: Custom Domain *.myjay.net
-// Bindings required: DB (D1), SITES (R2), same as the Pages project.
+// Trigger: Custom Domain *.myjay.net (catch all those damn subdomains)
+// Bindings: DB (D1) and SITES (R2). Same shit the Pages project has.
 
 const CONTENT_TYPES = {
   html: 'text/html; charset=utf-8',
@@ -38,12 +38,11 @@ function escapeHtml(str) {
   return str.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
-// Both error pages below are deliberately plain prose plus the mascot, not
-// a terminal-log block, the same call made for the main site's 404.html
-// and maintenance.html: a terminal block is for genuinely log-like
-// content, not the one paragraph a confused visitor actually needs to
-// read. The mascot is fetched from the main domain (myjay.net), this
-// Worker only ever has R2 user files and no static assets of its own.
+// Error pages are PLAIN TEXT plus the mascot, NOT terminal-log bullshit.
+// Same reason the main site does it this way: terminal blocks are for actual logs
+// and code samples, not the one fucking sentence a lost visitor needs to read to
+// understand what went wrong. The mascot comes from the main domain because this
+// Worker doesn't haul around static assets, just user files from R2.
 function pageShell(title, bodyHtml) {
   return `<!DOCTYPE html>
 <html lang="en">

@@ -1,15 +1,16 @@
-// myjay-mailer: the only thing in this whole platform that talks to Resend.
-// Every other piece (Pages Functions, the router) calls this Worker over a
-// service binding, never the Resend API directly. That keeps the API key in
-// exactly one place and gives every send a single, consistent log/suppression
-// check, regardless of which part of the app triggered it.
+// myjay-mailer: the ONE and ONLY place this godforsaken platform talks to Resend.
+// Everything else (Pages Functions, the router, whatever the hell else) goes through
+// a service binding, NOT the Resend API directly. Why? Because centralizing this shit
+// in one place means we only have to keep the API key from leaking in one fucking location.
+// Also means every send gets logged and suppressed consistently, no matter which part
+// of the app was dumb enough to call it.
 //
 // Deploy: wrangler deploy mailer/mailer.js --name myjay-mailer --config mailer/wrangler.toml
-// Bindings required: DB (D1, same database as the rest of the platform)
-// Secret required: RESEND_API_KEY
+// Bindings: DB (D1, same as the rest), RESEND_API_KEY (the fucking secret)
 
-// Sends that must always go out regardless of the recipient's notification
-// preferences. Everything else is gated by notification_prefs.
+// Shit that HAS to go out no matter what the recipient thinks.
+// Everything else gets gated by notification_prefs, but these three?
+// Nope. Can't opt out of 'your password got changed' emails, sorry.
 const TRANSACTIONAL_TYPES = new Set(['verify', 'reset', 'security_alert']);
 
 const VALID_TYPES = new Set([
@@ -81,9 +82,9 @@ async function sendViaResend(env, { to, subject, bodyHtml }) {
     return { ok: true, resendId: body.id || null, error: null };
   }
 
-  // Resend's error payloads are typically { statusCode, name, message }.
-  // Surface message + name together, "name" is what tells you e.g.
-  // validation_error vs not_found vs domain not verified.
+  // Resend returns fucking { statusCode, name, message } when it goes sideways.
+  // We throw both the name and message at the user because that's the only way
+  // they'll figure out if it's a "domain not verified" bullshit or an actual error.
   const detail = body.message
     ? `${body.name ? `[${body.name}] ` : ''}${body.message}`
     : `Resend returned HTTP ${res.status}`;
