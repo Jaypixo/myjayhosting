@@ -1,6 +1,7 @@
 import { errorResponse, json } from '../../../_lib/auth.js';
 import { sendEmail } from '../../../_lib/mailer.js';
 import { getEmailSignature } from '../../../_lib/settings.js';
+import { applyPlaceholders } from '../../../_lib/placeholders.js';
 import { adminMessage } from '../../../_lib/email-templates.js';
 
 export async function onRequestPost(context) {
@@ -21,18 +22,22 @@ export async function onRequestPost(context) {
 
   let recipient;
   if (body.userId) {
-    const user = await env.DB.prepare('SELECT id, email FROM users WHERE id = ?').bind(body.userId).first();
+    const user = await env.DB.prepare('SELECT id, email, username, role, site_title FROM users WHERE id = ?').bind(body.userId).first();
     if (!user) return errorResponse('No user with that id', 404);
-    recipient = user;
+    recipient = { id: user.id, email: user.email, username: user.username, role: user.role, siteTitle: user.site_title };
   } else if (body.email) {
     const email = String(body.email).trim().toLowerCase();
-    recipient = { id: null, email };
+    recipient = { id: null, email, username: null, role: null, siteTitle: null };
   } else {
     return errorResponse('Provide either userId or email', 400);
   }
 
   const signature = await getEmailSignature(env);
-  const { subject: emailSubject, html } = adminMessage(subject, message, signature);
+  const { subject: emailSubject, html } = adminMessage(
+    applyPlaceholders(subject, recipient),
+    applyPlaceholders(message, recipient),
+    signature
+  );
   const result = await sendEmail(env, {
     to: recipient.email,
     type: 'admin_message',

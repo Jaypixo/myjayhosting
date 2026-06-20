@@ -1,6 +1,7 @@
 import { errorResponse, json } from '../../../_lib/auth.js';
 import { sendEmail } from '../../../_lib/mailer.js';
 import { getEmailSignature } from '../../../_lib/settings.js';
+import { applyPlaceholders } from '../../../_lib/placeholders.js';
 import { buildUnsubscribeToken, unsubscribeUrl } from '../../../_lib/unsubscribe.js';
 import { broadcastAnnouncement } from '../../../_lib/email-templates.js';
 
@@ -9,10 +10,10 @@ import { broadcastAnnouncement } from '../../../_lib/email-templates.js';
 // away from a very bad day. "custom" covers the rest via a small set of
 // allowed, parameterized filters instead.
 const SEGMENT_QUERIES = {
-  all: 'SELECT id, email FROM users WHERE banned = 0',
-  published: `SELECT u.id, u.email FROM users u JOIN sites s ON s.user_id = u.id WHERE u.banned = 0 AND s.published = 1`,
-  unpublished: `SELECT u.id, u.email FROM users u JOIN sites s ON s.user_id = u.id WHERE u.banned = 0 AND s.published = 0`,
-  inactive_30d: `SELECT u.id, u.email FROM users u JOIN sites s ON s.user_id = u.id WHERE u.banned = 0 AND s.updated_at < datetime('now', '-30 days')`,
+  all: 'SELECT id, email, username, role, site_title FROM users WHERE banned = 0',
+  published: `SELECT u.id, u.email, u.username, u.role, u.site_title FROM users u JOIN sites s ON s.user_id = u.id WHERE u.banned = 0 AND s.published = 1`,
+  unpublished: `SELECT u.id, u.email, u.username, u.role, u.site_title FROM users u JOIN sites s ON s.user_id = u.id WHERE u.banned = 0 AND s.published = 0`,
+  inactive_30d: `SELECT u.id, u.email, u.username, u.role, u.site_title FROM users u JOIN sites s ON s.user_id = u.id WHERE u.banned = 0 AND s.updated_at < datetime('now', '-30 days')`,
 };
 
 async function resolveCustomSegment(env, filter) {
@@ -28,7 +29,7 @@ async function resolveCustomSegment(env, filter) {
     values.push(filter.emailVerified ? 1 : 0);
   }
 
-  const sql = `SELECT id, email FROM users WHERE ${clauses.join(' AND ')}`;
+  const sql = `SELECT id, email, username, role, site_title FROM users WHERE ${clauses.join(' AND ')}`;
   const result = await env.DB.prepare(sql).bind(...values).all();
   return result.results;
 }
@@ -74,9 +75,15 @@ export async function onRequestPost(context) {
 
   const signature = await getEmailSignature(env);
 
-  for (const recipient of recipients) {
+  for (const row of recipients) {
+    const recipient = { id: row.id, email: row.email, username: row.username, role: row.role, siteTitle: row.site_title };
     const token = await buildUnsubscribeToken(env, recipient.id, 'broadcast');
-    const { subject: emailSubject, html } = broadcastAnnouncement(subject, message, unsubscribeUrl(token, 'broadcast'), signature);
+    const { subject: emailSubject, html } = broadcastAnnouncement(
+      applyPlaceholders(subject, recipient),
+      applyPlaceholders(message, recipient),
+      unsubscribeUrl(token, 'broadcast'),
+      signature
+    );
     const result = await sendEmail(env, {
       to: recipient.email,
       type: 'broadcast',

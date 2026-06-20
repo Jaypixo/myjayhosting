@@ -1,5 +1,6 @@
 import { errorResponse, json } from '../../../_lib/auth.js';
 import { getEmailSignature } from '../../../_lib/settings.js';
+import { applyPlaceholders, SAMPLE_RECIPIENT } from '../../../_lib/placeholders.js';
 import { adminMessage, broadcastAnnouncement } from '../../../_lib/email-templates.js';
 
 // Renders through the exact same template functions a real send uses, so
@@ -17,8 +18,8 @@ export async function onRequestPost(context) {
     return errorResponse('Invalid JSON body', 400);
   }
 
-  const subject = String(body.subject || '').trim() || '(no subject)';
-  const message = String(body.body || '');
+  const subject = applyPlaceholders(String(body.subject || '').trim() || '(no subject)', SAMPLE_RECIPIENT);
+  const message = applyPlaceholders(String(body.body || ''), SAMPLE_RECIPIENT);
   const saved = await getEmailSignature(env);
   const signature = {
     name: typeof body.signatureName === 'string' && body.signatureName.trim() ? body.signatureName.trim() : saved.name,
