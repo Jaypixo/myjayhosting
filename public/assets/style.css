@@ -548,6 +548,10 @@ input:focus, textarea:focus, select:focus {
   border-top-color: var(--error);
 }
 
+.modal-box.modal-wide {
+  max-width: 560px;
+}
+
 .modal-title {
   margin: 0 0 0.6rem;
   font-family: var(--font-heading);
@@ -573,6 +577,82 @@ input:focus, textarea:focus, select:focus {
   display: flex;
   justify-content: flex-end;
   gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+/* Detail modal body (e.g. the admin contact-message popup): a small
+   key/value meta block above the full text, used instead of lengthening
+   a table row to show the same thing in place. */
+.modal-meta {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.3rem 1rem;
+  font-size: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+.modal-meta dt {
+  color: var(--muted);
+  font-family: var(--font-ui);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.7rem;
+  align-self: start;
+  padding-top: 0.15rem;
+}
+
+.modal-meta dd {
+  margin: 0;
+}
+
+.modal-scroll-body {
+  max-height: 40vh;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  padding-right: 0.5rem;
+  margin-bottom: 1.25rem;
+  border-top: 1px solid var(--border);
+  padding-top: 0.75rem;
+}
+
+/* Hoverable inline explainer, e.g. an email log's failure reason. Avoids
+   the alternative of printing the text directly into the cell, which
+   changes row height and throws off alignment with every other row. */
+.tooltip {
+  position: relative;
+  display: inline-block;
+  cursor: help;
+  margin-left: 0.3rem;
+  border-bottom: 1px dotted var(--muted);
+}
+
+.tooltip::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  background: #1a1716;
+  color: #f5f0e8;
+  padding: 0.5rem 0.7rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  width: max-content;
+  max-width: 240px;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.12s ease;
+  pointer-events: none;
+  z-index: 20;
+}
+
+.tooltip:hover::after,
+.tooltip:focus::after {
+  opacity: 1;
+  visibility: visible;
 }
 
 /* ---------------------------------------------------------------------
@@ -1137,6 +1217,33 @@ th {
   color: var(--muted);
 }
 
+tr[data-clickable] {
+  cursor: pointer;
+}
+
+tr[data-clickable]:hover {
+  background: var(--paper);
+}
+
+/* Lets a wide table scroll horizontally on narrow screens instead of
+   squashing columns illegibly or blowing out the page width. nowrap stops
+   cells from wrapping into multi-line text first, which let columns get
+   squeezed below a usable width even with the scrollbar available, the
+   table should grow as wide as it needs to and scroll, not wrap. */
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table-scroll table {
+  min-width: 560px;
+}
+
+.table-scroll th,
+.table-scroll td {
+  white-space: nowrap;
+}
+
 /* ---------------------------------------------------------------------
    Editor & drop zone (dashboard)
    --------------------------------------------------------------------- */
@@ -1270,6 +1377,23 @@ th {
 
 .subtab-panel.active {
   display: block;
+}
+
+/* On narrow screens a 5-6 label tab bar doesn't fit, wrapping it looks
+   broken with the underline-on-active styling, so it scrolls horizontally
+   instead, same pattern as .table-scroll below. */
+@media (max-width: 640px) {
+  .tabs,
+  .subtabs {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .tabs button,
+  .subtabs button {
+    flex: 0 0 auto;
+  }
 }
 
 /* ---------------------------------------------------------------------
@@ -1563,7 +1687,7 @@ th {
    --------------------------------------------------------------------- */
 
 .center { text-align: center; }
-.flex-between { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.flex-between { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
 .mt-1 { margin-top: 1rem; }
 .mt-2 { margin-top: 2rem; }
 .hidden { display: none !important; }

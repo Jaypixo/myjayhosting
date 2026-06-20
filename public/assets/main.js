@@ -3,12 +3,16 @@
 
 // ── Modal dialogs (replace native alert/confirm/prompt everywhere) ─────────
 
-function buildModal({ title, message, danger = false, body }) {
+// Exported (not just used by showAlert/showConfirm/showPrompt below) so
+// pages with a custom modal need, e.g. the admin contact-message detail
+// popup, can build one with the same chrome/dismiss behavior instead of
+// hand-rolling their own overlay markup.
+export function buildModal({ title, message, danger = false, body, wide = false }) {
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';
 
   const box = document.createElement('div');
-  box.className = danger ? 'modal-box modal-danger' : 'modal-box';
+  box.className = ['modal-box', danger && 'modal-danger', wide && 'modal-wide'].filter(Boolean).join(' ');
   box.setAttribute('role', 'dialog');
   box.setAttribute('aria-modal', 'true');
 
@@ -40,7 +44,7 @@ function buildModal({ title, message, danger = false, body }) {
 
 // Escape always cancels/dismisses. Clicking the dimmed backdrop does too,
 // it never triggers the destructive action, only an explicit button click does.
-function attachDismiss(overlay, onDismiss) {
+export function attachDismiss(overlay, onDismiss) {
   function onKeydown(e) {
     if (e.key === 'Escape') onDismiss();
   }
