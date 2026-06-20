@@ -308,8 +308,8 @@ Toggled from `/admin.html` → **Settings** tab. When enabled:
 - Every non-API, non-asset request is redirected (302) to `/maintenance.html`,
   *except* for an active admin session, `/login.html`, and `/assets/*`, so
   an admin can always log in and turn it back off.
-- `/maintenance.html` shows the mascot image (if present), a styled "back
-  soon" message, and a terminal-log block.
+- `/maintenance.html` shows the mascot image (if present) and a styled
+  "back soon" message.
 - `/status.html` reflects the current state live via `/api/settings`.
 
 This is stored in D1 (`settings.maintenance_mode`), not an env var, so it can

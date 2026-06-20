@@ -82,24 +82,46 @@ function pageShell(title, bodyHtml) {
 </html>`;
 }
 
-function siteNotPublishedResponse(username) {
+// "Nobody's registered this username" and "someone registered it but
+// hasn't published anything" are different situations, the first is an
+// invitation (claim it), the second isn't (it's already someone's,
+// there's nothing for a random visitor to do). Every registered account
+// gets a `sites` row at signup (see functions/api/auth/register.js), even
+// before they publish, so "no row at all" reliably means "not claimed."
+function siteNotClaimedResponse(username) {
   const safe = escapeHtml(username);
   const html = pageShell(`${safe}.myjay.net`, `
-    <h1><em>Nothing here yet.</em></h1>
-    <p><strong>${safe}.myjay.net</strong> hasn't published a site, or doesn't exist.</p>
+    <h1><em>Not claimed.</em></h1>
+    <p>Nobody has claimed <strong>${safe}.myjay.net</strong> yet.</p>
     <img src="https://myjay.net/assets/img/MyJayErrorMascot.png" alt="" class="mascot" onerror="this.style.display='none'">
     <a class="btn" href="https://myjay.net/register">Claim this name</a>
   `);
   return new Response(html, { status: 404, headers: { 'Content-Type': 'text/html; charset=utf-8' } });
 }
 
+function siteNotPublishedResponse(username) {
+  const safe = escapeHtml(username);
+  const html = pageShell(`${safe}.myjay.net`, `
+    <h1><em>Not published yet.</em></h1>
+    <p><strong>${safe}.myjay.net</strong> is claimed, but its owner hasn't published anything here yet.</p>
+    <img src="https://myjay.net/assets/img/MyJayErrorMascot.png" alt="" class="mascot" onerror="this.style.display='none'">
+    <a class="btn" href="https://myjay.net">Back to MyJay.net</a>
+  `);
+  return new Response(html, { status: 404, headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+}
+
+// Same heading, description, and mascot as the main site's public/404.html,
+// word for word, "serve our exact 404 page" was the ask. The only thing
+// that's allowed to differ is the one link, which has to point at this
+// subdomain's own root instead of myjay.net's, "/" already resolves there
+// since this response is served from username.myjay.net itself.
 function fileNotFoundResponse(username) {
   const safe = escapeHtml(username);
-  const html = pageShell(`${safe}.myjay.net | 404`, `
+  const html = pageShell(`Page not found | ${safe}.myjay.net`, `
     <h1><em>404</em></h1>
-    <p>That page doesn't exist on <strong>${safe}.myjay.net</strong>.</p>
+    <p>This page doesn't exist. It may have been moved, renamed, or never existed in the first place.</p>
     <img src="https://myjay.net/assets/img/MyJayErrorMascot.png" alt="" class="mascot" onerror="this.style.display='none'">
-    <a class="btn" href="/">Back to the homepage</a>
+    <a class="btn" href="/">Back to ${safe}.myjay.net</a>
   `);
   return new Response(html, { status: 404, headers: { 'Content-Type': 'text/html; charset=utf-8' } });
 }
@@ -116,7 +138,10 @@ export default {
     const username = labels[0];
 
     const site = await env.DB.prepare('SELECT id, published FROM sites WHERE username = ?').bind(username).first();
-    if (!site || !site.published) {
+    if (!site) {
+      return siteNotClaimedResponse(username);
+    }
+    if (!site.published) {
       return siteNotPublishedResponse(username);
     }
 
