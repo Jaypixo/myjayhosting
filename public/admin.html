@@ -110,7 +110,43 @@
       </div>
 
       <div id="email-panel" class="tab-panel">
-        <div class="feature-grid">
+        <div class="card hidden" id="email-health-banner" style="border-top:3px solid var(--error)">
+          <h3 class="text-error" id="email-health-title">Nothing has sent yet</h3>
+          <p class="text-muted" id="email-health-body"></p>
+        </div>
+
+        <div class="flex-between">
+          <h3>Send a test email</h3>
+        </div>
+        <div class="card">
+          <p class="text-muted">
+            Sends a real email through the real pipeline (this panel &rarr; mailer &rarr; Resend),
+            logged below like anything else. The fastest way to check whether <code>noreply@myjay.net</code>
+            sending actually works.
+          </p>
+          <form id="email-test-form">
+            <div class="form-error" id="email-test-error"></div>
+            <div class="field">
+              <label for="email-test-to">Send to</label>
+              <input type="email" id="email-test-to" placeholder="defaults to your own admin email">
+            </div>
+            <div class="field">
+              <label for="email-test-template">Template</label>
+              <select id="email-test-template">
+                <option value="admin_message">Admin message</option>
+                <option value="verify">Verify email</option>
+                <option value="reset">Password reset</option>
+                <option value="security_alert">Security alert</option>
+                <option value="broadcast">Broadcast announcement</option>
+                <option value="blog_notification">Blog notification</option>
+              </select>
+            </div>
+            <button type="submit" class="btn btn-sm" id="email-test-submit">Send test</button>
+            <span class="text-ok hidden" id="email-test-success">Sent, check the log below.</span>
+          </form>
+        </div>
+
+        <div class="feature-grid mt-2">
           <div class="card">
             <h3 id="email-stat-today">...</h3>
             <p class="text-muted">sent today</p>
@@ -118,6 +154,10 @@
           <div class="card">
             <h3 id="email-stat-total">...</h3>
             <p class="text-muted">total sent</p>
+          </div>
+          <div class="card">
+            <h3 id="email-stat-failed">...</h3>
+            <p class="text-muted">total failed</p>
           </div>
           <div class="card">
             <h3 id="email-stat-delivery">...</h3>
@@ -137,75 +177,97 @@
           </div>
         </div>
 
-        <h3 class="mt-2">Send a one-off message</h3>
-        <div class="card">
-          <form id="email-send-form">
-            <div class="form-error" id="email-send-error"></div>
-            <div class="field">
-              <label for="email-send-userid">User ID</label>
-              <input type="text" id="email-send-userid" placeholder="leave blank if sending by email instead">
-            </div>
-            <div class="field">
-              <label for="email-send-email">Email</label>
-              <input type="email" id="email-send-email" placeholder="leave blank if sending by user ID instead">
-            </div>
-            <div class="field">
-              <label for="email-send-subject">Subject</label>
-              <input type="text" id="email-send-subject" required>
-            </div>
-            <div class="field">
-              <label for="email-send-body">Message</label>
-              <textarea id="email-send-body" rows="5" required></textarea>
-            </div>
-            <button type="submit" class="btn btn-sm" id="email-send-submit">Send</button>
-            <span class="text-ok hidden" id="email-send-success">Sent.</span>
-          </form>
+        <h3 class="mt-2">Last 30 days</h3>
+        <div class="chart-bars" id="email-chart"></div>
+
+        <div id="email-top-errors-wrap" class="hidden">
+          <h3 class="mt-2">Most common failure reasons</h3>
+          <table>
+            <thead><tr><th>Error</th><th>Count</th></tr></thead>
+            <tbody id="email-top-errors-body"></tbody>
+          </table>
         </div>
 
-        <h3 class="mt-2">Broadcast</h3>
-        <div class="card">
-          <form id="email-broadcast-form">
-            <div class="form-error" id="email-broadcast-error"></div>
-            <div class="field">
-              <label for="email-broadcast-segment">Segment</label>
-              <select id="email-broadcast-segment">
-                <option value="all">All users</option>
-                <option value="published">Sites that are published</option>
-                <option value="unpublished">Sites that are unpublished</option>
-                <option value="inactive_30d">Inactive 30+ days</option>
-                <option value="custom">Custom filter</option>
-              </select>
+        <div class="layout-2col mt-2">
+          <div>
+            <h3>Send a one-off message</h3>
+            <div class="card">
+              <form id="email-send-form">
+                <div class="form-error" id="email-send-error"></div>
+                <div class="field">
+                  <label for="email-send-userid">User ID</label>
+                  <input type="text" id="email-send-userid" placeholder="leave blank if sending by email instead">
+                </div>
+                <div class="field">
+                  <label for="email-send-email">Email</label>
+                  <input type="email" id="email-send-email" placeholder="leave blank if sending by user ID instead">
+                </div>
+                <div class="field">
+                  <label for="email-send-subject">Subject</label>
+                  <input type="text" id="email-send-subject" required>
+                </div>
+                <div class="field">
+                  <label for="email-send-body">Message</label>
+                  <textarea id="email-send-body" rows="4" required></textarea>
+                </div>
+                <button type="submit" class="btn btn-sm" id="email-send-submit">Send</button>
+                <span class="text-ok hidden" id="email-send-success">Sent.</span>
+              </form>
             </div>
-            <div class="field hidden" id="email-broadcast-custom-fields">
-              <label for="email-broadcast-role">Role</label>
-              <select id="email-broadcast-role">
-                <option value="">Any role</option>
-                <option value="user">User</option>
-                <option value="admin">Admin</option>
-              </select>
-              <label for="email-broadcast-verified" class="mt-1">Email verified</label>
-              <select id="email-broadcast-verified">
-                <option value="">Doesn't matter</option>
-                <option value="true">Verified only</option>
-                <option value="false">Unverified only</option>
-              </select>
+          </div>
+
+          <div>
+            <h3>Broadcast</h3>
+            <div class="card">
+              <form id="email-broadcast-form">
+                <div class="form-error" id="email-broadcast-error"></div>
+                <div class="field">
+                  <label for="email-broadcast-segment">Segment</label>
+                  <select id="email-broadcast-segment">
+                    <option value="all">All users</option>
+                    <option value="published">Sites that are published</option>
+                    <option value="unpublished">Sites that are unpublished</option>
+                    <option value="inactive_30d">Inactive 30+ days</option>
+                    <option value="custom">Custom filter</option>
+                  </select>
+                </div>
+                <div class="field hidden" id="email-broadcast-custom-fields">
+                  <label for="email-broadcast-role">Role</label>
+                  <select id="email-broadcast-role">
+                    <option value="">Any role</option>
+                    <option value="user">User</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                  <label for="email-broadcast-verified" class="mt-1">Email verified</label>
+                  <select id="email-broadcast-verified">
+                    <option value="">Doesn't matter</option>
+                    <option value="true">Verified only</option>
+                    <option value="false">Unverified only</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="email-broadcast-subject">Subject</label>
+                  <input type="text" id="email-broadcast-subject" required>
+                </div>
+                <div class="field">
+                  <label for="email-broadcast-body">Message</label>
+                  <textarea id="email-broadcast-body" rows="4" required></textarea>
+                </div>
+                <button type="submit" class="btn btn-danger btn-sm" id="email-broadcast-submit">Send broadcast</button>
+                <span class="text-ok hidden" id="email-broadcast-result"></span>
+              </form>
             </div>
-            <div class="field">
-              <label for="email-broadcast-subject">Subject</label>
-              <input type="text" id="email-broadcast-subject" required>
-            </div>
-            <div class="field">
-              <label for="email-broadcast-body">Message</label>
-              <textarea id="email-broadcast-body" rows="5" required></textarea>
-            </div>
-            <button type="submit" class="btn btn-danger btn-sm" id="email-broadcast-submit">Send broadcast</button>
-            <span class="text-ok hidden" id="email-broadcast-result"></span>
-          </form>
+          </div>
         </div>
 
         <div class="flex-between mt-2">
           <h3>Send log</h3>
-          <div style="display:flex;gap:0.5rem">
+        </div>
+        <div class="flex-between" style="flex-wrap:wrap;gap:0.5rem">
+          <div class="field" style="margin:0;flex:1;min-width:200px">
+            <input type="text" id="email-log-search" placeholder="Search recipient or subject...">
+          </div>
+          <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
             <select id="email-log-type-filter">
               <option value="">All types</option>
               <option value="verify">Verify</option>
@@ -681,7 +743,35 @@
 
     let emailLogsPage = 1;
     let emailLogsTotal = 0;
+    let emailLogsQuery = '';
     const EMAIL_PAGE_SIZE = 50;
+
+    function updateEmailHealthBanner(data) {
+      const banner = document.getElementById('email-health-banner');
+      const title = document.getElementById('email-health-title');
+      const body = document.getElementById('email-health-body');
+
+      if (data.totalSent === 0 && data.totalFailed === 0) {
+        title.textContent = 'Nothing has sent yet';
+        body.textContent = 'No emails have gone through the mailer at all, success or failure. Use "Send a test email" above. If that test never shows up in the log below either, the MAILER service binding probably isn\'t wired up on the Pages project (Settings -> Functions -> Bindings).';
+        banner.classList.remove('hidden');
+        return;
+      }
+
+      const total = data.totalSent + data.totalFailed;
+      const failureRate = total > 0 ? data.totalFailed / total : 0;
+      if (failureRate >= 0.5 && total >= 2) {
+        title.textContent = 'Most sends are failing';
+        const topError = data.topErrors && data.topErrors[0];
+        body.textContent = topError
+          ? `${data.totalFailed} of ${total} attempts failed. Most common reason: "${topError.error}". If that mentions an unverified domain, the myjay.net domain needs to be verified in Resend before noreply@myjay.net can send.`
+          : `${data.totalFailed} of ${total} attempts failed. Check the send log below for details.`;
+        banner.classList.remove('hidden');
+        return;
+      }
+
+      banner.classList.add('hidden');
+    }
 
     async function loadEmailStats() {
       const res = await apiFetch('/api/admin/email/stats');
@@ -689,10 +779,50 @@
       const data = await res.json();
       document.getElementById('email-stat-today').textContent = data.sentToday;
       document.getElementById('email-stat-total').textContent = data.totalSent;
+      document.getElementById('email-stat-failed').textContent = data.totalFailed;
       document.getElementById('email-stat-delivery').textContent = `${data.deliveryRate}%`;
       document.getElementById('email-stat-open').textContent = `${data.openRate}%`;
       document.getElementById('email-stat-bounces').textContent = data.bounceCount;
       document.getElementById('email-stat-unsubs').textContent = data.unsubscribeCount;
+
+      updateEmailHealthBanner(data);
+
+      const chartEl = document.getElementById('email-chart');
+      chartEl.innerHTML = '';
+      const byDate = {};
+      (data.last30Days || []).forEach((d) => { byDate[d.date] = d; });
+      const maxVal = Math.max(1, ...Object.values(byDate).map((d) => (d.sent || 0) + (d.failed || 0)));
+      const start = new Date();
+      start.setUTCDate(start.getUTCDate() - 29);
+      for (let i = 0; i < 30; i++) {
+        const d = new Date(start);
+        d.setUTCDate(d.getUTCDate() + i);
+        const key = d.toISOString().slice(0, 10);
+        const entry = byDate[key] || { sent: 0, failed: 0 };
+        const bar = document.createElement('div');
+        bar.className = 'chart-bar';
+        const total = (entry.sent || 0) + (entry.failed || 0);
+        bar.style.height = `${(total / maxVal) * 100}%`;
+        if (entry.failed > 0 && entry.sent === 0) bar.style.background = 'var(--error)';
+        bar.title = `${key}: ${entry.sent || 0} sent, ${entry.failed || 0} failed`;
+        chartEl.appendChild(bar);
+      }
+
+      const errorsWrap = document.getElementById('email-top-errors-wrap');
+      const errorsBody = document.getElementById('email-top-errors-body');
+      const topErrors = data.topErrors || [];
+      if (topErrors.length === 0) {
+        errorsWrap.classList.add('hidden');
+      } else {
+        errorsWrap.classList.remove('hidden');
+        errorsBody.innerHTML = '';
+        topErrors.forEach((e) => {
+          const tr = document.createElement('tr');
+          tr.appendChild(td(e.error));
+          tr.appendChild(td(String(e.count)));
+          errorsBody.appendChild(tr);
+        });
+      }
     }
 
     const EMAIL_STATUS_BADGE = {
@@ -707,6 +837,7 @@
       const status = document.getElementById('email-log-status-filter').value;
       if (type) params.set('type', type);
       if (status) params.set('status', status);
+      if (emailLogsQuery) params.set('q', emailLogsQuery);
 
       const res = await apiFetch(`/api/admin/email/logs?${params}`);
       const data = await res.json();
@@ -726,9 +857,29 @@
         const badge = document.createElement('span');
         badge.className = `badge ${EMAIL_STATUS_BADGE[log.status] || ''}`;
         badge.textContent = log.opened ? `${log.status} · opened` : log.status;
+        if (log.error) badge.title = log.error;
         statusTd.appendChild(badge);
+        if (log.error) {
+          const errorNote = document.createElement('div');
+          errorNote.className = 'text-error';
+          errorNote.style.fontSize = '0.7rem';
+          errorNote.style.marginTop = '0.2rem';
+          errorNote.style.maxWidth = '220px';
+          errorNote.textContent = log.error;
+          statusTd.appendChild(errorNote);
+        }
 
         const actions = document.createElement('td');
+        actions.style.display = 'flex';
+        actions.style.gap = '0.4rem';
+        actions.style.flexWrap = 'wrap';
+
+        const previewBtn = document.createElement('button');
+        previewBtn.className = 'btn btn-ghost btn-sm';
+        previewBtn.textContent = 'Preview';
+        previewBtn.addEventListener('click', () => previewEmail(log.id));
+        actions.appendChild(previewBtn);
+
         if (log.status === 'failed') {
           const retryBtn = document.createElement('button');
           retryBtn.className = 'btn btn-ghost btn-sm';
@@ -750,6 +901,23 @@
         `page ${emailLogsPage} of ${Math.max(1, Math.ceil(emailLogsTotal / EMAIL_PAGE_SIZE))}`;
       document.getElementById('email-logs-prev').disabled = emailLogsPage <= 1;
       document.getElementById('email-logs-next').disabled = emailLogsPage * EMAIL_PAGE_SIZE >= emailLogsTotal;
+    }
+
+    async function previewEmail(logId) {
+      const res = await apiFetch(`/api/admin/email/logs/${logId}`);
+      if (!res.ok) {
+        await showAlert('Could not load that message.');
+        return;
+      }
+      const log = await res.json();
+      if (!log.bodyHtml) {
+        await showAlert('Nothing was rendered for this entry, there\'s no body to preview.');
+        return;
+      }
+      const blob = new Blob([log.bodyHtml], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank', 'noopener');
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
     }
 
     async function resendEmail(logId, btn) {
@@ -813,6 +981,48 @@
       });
       document.getElementById('email-log-type-filter').addEventListener('change', () => { emailLogsPage = 1; loadEmailLogs(); });
       document.getElementById('email-log-status-filter').addEventListener('change', () => { emailLogsPage = 1; loadEmailLogs(); });
+
+      let emailSearchTimer;
+      document.getElementById('email-log-search').addEventListener('input', (e) => {
+        clearTimeout(emailSearchTimer);
+        emailSearchTimer = setTimeout(() => {
+          emailLogsQuery = e.target.value.trim();
+          emailLogsPage = 1;
+          loadEmailLogs();
+        }, 300);
+      });
+
+      document.getElementById('email-test-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const errorEl = document.getElementById('email-test-error');
+        const successEl = document.getElementById('email-test-success');
+        const submitBtn = document.getElementById('email-test-submit');
+        errorEl.textContent = '';
+        successEl.classList.add('hidden');
+
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Sending...';
+        const res = await apiFetch('/api/admin/email/test', {
+          method: 'POST',
+          body: JSON.stringify({
+            to: document.getElementById('email-test-to').value.trim(),
+            template: document.getElementById('email-test-template').value,
+          }),
+        });
+        const data = await res.json().catch(() => ({}));
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Send test';
+
+        if (!res.ok || data.ok === false) {
+          errorEl.textContent = data.error || (data.skipped ? `Not sent: recipient is ${data.skipped}.` : 'Something went wrong.');
+          loadEmailStats();
+          loadEmailLogs();
+          return;
+        }
+        successEl.classList.remove('hidden');
+        loadEmailStats();
+        loadEmailLogs();
+      });
 
       document.getElementById('email-broadcast-segment').addEventListener('change', (e) => {
         document.getElementById('email-broadcast-custom-fields').classList.toggle('hidden', e.target.value !== 'custom');

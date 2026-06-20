@@ -21,13 +21,14 @@ CREATE TABLE IF NOT EXISTS email_log (
   bounced INTEGER NOT NULL DEFAULT 0,
   resend_id TEXT,                 -- Resend's own message id, used to match webhook events back to this row
   user_id TEXT,                   -- nullable: not every send maps to an account (e.g. a typo'd admin one-off)
+  error TEXT,                     -- the exact reason a failed/skipped send didn't go out, shown in the admin log
   created_at TEXT NOT NULL
 );
 
 -- If you're applying this migration to a database that already has an
--- email_log table without body_html (e.g. it was created before this column
--- was added), run this once by hand:
+-- email_log table from before body_html / error existed, run these by hand:
 --   ALTER TABLE email_log ADD COLUMN body_html TEXT;
+--   ALTER TABLE email_log ADD COLUMN error TEXT;
 
 CREATE INDEX IF NOT EXISTS idx_email_log_created ON email_log(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_email_log_resend_id ON email_log(resend_id);

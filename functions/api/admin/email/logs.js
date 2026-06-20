@@ -11,16 +11,18 @@ export async function onRequestGet(context) {
   const type = url.searchParams.get('type') || '';
   const status = url.searchParams.get('status') || '';
   const since = url.searchParams.get('since') || ''; // ISO date, e.g. 2026-06-01
+  const q = (url.searchParams.get('q') || '').trim().toLowerCase();
 
   const clauses = [];
   const values = [];
   if (type) { clauses.push('type = ?'); values.push(type); }
   if (status) { clauses.push('status = ?'); values.push(status); }
   if (since) { clauses.push('created_at >= ?'); values.push(since); }
+  if (q) { clauses.push('(LOWER(recipient) LIKE ? OR LOWER(subject) LIKE ?)'); values.push(`%${q}%`, `%${q}%`); }
   const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : '';
 
   const logs = await env.DB.prepare(
-    `SELECT id, recipient, type, subject, status, opened, bounced, created_at FROM email_log
+    `SELECT id, recipient, type, subject, status, opened, bounced, resend_id, error, created_at FROM email_log
      ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`
   )
     .bind(...values, PAGE_SIZE, offset)
@@ -39,6 +41,8 @@ export async function onRequestGet(context) {
       status: l.status,
       opened: Boolean(l.opened),
       bounced: Boolean(l.bounced),
+      resendId: l.resend_id,
+      error: l.error,
       createdAt: l.created_at,
     })),
     total: total.count,

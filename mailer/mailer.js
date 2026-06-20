@@ -43,32 +43,51 @@ async function isUnsubscribed(env, userId, type) {
   return Boolean(row && row.unsubscribed);
 }
 
-async function logSend(env, { id, recipient, type, subject, bodyHtml, status, resendId, userId }) {
+async function logSend(env, { id, recipient, type, subject, bodyHtml, status, resendId, userId, error }) {
   await env.DB.prepare(
-    `INSERT INTO email_log (id, recipient, type, subject, body_html, status, opened, bounced, resend_id, user_id, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?)`
+    `INSERT INTO email_log (id, recipient, type, subject, body_html, status, opened, bounced, resend_id, user_id, error, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?)`
   )
-    .bind(id, recipient, type, subject, bodyHtml || null, status, resendId || null, userId || null, new Date().toISOString())
+    .bind(id, recipient, type, subject, bodyHtml || null, status, resendId || null, userId || null, error || null, new Date().toISOString())
     .run();
 }
 
 async function sendViaResend(env, { to, subject, bodyHtml }) {
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${env.RESEND_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from: FROM_ADDRESS,
-      to: [to],
-      subject,
-      html: bodyHtml,
-    }),
-  });
+  if (!env.RESEND_API_KEY) {
+    return { ok: false, resendId: null, error: 'RESEND_API_KEY secret is not set on this Worker' };
+  }
+
+  let res;
+  try {
+    res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${env.RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: FROM_ADDRESS,
+        to: [to],
+        subject,
+        html: bodyHtml,
+      }),
+    });
+  } catch (err) {
+    return { ok: false, resendId: null, error: `Could not reach Resend: ${err.message}` };
+  }
 
   const body = await res.json().catch(() => ({}));
-  return { ok: res.ok, resendId: body.id || null, error: res.ok ? null : (body.message || `Resend returned ${res.status}`) };
+  if (res.ok) {
+    return { ok: true, resendId: body.id || null, error: null };
+  }
+
+  // Resend's error payloads are typically { statusCode, name, message }.
+  // Surface message + name together, "name" is what tells you e.g.
+  // validation_error vs not_found vs domain not verified.
+  const detail = body.message
+    ? `${body.name ? `[${body.name}] ` : ''}${body.message}`
+    : `Resend returned HTTP ${res.status}`;
+  return { ok: false, resendId: null, error: detail };
 }
 
 export default {
@@ -106,7 +125,7 @@ export default {
     // Hard-bounced addresses are skipped outright, transactional or not,
     // there's no inbox on the other end to deliver to.
     if (await isSuppressed(env, to)) {
-      await logSend(env, { id: logId, recipient: to, type, subject, bodyHtml, status: 'failed', userId });
+      await logSend(env, { id: logId, recipient: to, type, subject, bodyHtml, status: 'failed', userId, error: 'Recipient is on the bounce suppression list' });
       return jsonResponse({ ok: false, skipped: 'suppressed', logId });
     }
 
@@ -114,7 +133,7 @@ export default {
     // Transactional sends (verify, reset, security alerts) always go out,
     // an account holder can't opt out of knowing their password changed.
     if (!transactional && (await isUnsubscribed(env, userId, type))) {
-      await logSend(env, { id: logId, recipient: to, type, subject, bodyHtml, status: 'failed', userId });
+      await logSend(env, { id: logId, recipient: to, type, subject, bodyHtml, status: 'failed', userId, error: `Recipient unsubscribed from "${type}"` });
       return jsonResponse({ ok: false, skipped: 'unsubscribed', logId });
     }
 
@@ -129,6 +148,7 @@ export default {
       status: result.ok ? 'sent' : 'failed',
       resendId: result.resendId,
       userId,
+      error: result.error,
     });
 
     if (!result.ok) {
