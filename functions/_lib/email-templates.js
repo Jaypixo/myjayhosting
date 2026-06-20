@@ -4,7 +4,7 @@
 // they're not worth the risk here. Keep new templates inside this file and
 // reusing baseLayout(), don't hand-roll a one-off HTML string elsewhere.
 
-import { Marked } from 'marked';
+import { Marked } from './vendor/marked.js';
 
 const TERRACOTTA = '#c7522a';
 const INK = '#1a1716';
