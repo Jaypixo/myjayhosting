@@ -263,6 +263,43 @@ LIMIT 24
 
 View counts: the subdomain Router Worker increments `sites.view_count` via a D1 write on each page load. To avoid hammering D1, use a KV counter as a write buffer and flush to D1 periodically (or just write directly, it's fine for Phase 1).
 
+### Public file listing API
+
+`GET /api/sites/:username/files` (`functions/api/sites/[username]/files.js`)
+answers "what files does this site actually have", the same role
+Neocities' `list` API plays, for code running anywhere, not just
+myjay.net's own frontend, there's no other way to enumerate a site's files
+short of scraping its rendered HTML for links. Returns
+`{ username, files: [{ key, size, modified }] }`, `.keep` empty-folder
+placeholders filtered out (an internal implementation detail, see
+Architecture Deep-Dive on empty-folder markers, that has no business in a
+public response).
+
+Mirrors the subdomain Router Worker's own "not claimed" vs "claimed but
+not published" distinction rather than collapsing both into one generic
+404 (`404` + `No site is registered at this subdomain` vs `403` + `This
+site exists but has not been published`): that's the exact same
+distinction anyone already gets by just visiting the subdomain directly,
+exposing it over JSON isn't a new leak. A short `Cache-Control: public,
+max-age=60` covers repeated polling without depending on every caller
+respecting it.
+
+**This is the one `/api/*` route that's genuinely cross-origin, on
+purpose.** Every other route is restricted to `myjay.net`/`www.myjay.net`
+(plus localhost for dev) by `_middleware.js`'s `ALLOWED_ORIGINS` check,
+which rejects anything else with a 403 before the request ever reaches a
+handler. `/api/sites/*` is listed in that same file's `OPEN_API_PREFIXES`
+instead, a deliberately separate list: paths there skip the origin check
+entirely and get `Access-Control-Allow-Origin: *` (via `openCorsHeaders()`)
+instead of the restrictive origin-echoing CORS response, and skip the
+session lookup too, since this is meant to be hit by plain server-side
+code with no cookie jar at all, not just by browsers. A new route that's
+meant to be public-and-same-origin-only (like `/api/explore`) belongs in
+`PUBLIC_API_PATHS`, not `OPEN_API_PREFIXES`, those solve different
+problems: one skips auth, the other skips the origin restriction too. Only
+add something to `OPEN_API_PREFIXES` when the whole point is letting
+arbitrary external code call it, which today is just this one feature.
+
 ---
 
 ## Pages & UI Spec
@@ -381,7 +418,58 @@ controls off the edge). Drag-and-drop onto the file list still works
 independently of this menu. **New file** (`createNewFile()`) doesn't need
 its own endpoint, it's a zero-byte `File` pushed through the same
 `POST /api/site/upload` everything else uses, then opens straight into
-the editor, same flow as GitHub's "Create new file."
+the editor, same flow as GitHub's "Create new file." It calls
+`openEditor({ key: path, name })` directly with the path/name it already
+has, *not* `allFiles.find(...)` after reloading the listing: entries in
+`allFiles` are the bare `{ key, size, modified }` shape `/api/site/files`
+returns, no `.name`, and `openEditor()` reads `file.name` (for
+`extOf()`/CodeMirror mode detection) before it ever calls `cm.setValue()`.
+Passing it an entry with no `.name` threw there and aborted before the
+new content loaded, leaving whatever the editor last had open on screen,
+which looked exactly like the new file came pre-filled with the previous
+file's content. Any future code that opens a freshly-created or
+freshly-renamed file the same way needs to pass an object with both `key`
+and `name`, not a raw listing entry.
+
+**Drag-and-drop preserves a dropped folder's structure, but only bothers
+the `FileSystemEntry` API when there's actually a folder involved.** A
+plain drop's `e.dataTransfer.files` is a flat `FileList`, files dropped as
+part of a folder don't get `webkitRelativePath` set the way an `<input
+webkitdirectory>` selection's files do (that property is specific to that
+input), so recovering the real structure needs
+`DataTransferItem.webkitGetAsEntry()` and the `FileSystemEntry` API
+instead (`walkEntry()`/`walkEntries()`/`readAllDirEntries()`/
+`entryToFile()`). This was missing entirely in an earlier pass (the drop
+handler always called `uploadFiles(e.dataTransfer.files, false)`, the
+same flat path used for individually-picked files) — not an R2/Workers
+limitation, the upload endpoint already happily accepts many files with
+arbitrary nested paths in one multipart request, nothing server-side ever
+needed to change.
+
+The drop handler checks `entries.some((entry) => entry.isDirectory)`
+first: if nothing dropped is a folder, it skips the `FileSystemEntry`
+machinery entirely and calls plain `uploadFiles(e.dataTransfer.files,
+false)`, the same already-proven path file-input uploads use. This isn't
+just an optimization. An earlier version always walked every drop through
+`FileSystemFileEntry.file()`, resolving multiple entries' files via
+`Promise.all`, and dropping two *plain* files (no folder) at once would
+occasionally swap their content, e.g. `index.html` would land in R2
+holding `style.css`'s bytes and vice versa. A from-scratch Node
+reproduction proved this isn't an ordinary JS closure/`Promise.all`
+ordering bug (mock entries with deliberately adversarial, reversed
+callback timing still paired correctly), which points at the *native*
+implementation of `.file()` itself misbehaving under concurrent calls
+rather than anything expressible in spec-level JS semantics, an exotic
+enough possibility that it isn't worth depending on this API at all for
+the common case. `walkEntry()`/`walkEntries()` now also resolve strictly
+one entry at a time, depth-first, with no `Promise.all` anywhere, for the
+folder case where the API is unavoidable. `getDroppedEntries()` still has
+to call `webkitGetAsEntry()` synchronously inside the `drop` handler for
+every item before any of the `await`s that follow, browsers tear down the
+drag data store as soon as the handler yields, capturing the entries
+can't be deferred. Falls back to plain `uploadFiles(e.dataTransfer.files,
+false)` whenever `webkitGetAsEntry` isn't available at all too (despite
+the vendor prefix, that's effectively never on a current browser).
 
 **Row actions are always visible, not hover-only.** They used to be
 `display: none` until `:hover`, which made them unreachable on touch and
@@ -579,6 +667,7 @@ GET  /api/site/download      ?key= (repeatable, omit for whole site) → applica
 POST /api/site/publish       { published: bool } → { ok }
 
 GET  /api/explore            → { sites: [{ username, siteTitle, updatedAt, viewCount }] }
+GET  /api/sites/:username/files → { username, files: [{ key, size, modified }] }  (public, no session, open CORS)
 GET  /api/health             → { checkedAt, database: {ok,ms}, storage: {ok,ms}, sessions: {ok,ms} }  (public, no session)
 
 POST /api/contact            { category, username?, email, message } → { ok }  (public, no session)

@@ -27,6 +27,26 @@ const PUBLIC_API_PATHS = new Set([
   '/api/webhooks/resend',
 ]);
 
+// Paths meant to be called by code running literally anywhere, not just
+// myjay.net's own frontend, e.g. the public "what files does this site
+// have" lookup. These skip both the session requirement (same as
+// PUBLIC_API_PATHS) AND the same-origin restriction every other /api/
+// route gets, with a wildcard CORS response instead of the
+// origin-echoing one everything else gets. A prefix list, not exact
+// paths, since these all have a dynamic username segment after them.
+const OPEN_API_PREFIXES = ['/api/sites/'];
+
+function isOpenApiPath(path) {
+  return OPEN_API_PREFIXES.some((prefix) => path.startsWith(prefix));
+}
+
+function openCorsHeaders() {
+  return {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, OPTIONS',
+  };
+}
+
 // Paths that DON'T get yeeted to /maintenance even when we're in maintenance mode:
 // the maintenance page itself (duh), shared assets, and the login page (otherwise
 // the admin's locked out of their own site until maintenance is over, which is a
@@ -97,16 +117,24 @@ export async function onRequest(context) {
 
   // Alright, we got an API call. Time to do the annoying shit.
   const origin = request.headers.get('Origin');
-  // CORS headers because browsers are paranoid as fuck.
-  const cors = corsHeaders(origin);
+  const openApi = isOpenApiPath(path);
+  // CORS headers because browsers are paranoid as fuck. Open API paths get
+  // the wildcard version, everything else gets the origin-restricted one.
+  const cors = openApi ? openCorsHeaders() : corsHeaders(origin);
 
-  if (origin && !isAllowedOrigin(origin)) {
+  if (!openApi && origin && !isAllowedOrigin(origin)) {
     return errorResponse('Origin not allowed', 403);
   }
 
   if (request.method === 'OPTIONS') {
     // Preflight request. Just send the CORS headers and get it over with.
     return new Response(null, { status: 204, headers: cors });
+  }
+
+  // Open API paths don't touch sessions at all, they're not just public,
+  // they're meant to be hit by code with no cookie jar in the first place.
+  if (openApi) {
+    return withCors(await next(), cors);
   }
 
   // Try to get the session token. If it exists, try to get the user.
