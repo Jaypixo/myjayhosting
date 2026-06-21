@@ -4,16 +4,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Public Files API | MyJay Docs</title>
-  <meta name="description" content="The public, cross-origin API for listing a published MyJay site's files: the endpoint, the response shape, and what it does and doesn't expose.">
+  <meta name="description" content="The public, cross-origin API for listing a published MyJay site's files: the endpoint, the response shape, and how to use it as a headless CMS.">
   <link rel="canonical" href="https://myjay.net/docs/public-api">
   <meta property="og:type" content="article">
   <meta property="og:title" content="Public Files API | MyJay Docs">
-  <meta property="og:description" content="Ask, from any code anywhere, exactly what files a published MyJay site has.">
+  <meta property="og:description" content="Query any published MyJay site's asset index directly from code with zero authentication or scraping required.">
   <meta property="og:url" content="https://myjay.net/docs/public-api">
   <meta property="og:image" content="https://myjay.net/assets/img/logo.png">
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="Public Files API | MyJay Docs">
-  <meta name="twitter:description" content="Ask, from any code anywhere, exactly what files a published MyJay site has.">
+  <meta name="twitter:description" content="Query any published MyJay site's asset index directly from code with zero authentication or scraping required.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@1,300&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
   <link rel="icon" type="image/png" href="/assets/img/favicon.png">
@@ -59,89 +59,101 @@
 
     <div class="docs-content">
       <span class="section-label">// docs / public files api</span>
-      <h1>The public files API.</h1>
-      <p class="text-muted">Ask, from any code running anywhere, exactly what files a published site has. No scraping required.</p>
-
-      <h2>The problem this solves</h2>
+      <h1>The Public Files API</h1>
+      <p class="text-muted">Query any published MyJay site's asset index directly from your application code. Zero setup, zero scraping, full CORS flexibility.</p>
+      
+      <h2>The Problem This Solves</h2>
       <p>
-        Outside of MyJay itself, there was no way to find out what's on a
-        published site short of fetching its rendered pages and parsing
-        whatever links happen to be in them, which misses anything not
-        linked from somewhere. This is a direct, structured answer instead:
-        give it a username, get back every file that site actually has.
+        Building custom dynamic interfaces (like portfolios, blogs, or anthologies) on top of traditional static hosts usually requires heavy build-steps or parsing HTML strings via fragile scraping tools. 
+      </p>
+      <p>
+        The <strong>Public Files API</strong> treats your static directories as a live, queryable data layout. Pass a username, and MyJay returns a structural mapping of every file that site owns. This makes it effortless to turn your MyJay files into a headless content directory.
       </p>
 
-      <h2>The endpoint</h2>
+      <h2>The Endpoint</h2>
       <p>
-        <code>GET /api/sites/:username/files</code>, where
-        <code>:username</code> is the subdomain itself, the part before
-        <code>.myjay.net</code>, lowercase, no protocol.
+        <code>GET https://myjay.net/api/sites/:username/files</code>
       </p>
-      <div class="terminal-log">
-$ curl https://myjay.net/api/sites/noah/files
+      <p class="text-muted">
+        Replace <code>:username</code> with the targeted site's subdomain (the segment preceding <code>.myjay.net</code>). Use lowercase strings only; omit sub-paths or protocols.
+      </p>
 
-{"username":"noah","files":[
-  {"key":"index.html","size":1653,"modified":"2026-06-21T13:13:02.355Z"},
-  {"key":"styles.css","size":4448,"modified":"2026-06-21T13:13:02.641Z"},
-  {"key":"blog/post-1.html","size":6001,"modified":"2026-06-21T13:13:02.846Z"}
-]}
-      </div>
+      <div class="terminal-log">$ curl https://myjay.net/api/sites/noah/files
+{
+  "username": "noah",
+  "files": [
+    {"key": "index.html", "size": 1653, "modified": "2026-06-21T13:13:02.355Z"},
+    {"key": "styles.css", "size": 4448, "modified": "2026-06-21T13:13:02.641Z"},
+    {"key": "literature/story-one.md", "size": 6001, "modified": "2026-06-21T14:05:11.846Z"}
+  ]
+}</div>
 
-      <h2>What you get back</h2>
+      <h2>Response Schema</h2>
       <table>
-        <thead><tr><th>Field</th><th>Type</th><th>Meaning</th></tr></thead>
+        <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
         <tbody>
-          <tr><td><code>username</code></td><td>string</td><td>The username you asked about</td></tr>
-          <tr><td><code>files</code></td><td>array</td><td>Every file on the site, see below</td></tr>
-          <tr><td><code>files[].key</code></td><td>string</td><td>Path relative to the site root, e.g. <code>blog/post-1.html</code></td></tr>
-          <tr><td><code>files[].size</code></td><td>number</td><td>Size in bytes</td></tr>
-          <tr><td><code>files[].modified</code></td><td>string</td><td>ISO 8601 timestamp of when that file was last uploaded</td></tr>
+          <tr><td><code>username</code></td><td>string</td><td>The requested user subdomain target.</td></tr>
+          <tr><td><code>files</code></td><td>array</td><td>An un-ordered collection of all public objects contained in the site directory.</td></tr>
+          <tr><td><code>files[].key</code></td><td>string</td><td>Relative path starting from the root directory (e.g., <code>literature/story-one.md</code>).</td></tr>
+          <tr><td><code>files[].size</code></td><td>number</td><td>Exact storage allocation in bytes.</td></tr>
+          <tr><td><code>files[].modified</code></td><td>string</td><td>ISO 8601 string documenting the file's last update timestamp.</td></tr>
         </tbody>
       </table>
       <p class="text-muted">
-        Order isn't guaranteed, and folders aren't a separate concept here,
-        same as everywhere else on the platform, see <a href="/docs/file-manager">file manager</a>.
-        A <code>key</code> with a slash in it is just a file whose path
-        happens to contain one.
+        <em>Note on architecture:</em> MyJay relies on a flat key-value architecture. Folders do not exist as independent systemic entries. A <code>key</code> featuring a forward slash is simply an individual file object explicitly tracking its directory pathway prefix. See the <a href="/docs/file-manager">File Manager docs</a> for more detail.
       </p>
 
-      <h2>Only published sites are listed</h2>
+      <h2>Integration Example (JavaScript Fetch)</h2>
       <p>
-        This follows the exact same two-step check a browser hitting
-        <code>username.myjay.net</code> goes through, see
-        <a href="/docs/routing">how routing works</a> for the full version:
+        Because this API is completely unauthenticated and cross-origin accessible, you can dynamically read, sort, and render contents inside client-side components:
+      </p>
+
+      <div class="terminal-log">// Fetching directory data and parsing custom source targets
+async function fetchMyJayContent(username) {
+  const apiTarget = `https://myjay.net/api/sites/${username}/files`;
+  const response = await fetch(apiTarget);
+  
+  if (!response.ok) throw new Error(`MyJay API error: ${response.status}`);
+  const data = await response.json();
+
+  // Filter for specific markdown content categories
+  const stories = data.files.filter(file => file.key.startsWith('literature/'));
+  
+  for (const story of stories) {
+    const assetUrl = `https://${username}.myjay.net/${story.key}`;
+    console.log(`Content URL for ${story.key}: ${assetUrl}`);
+  }
+}</div>
+
+      <h2>Route Matching & Accessibility</h2>
+      <p>
+        The endpoint strictly mimics the identical availability checks running on the production gateway at <code>username.myjay.net</code>. Review <a href="/docs/routing">how routing works</a> for comprehensive details:
       </p>
       <table>
-        <thead><tr><th>Situation</th><th>Status</th><th>Body</th></tr></thead>
+        <thead><tr><th>Deployment State</th><th>HTTP Status</th><th>Payload String / Action</th></tr></thead>
         <tbody>
-          <tr><td>Username was never registered</td><td><code>404</code></td><td><code>"No site is registered at this subdomain"</code></td></tr>
-          <tr><td>Registered, but still in draft</td><td><code>403</code></td><td><code>"This site exists but has not been published"</code></td></tr>
-          <tr><td>Registered and published</td><td><code>200</code></td><td>the file listing</td></tr>
+          <tr><td>Subdomain is unregistered or expired</td><td><code>404 Not Found</code></td><td><code>"No site is registered at this subdomain"</code></td></tr>
+          <tr><td>Registered account, currently in draft state</td><td><code>403 Forbidden</code></td><td><code>"This site exists but has not been published"</code></td></tr>
+          <tr><td>Registered and explicitly live</td><td><code>200 OK</code></td><td>Returns structural JSON file array listing.</td></tr>
         </tbody>
       </table>
       <p>
-        This isn't extra exposure beyond what already exists: it's the same
-        not-claimed-versus-not-published distinction anyone gets by just
-        visiting the subdomain directly, only as a status code instead of a
-        page. A draft site's contents are never listed, regardless of who's
-        asking.
+        This mechanism presents no security surface exposure risks: it treats visibility exactly like standard web requests. Unauthenticated external requests will never read index mappings belonging to un-published or draft accounts.
       </p>
 
-      <h2>No key, no session, any origin</h2>
+      <h2>Authentication & CORS Scope</h2>
       <p>
-        Every other endpoint on the platform either needs you to be logged
-        in, or only accepts requests from <code>myjay.net</code> itself.
-        This one doesn't: no API key, no cookie, and it answers requests
-        from any origin, specifically so it's usable from a browser tab on
-        a completely different site, a build script, a bot, whatever's
-        asking. There's nothing to sign up for.
+        While account actions or site writing requires specific cookies or explicit authorization headers, this route functions with no barriers:
       </p>
-
-      <h2>What's not included</h2>
       <ul>
-        <li>File <strong>contents</strong>. This is a listing, not a download. To read a file, request it directly: <code>https://noah.myjay.net/blog/post-1.html</code> works exactly like it would for a visitor, see <a href="/docs/routing">how routing works</a>.</li>
-        <li>Empty-folder placeholders. Folders with nothing real in them don't produce an entry, there's nothing to list.</li>
-        <li>Anything about draft sites, including whether the username is registered at all versus just unpublished, that distinction only resolves once it's actually live, see the table above.</li>
+        <li><strong>No Keys Required:</strong> No bearer tokens, access parameters, or active user sessions are demanded.</li>
+        <li><strong>Wildcard CORS (<code>Access-Control-Allow-Origin: *</code>):</strong> Explicitly unrestricted permissions allow direct queries from cross-origin contexts, including frontend browser engines, automation servers, workflows, or remote local hosts.</li>
+      </ul>
+
+      <h2>Limitations & Exclusions</h2>
+      <ul>
+        <li><strong>No Inline Payload Data:</strong> This is an inventory summary mapping, not a content bundle tool. To ingest file bodies, perform distinct requests directly to the file distribution network targets (e.g., <code>https://noah.myjay.net/literature/story-one.md</code>).</li>
+        <li><strong>Empty Virtual Pathways:</strong> Directory names containing zero active tracking files are not included in results since empty folders are structurally dropped by the system engine.</li>
       </ul>
 
       <div class="docs-pager">
@@ -162,7 +174,6 @@ $ curl https://myjay.net/api/sites/noah/files
     <span class="footnote">[2] v0.1.0-alpha, independently run.</span>
     <span class="footnote">[3] <a href="/status">Status</a> · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a></span>
   </footer>
-
   <script type="module" src="/assets/main.js"></script>
 </body>
 </html>
