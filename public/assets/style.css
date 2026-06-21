@@ -1020,8 +1020,132 @@ input:focus, textarea:focus, select:focus {
 
 .fm-toolbar-actions {
   display: flex;
-  gap: 0.3rem;
+  align-items: center;
+  gap: 0.4rem;
   flex-shrink: 0;
+}
+
+/* Upload split button: one visible "Upload" button for the common case
+   (files), a caret opens a menu for the secondary "upload folder" mode,
+   instead of two separate, equally-weighted buttons fighting for room. */
+.fm-dropdown {
+  position: relative;
+  display: inline-flex;
+}
+
+.fm-dropdown-caret {
+  display: inline-flex;
+  margin-left: 0.35em;
+  vertical-align: -1px;
+}
+
+.fm-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 0.3rem;
+  min-width: 170px;
+  background: var(--paper);
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--primary);
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+}
+
+.fm-dropdown-menu.hidden { display: none; }
+
+.fm-dropdown-menu button {
+  background: none;
+  border: none;
+  text-align: left;
+  padding: 0.55rem 0.8rem;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.fm-dropdown-menu button:hover,
+.fm-dropdown-menu button:focus {
+  background: var(--paper-alt);
+}
+
+/* Sub-toolbar: filter + sort, swapped out for the bulk action bar once
+   something is selected (see .fm-bulkbar below) rather than stacking both. */
+.fm-subtoolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.4rem 0.6rem;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.fm-subtoolbar.hidden { display: none; }
+
+.fm-selectall {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--font-ui);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.fm-selectall input { width: auto; margin: 0; }
+
+.fm-search-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 140px;
+  display: flex;
+  align-items: center;
+}
+
+.fm-search-icon {
+  position: absolute;
+  left: 0.6rem;
+  display: flex;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.fm-search-wrap input {
+  padding-left: 1.9rem;
+  font-size: 0.8rem;
+}
+
+#fm-sort {
+  width: auto;
+  flex-shrink: 0;
+  font-size: 0.78rem;
+  padding: 0.5em 0.6em;
+}
+
+/* Bulk action bar, shown instead of .fm-subtoolbar once 1+ rows are checked. */
+.fm-bulkbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding: 0.5rem 0.6rem;
+  border-bottom: 1px solid var(--border);
+  background: rgba(199, 82, 42, 0.06);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  font-size: 0.8rem;
+}
+
+.fm-bulkbar.hidden { display: none; }
+
+.fm-bulkbar-actions {
+  display: flex;
+  gap: 0.4rem;
 }
 
 /* File list scroll area */
@@ -1069,6 +1193,12 @@ input:focus, textarea:focus, select:focus {
 .fm-row.fm-active { background: rgba(59, 110, 143, 0.1); }
 .fm-row.fm-active:hover { background: rgba(59, 110, 143, 0.15); }
 
+.fm-row-check {
+  flex-shrink: 0;
+  width: auto;
+  margin: 0;
+}
+
 .fm-row-icon {
   flex-shrink: 0;
   width: 16px;
@@ -1103,16 +1233,46 @@ input:focus, textarea:focus, select:focus {
   padding-left: 0.5rem;
 }
 
+/* Always rendered (not hover-only): a row's actions only appearing on
+   hover meant they were unreachable on touch and could read as buttons
+   that had simply gone missing or were covered by something else. They
+   stay visible at all times now, just dimmed slightly until the row has
+   attention, the name column already reserves space for them via
+   flex:1 + min-width:0 + ellipsis so a long filename can't push under them. */
 .fm-row-actions {
-  display: none;
+  display: flex;
   gap: 0.2rem;
   flex-shrink: 0;
   margin-left: 0.25rem;
+  opacity: 0.6;
 }
 
 .fm-row:hover .fm-row-actions,
+.fm-row:focus-within .fm-row-actions,
 .fm-row.fm-active .fm-row-actions {
-  display: flex;
+  opacity: 1;
+}
+
+/* Compact square icon-only action (rename, delete): cheaper on row width
+   than a labelled .btn, which matters once a row can have 3-4 actions. */
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  padding: 0;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 0;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.icon-btn:hover {
+  background: var(--paper-alt);
+  border-color: var(--ink);
 }
 
 /* Right panel — editor and viewer share this shell */
@@ -1142,6 +1302,13 @@ input:focus, textarea:focus, select:focus {
   text-overflow: ellipsis;
   white-space: nowrap;
   flex: 1;
+}
+
+.fm-panel-tools {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  flex-shrink: 0;
 }
 
 .fm-viewer {
@@ -1260,6 +1427,44 @@ tr[data-clickable]:hover {
   font-family: var(--font-mono);
   font-size: 0.85rem;
 }
+
+/* Editor dark mode: a manual per-user toggle (the icon button in the
+   editor panel header), independent of the site's own light/dark
+   switching via prefers-color-scheme, someone may want a dark editor on
+   a light system or vice versa. CodeMirror themes don't participate in
+   that media query themselves, so these are the same dark-mode tokens
+   and brand accents used everywhere else, hardcoded rather than var(). */
+.cm-s-myjay-dark.CodeMirror {
+  background: #18161a;
+  color: #e8e2d9;
+}
+
+.cm-s-myjay-dark .CodeMirror-gutters {
+  background: #18161a;
+  border-right: 1px solid rgba(232, 226, 217, 0.1);
+}
+
+.cm-s-myjay-dark .CodeMirror-linenumber { color: #7a7068; }
+.cm-s-myjay-dark .CodeMirror-cursor { border-left: 1px solid #e8e2d9; }
+.cm-s-myjay-dark .CodeMirror-selected,
+.cm-s-myjay-dark .CodeMirror-focused .CodeMirror-selected { background: rgba(199, 82, 42, 0.28); }
+.cm-s-myjay-dark .CodeMirror-matchingbracket {
+  color: #d4a017 !important;
+  background: rgba(212, 160, 23, 0.15);
+}
+
+.cm-s-myjay-dark .cm-comment { color: #7a7068; font-style: italic; }
+.cm-s-myjay-dark .cm-string, .cm-s-myjay-dark .cm-string-2 { color: #5c7a3e; }
+.cm-s-myjay-dark .cm-number, .cm-s-myjay-dark .cm-atom { color: #d4a017; }
+.cm-s-myjay-dark .cm-keyword, .cm-s-myjay-dark .cm-tag { color: #c7522a; }
+.cm-s-myjay-dark .cm-variable, .cm-s-myjay-dark .cm-variable-2,
+.cm-s-myjay-dark .cm-variable-3, .cm-s-myjay-dark .cm-property,
+.cm-s-myjay-dark .cm-attribute { color: #3b6e8f; }
+.cm-s-myjay-dark .cm-def { color: #e8e2d9; }
+.cm-s-myjay-dark .cm-operator { color: #e8e2d9; }
+.cm-s-myjay-dark .cm-qualifier { color: #5c7a3e; }
+.cm-s-myjay-dark .cm-meta { color: #7a7068; }
+.cm-s-myjay-dark .cm-error { color: #f5f0e8; background: #b83232; }
 
 .chart-bars {
   display: flex;
