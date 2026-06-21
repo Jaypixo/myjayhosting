@@ -70,7 +70,7 @@
                 <button class="fm-crumb-btn">root</button>
               </nav>
               <div class="fm-toolbar-actions">
-                <button class="btn btn-ghost btn-sm" id="fm-new-folder-btn">New folder</button>
+                <button class="icon-btn icon-btn-toolbar" id="fm-new-folder-btn" type="button" title="New folder" aria-label="New folder"></button>
 
                 <div class="fm-dropdown" id="upload-dropdown">
                   <button class="btn btn-sm" id="upload-btn" aria-haspopup="true" aria-expanded="false">
@@ -84,14 +84,14 @@
                 <input type="file" id="file-input" multiple hidden>
                 <input type="file" id="folder-input" webkitdirectory multiple hidden>
 
-                <button class="btn btn-ghost btn-sm" id="fm-download-all-btn">Download .zip</button>
+                <button class="icon-btn icon-btn-toolbar" id="fm-download-all-btn" type="button" title="Download entire site as .zip" aria-label="Download entire site as .zip"></button>
               </div>
             </div>
 
             <div class="fm-subtoolbar" id="fm-subtoolbar">
-              <label class="fm-selectall">
+              <label class="fm-selectall" title="Select all">
                 <input type="checkbox" id="fm-select-all">
-                <span class="text-muted">Select all</span>
+                <span class="text-muted fm-selectall-label">Select all</span>
               </label>
               <div class="fm-search-wrap">
                 <span class="fm-search-icon" id="fm-search-icon"></span>
@@ -268,6 +268,8 @@
       font:   `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>`,
       pencil: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>`,
       trash:  `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>`,
+      folderPlus: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg>`,
+      download: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`,
       chevronDown: `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`,
       moon:   `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`,
       sun:    `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`,
@@ -465,6 +467,7 @@
         const name = document.createElement('span');
         name.className = 'fm-row-name';
         name.textContent = dirName;
+        name.title = dirName;
         name.style.cursor = 'pointer';
         row.addEventListener('click', (e) => {
           if (!e.target.closest('button')) navigateTo(dirPath);
@@ -501,13 +504,26 @@
         check.addEventListener('click', (e) => e.stopPropagation());
         check.addEventListener('change', () => toggleSelectKey(file.key, check.checked));
 
-        const icon = document.createElement('span');
-        icon.className = 'fm-row-icon';
-        icon.innerHTML = ICON[iconKey] || ICON.file;
+        let icon;
+        if (kind === 'image') {
+          icon = document.createElement('img');
+          icon.className = 'fm-row-thumb';
+          icon.src = `/api/site/preview?key=${encodeURIComponent(file.key)}`;
+          icon.loading = 'lazy';
+          icon.alt = '';
+          icon.addEventListener('error', () => {
+            icon.replaceWith(Object.assign(document.createElement('span'), { className: 'fm-row-icon', innerHTML: ICON.image }));
+          });
+        } else {
+          icon = document.createElement('span');
+          icon.className = 'fm-row-icon';
+          icon.innerHTML = ICON[iconKey] || ICON.file;
+        }
 
         const name = document.createElement('span');
         name.className = 'fm-row-name';
         name.textContent = file.name;
+        name.title = file.name;
 
         const size = document.createElement('span');
         size.className = 'fm-row-size';
@@ -851,6 +867,7 @@
     }
 
     function setupDownloadAll() {
+      document.getElementById('fm-download-all-btn').innerHTML = ICON.download;
       document.getElementById('fm-download-all-btn').addEventListener('click', () => {
         if (allFiles.filter((f) => !f.key.endsWith('/.keep')).length === 0) {
           showAlert('Nothing to download yet, upload some files first.');
@@ -890,7 +907,36 @@
       });
     }
 
+    // Escape backs out one level at a time (close editor/viewer, then drop
+    // selection) and Delete removes selected rows, same conventions as any
+    // OS file manager. Skipped entirely while a modal is open (it has its
+    // own Escape handling) or while the user is actually typing somewhere,
+    // so this never fights with the editor, the search box, or a prompt.
+    function setupKeyboardShortcuts() {
+      document.addEventListener('keydown', (e) => {
+        if (document.querySelector('.modal-overlay')) return;
+        if (!document.getElementById('files-tab').classList.contains('active')) return;
+
+        const tag = (e.target.tagName || '').toLowerCase();
+        const isTyping = tag === 'input' || tag === 'textarea' || tag === 'select' ||
+          e.target.isContentEditable || !!e.target.closest('.CodeMirror');
+
+        if (e.key === 'Escape') {
+          if (editingKey) { closeEditor(); return; }
+          if (viewingKey) { closeViewer(); return; }
+          if (!isTyping && selectedKeys.size > 0) { selectedKeys.clear(); renderFileManager(); }
+          return;
+        }
+
+        if (e.key === 'Delete' && !isTyping && selectedKeys.size > 0) {
+          e.preventDefault();
+          bulkDelete();
+        }
+      });
+    }
+
     function setupNewFolder() {
+      document.getElementById('fm-new-folder-btn').innerHTML = ICON.folderPlus;
       document.getElementById('fm-new-folder-btn').addEventListener('click', async () => {
         const name = await showPrompt('Folder name:', { title: 'New folder', placeholder: 'blog' });
         if (!name) return;
@@ -1117,6 +1163,7 @@
       setupDownloadAll();
       setupSearchSort();
       setupBulkBar();
+      setupKeyboardShortcuts();
       setupNewFolder();
       setupEditor();
       setupViewer();

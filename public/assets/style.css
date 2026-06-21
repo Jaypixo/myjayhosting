@@ -960,7 +960,7 @@ input:focus, textarea:focus, select:focus {
 }
 
 .fm-container.panel-open .fm-left {
-  flex: 0 0 260px;
+  flex: 0 0 280px;
   border-right: 1px solid var(--border);
 }
 
@@ -1099,10 +1099,15 @@ input:focus, textarea:focus, select:focus {
 
 .fm-selectall input { width: auto; margin: 0; }
 
+/* The label text is the first thing to go once the side panel is squeezed
+   to make room for the editor/viewer (.panel-open), the checkbox alone
+   (with its title="Select all" tooltip) still does the job in less space. */
+.fm-container.panel-open .fm-selectall-label { display: none; }
+
 .fm-search-wrap {
   position: relative;
   flex: 1;
-  min-width: 140px;
+  min-width: 90px;
   display: flex;
   align-items: center;
 }
@@ -1122,6 +1127,7 @@ input:focus, textarea:focus, select:focus {
 
 #fm-sort {
   width: auto;
+  max-width: 100%;
   flex-shrink: 0;
   font-size: 0.78rem;
   padding: 0.5em 0.6em;
@@ -1215,6 +1221,17 @@ input:focus, textarea:focus, select:focus {
 .fm-row-code .fm-row-icon { color: var(--secondary); opacity: 0.9; }
 .fm-row-img  .fm-row-icon { color: var(--tertiary); opacity: 0.9; }
 
+/* Image rows get an actual thumbnail instead of a generic icon, same
+   footprint as .fm-row-icon so the column stays aligned. */
+.fm-row-thumb {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  object-fit: cover;
+  border: 1px solid var(--border);
+  background: var(--paper-alt);
+}
+
 .fm-row-name {
   flex: 1;
   min-width: 0;
@@ -1272,6 +1289,15 @@ input:focus, textarea:focus, select:focus {
 
 .icon-btn:hover {
   background: var(--paper-alt);
+  border-color: var(--ink);
+}
+
+/* Toolbar-level icon buttons (new folder, download all) are the same
+   shape as row-level ones but sit on the toolbar's own paper-alt
+   background and stay at full opacity, they're not a hover reveal. */
+.icon-btn-toolbar {
+  width: 26px;
+  height: 26px;
   border-color: var(--ink);
 }
 
