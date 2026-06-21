@@ -26,6 +26,7 @@ The full reference lives under /docs. Each of these is its own page:
 - [Code editor](https://myjay.net/docs/code-editor): the in-browser editor, supported file types, saving
 - [Publishing](https://myjay.net/docs/publishing): exactly what the draft/live toggle changes
 - [How routing works](https://myjay.net/docs/routing): the precise request-to-file resolution logic for username.myjay.net
+- [Public files API](https://myjay.net/docs/public-api): GET /api/sites/:username/files, the public cross-origin endpoint for listing a published site's files
 - [File types & limits](https://myjay.net/docs/file-types-and-limits): the full allowed-extensions list, storage quota, upload ceiling
 - [Analytics](https://myjay.net/docs/analytics): what view tracking does and deliberately doesn't do
 - [Account & security](https://myjay.net/docs/account-and-security): username rules, password hashing, session handling
@@ -35,4 +36,5 @@ The full reference lives under /docs. Each of these is its own page:
 
 - Subdomains under myjay.net (e.g. someone.myjay.net) are independent, user-controlled sites. MyJay does not vet, moderate proactively, or vouch for their content.
 - The dashboard and admin panel require login and have no public content; please don't index them.
-- This is not a company. There's no enterprise plan, no API for third parties, and no affiliate program.
+- This is not a company. There's no enterprise plan and no affiliate program.
+- There is one public API: GET https://myjay.net/api/sites/:username/files, listing a published site's files. No key or login needed, open to requests from any origin. See https://myjay.net/docs/public-api.

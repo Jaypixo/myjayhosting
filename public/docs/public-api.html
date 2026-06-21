@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Public Files API | MyJay Docs</title>
+  <meta name="description" content="The public, cross-origin API for listing a published MyJay site's files: the endpoint, the response shape, and what it does and doesn't expose.">
+  <link rel="canonical" href="https://myjay.net/docs/public-api">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Public Files API | MyJay Docs">
+  <meta property="og:description" content="Ask, from any code anywhere, exactly what files a published MyJay site has.">
+  <meta property="og:url" content="https://myjay.net/docs/public-api">
+  <meta property="og:image" content="https://myjay.net/assets/img/logo.png">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Public Files API | MyJay Docs">
+  <meta name="twitter:description" content="Ask, from any code anywhere, exactly what files a published MyJay site has.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@1,300&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="/assets/img/favicon.png">
+  <link rel="stylesheet" href="/assets/style.css">
+</head>
+<body>
+  <header class="torn-header compact">
+    <div class="nav-auth" data-nav-auth>
+      <a href="/login" class="btn btn-sm btn-outline">Log in</a>
+      <a href="/register" class="btn btn-sm">Register</a>
+    </div>
+    <div class="logo">
+      <img src="/assets/img/logo.png" alt="MyJay.net" onerror="var s=this.nextElementSibling; this.remove(); s.style.display=''">
+      <span class="logo-fallback" style="display:none"><span class="myjay">MyJay</span><span class="dotnet">.net</span></span>
+    </div>
+    <nav class="nav">
+      <a href="/">Home</a>
+      <a href="/explore">Explore</a>
+      <a href="/docs">Docs</a>
+      <a href="/about">About</a>
+      <a href="/contact">Contact</a>
+    </nav>
+  </header>
+
+  <main class="docs-layout">
+    <aside class="docs-sidebar">
+      <p class="docs-sidebar-title">Documentation</p>
+      <nav class="docs-nav">
+        <a href="/docs">Overview</a>
+        <a href="/docs/getting-started">Getting started</a>
+        <a href="/docs/dashboard">The dashboard</a>
+        <a href="/docs/file-manager">File manager</a>
+        <a href="/docs/code-editor">Code editor</a>
+        <a href="/docs/publishing">Publishing</a>
+        <a href="/docs/routing">How routing works</a>
+        <a href="/docs/public-api" class="active">Public files API</a>
+        <a href="/docs/file-types-and-limits">File types &amp; limits</a>
+        <a href="/docs/analytics">Analytics</a>
+        <a href="/docs/account-and-security">Account &amp; security</a>
+        <a href="/docs/troubleshooting">Troubleshooting</a>
+      </nav>
+    </aside>
+
+    <div class="docs-content">
+      <span class="section-label">// docs / public files api</span>
+      <h1>The public files API.</h1>
+      <p class="text-muted">Ask, from any code running anywhere, exactly what files a published site has. No scraping required.</p>
+
+      <h2>The problem this solves</h2>
+      <p>
+        Outside of MyJay itself, there was no way to find out what's on a
+        published site short of fetching its rendered pages and parsing
+        whatever links happen to be in them, which misses anything not
+        linked from somewhere. This is a direct, structured answer instead:
+        give it a username, get back every file that site actually has.
+      </p>
+
+      <h2>The endpoint</h2>
+      <p>
+        <code>GET /api/sites/:username/files</code>, where
+        <code>:username</code> is the subdomain itself, the part before
+        <code>.myjay.net</code>, lowercase, no protocol.
+      </p>
+      <div class="terminal-log">
+$ curl https://myjay.net/api/sites/noah/files
+
+{"username":"noah","files":[
+  {"key":"index.html","size":1653,"modified":"2026-06-21T13:13:02.355Z"},
+  {"key":"styles.css","size":4448,"modified":"2026-06-21T13:13:02.641Z"},
+  {"key":"blog/post-1.html","size":6001,"modified":"2026-06-21T13:13:02.846Z"}
+]}
+      </div>
+
+      <h2>What you get back</h2>
+      <table>
+        <thead><tr><th>Field</th><th>Type</th><th>Meaning</th></tr></thead>
+        <tbody>
+          <tr><td><code>username</code></td><td>string</td><td>The username you asked about</td></tr>
+          <tr><td><code>files</code></td><td>array</td><td>Every file on the site, see below</td></tr>
+          <tr><td><code>files[].key</code></td><td>string</td><td>Path relative to the site root, e.g. <code>blog/post-1.html</code></td></tr>
+          <tr><td><code>files[].size</code></td><td>number</td><td>Size in bytes</td></tr>
+          <tr><td><code>files[].modified</code></td><td>string</td><td>ISO 8601 timestamp of when that file was last uploaded</td></tr>
+        </tbody>
+      </table>
+      <p class="text-muted">
+        Order isn't guaranteed, and folders aren't a separate concept here,
+        same as everywhere else on the platform, see <a href="/docs/file-manager">file manager</a>.
+        A <code>key</code> with a slash in it is just a file whose path
+        happens to contain one.
+      </p>
+
+      <h2>Only published sites are listed</h2>
+      <p>
+        This follows the exact same two-step check a browser hitting
+        <code>username.myjay.net</code> goes through, see
+        <a href="/docs/routing">how routing works</a> for the full version:
+      </p>
+      <table>
+        <thead><tr><th>Situation</th><th>Status</th><th>Body</th></tr></thead>
+        <tbody>
+          <tr><td>Username was never registered</td><td><code>404</code></td><td><code>"No site is registered at this subdomain"</code></td></tr>
+          <tr><td>Registered, but still in draft</td><td><code>403</code></td><td><code>"This site exists but has not been published"</code></td></tr>
+          <tr><td>Registered and published</td><td><code>200</code></td><td>the file listing</td></tr>
+        </tbody>
+      </table>
+      <p>
+        This isn't extra exposure beyond what already exists: it's the same
+        not-claimed-versus-not-published distinction anyone gets by just
+        visiting the subdomain directly, only as a status code instead of a
+        page. A draft site's contents are never listed, regardless of who's
+        asking.
+      </p>
+
+      <h2>No key, no session, any origin</h2>
+      <p>
+        Every other endpoint on the platform either needs you to be logged
+        in, or only accepts requests from <code>myjay.net</code> itself.
+        This one doesn't: no API key, no cookie, and it answers requests
+        from any origin, specifically so it's usable from a browser tab on
+        a completely different site, a build script, a bot, whatever's
+        asking. There's nothing to sign up for.
+      </p>
+
+      <h2>What's not included</h2>
+      <ul>
+        <li>File <strong>contents</strong>. This is a listing, not a download. To read a file, request it directly: <code>https://noah.myjay.net/blog/post-1.html</code> works exactly like it would for a visitor, see <a href="/docs/routing">how routing works</a>.</li>
+        <li>Empty-folder placeholders. Folders with nothing real in them don't produce an entry, there's nothing to list.</li>
+        <li>Anything about draft sites, including whether the username is registered at all versus just unpublished, that distinction only resolves once it's actually live, see the table above.</li>
+      </ul>
+
+      <div class="docs-pager">
+        <a class="prev" href="/docs/routing">
+          <span class="label">← Back</span>
+          How routing works
+        </a>
+        <a class="next" href="/docs/file-types-and-limits">
+          <span class="label">Next</span>
+          File types &amp; limits →
+        </a>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <span class="footnote">[1] No API key, no rate limit, in the current version. Be reasonable about it.</span>
+    <span class="footnote">[2] v0.1.0-alpha, independently run.</span>
+    <span class="footnote">[3] <a href="/status">Status</a> · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a></span>
+  </footer>
+
+  <script type="module" src="/assets/main.js"></script>
+</body>
+</html>

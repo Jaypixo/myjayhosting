@@ -91,4 +91,13 @@
 			<image:loc>https://myjay.net/assets/img/logo.png</image:loc>
 	</image:image>
 </url>
+<url>
+	<loc>https://myjay.net/docs/public-api</loc>
+	<lastmod>2026-06-21T00:00:00+01:00</lastmod>
+	<changefreq>monthly</changefreq>
+	<priority>0.7</priority>
+	<image:image>
+			<image:loc>https://myjay.net/assets/img/logo.png</image:loc>
+	</image:image>
+</url>
 </urlset>
