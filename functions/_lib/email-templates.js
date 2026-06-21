@@ -2,7 +2,7 @@
 // This is the ONLY way anything renders correctly across Gmail/Outlook/etc.
 // CSS classes and stylesheets get fucked by enough clients that it's not worth the risk.
 
-import { Marked } from './vendor/marked.js';
+import remarker from './vendor/remarker.js';
 
 const TERRACOTTA = '#c7522a';
 const INK = '#1a1716';
@@ -105,43 +105,29 @@ function button(url, label) {
   </table>`;
 }
 
-// Markdown for admin-composed bodies (one-off send, broadcast), via the real
-// `marked` library, not a hand-rolled subset. **bold**/*italic*/lists/etc.
-// render normally, and `breaks: true` turns single line breaks into <br>
-// so plain text typed without blank lines between paragraphs still looks
-// right, matching how the old plain-text composer behaved.
+// Markdown for admin-composed bodies (one-off send, broadcast), via
+// `remarker` (vendor/remarker.js), a from-scratch parser. **bold**/*italic*/
+// lists/etc. render normally, and `breaks: true` turns single line breaks
+// into <br> so plain text typed without blank lines between paragraphs
+// still looks right, matching how the old plain-text composer behaved.
 //
-// The only renderer override is `link`: a markdown link whose title is
-// literally "button" (`[Click here](https://example.com "button")`) renders
-// as the same terracotta CTA button used elsewhere in these templates,
-// instead of a plain inline link. Document this convention in the admin
-// Compose UI, it's not discoverable otherwise.
+// There's no "button" link convention here (remarker has no renderer-
+// override hook to hang one on, unlike the marked.js setup this replaced).
+// A CTA button is just raw HTML pasted directly into the body instead, see
+// the admin Compose UI's hint text for the exact snippet to copy. The
+// canned templates that used to rely on `[label](url "button")` now embed
+// that HTML directly, see migrate-005-email-templates.sql.
 //
-// Raw HTML in the body (an admin pasting their own <table> button, a <b>,
-// whatever) passes through untouched, marked doesn't sanitize by default
-// and this is intentionally left that way: only admins can reach this
-// composer, and they already have equivalent-or-greater trust elsewhere in
-// this panel (ban/delete users, delete sites). It's the same reasoning as
-// the SQL-injection note on broadcast segments not applying here, there's
-// no privilege boundary being crossed, an admin's own composed email is
-// already fully under their control.
-const markdown = new Marked({
-  gfm: true,
-  breaks: true,
-  renderer: {
-    link(token) {
-      const href = escapeHtml(token.href || '');
-      if ((token.title || '').trim().toLowerCase() === 'button') {
-        return button(href, token.text);
-      }
-      const label = this.parser.parseInline(token.tokens);
-      return `<a href="${href}" style="color:${TERRACOTTA};text-decoration:underline;">${label}</a>`;
-    },
-  },
-});
-
+// Raw HTML in the body (that button snippet, an admin's own <table>, a
+// <b>, whatever) passes through untouched, remarker doesn't sanitize by
+// default and this is intentionally left that way: only admins can reach
+// this composer, and they already have equivalent-or-greater trust
+// elsewhere in this panel (ban/delete users, delete sites). It's the same
+// reasoning as the SQL-injection note on broadcast segments not applying
+// here, there's no privilege boundary being crossed, an admin's own
+// composed email is already fully under their control.
 function renderMarkdown(source) {
-  return markdown.parse(String(source ?? ''));
+  return remarker.parse(String(source ?? ''), { gfm: true, breaks: true });
 }
 
 export function verifyEmail(token, signature) {

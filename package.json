@@ -15,7 +15,6 @@
     "mailer:deploy": "wrangler deploy --config mailer/wrangler.toml"
   },
   "devDependencies": {
-    "wrangler": "^3.78.0",
-    "marked": "^18.0.5"
+    "wrangler": "^3.78.0"
   }
 }

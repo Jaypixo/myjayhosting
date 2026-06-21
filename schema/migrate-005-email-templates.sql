@@ -23,7 +23,7 @@ INSERT OR IGNORE INTO email_templates (id, label, category, subject, body, creat
 
 Welcome aboard. Your site is live at your subdomain, and the dashboard is where you''ll upload files, manage settings, and publish when you''re ready.
 
-[Go to your dashboard](https://myjay.net/dashboard "button")
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0;"><tr><td style="background-color:#c7522a;"><a href="https://myjay.net/dashboard" style="display:inline-block;padding:12px 24px;font-family:''Courier New'', Courier, monospace;font-size:14px;color:#ffffff;text-decoration:none;">Go to your dashboard</a></td></tr></table>
 
 If anything''s unclear, the [docs](https://myjay.net/docs) cover the basics.', '2026-06-20T18:57:26.531Z', '2026-06-20T18:57:26.531Z');
 INSERT OR IGNORE INTO email_templates (id, label, category, subject, body, created_at, updated_at) VALUES ('suspended', 'Account suspended (temporary)', 'Account', 'Your MyJay.net account has been temporarily suspended', 'Hi %username,
@@ -37,7 +37,7 @@ INSERT OR IGNORE INTO email_templates (id, label, category, subject, body, creat
 
 Your account has been reinstated and %sitetitle is back online.
 
-[Visit your dashboard](https://myjay.net/dashboard "button")
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0;"><tr><td style="background-color:#c7522a;"><a href="https://myjay.net/dashboard" style="display:inline-block;padding:12px 24px;font-family:''Courier New'', Courier, monospace;font-size:14px;color:#ffffff;text-decoration:none;">Visit your dashboard</a></td></tr></table>
 
 Thanks for your patience.', '2026-06-20T18:57:26.531Z', '2026-06-20T18:57:26.531Z');
 INSERT OR IGNORE INTO email_templates (id, label, category, subject, body, created_at, updated_at) VALUES ('termination', 'Account termination notice', 'Account', 'Your MyJay.net account has been terminated', 'Hi %username,
@@ -85,21 +85,21 @@ INSERT OR IGNORE INTO email_templates (id, label, category, subject, body, creat
 
 We just shipped something new: **[describe the feature here]**.
 
-[Check it out](https://myjay.net/dashboard "button")
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0;"><tr><td style="background-color:#c7522a;"><a href="https://myjay.net/dashboard" style="display:inline-block;padding:12px 24px;font-family:''Courier New'', Courier, monospace;font-size:14px;color:#ffffff;text-decoration:none;">Check it out</a></td></tr></table>
 
 Let us know what you think.', '2026-06-20T18:57:26.531Z', '2026-06-20T18:57:26.531Z');
 INSERT OR IGNORE INTO email_templates (id, label, category, subject, body, created_at, updated_at) VALUES ('invite', 'Formal invitation to the platform', 'Engagement', 'An invitation to MyJay.net', 'Hello,
 
 You''re invited to claim your own corner of the web at MyJay.net: free static hosting, no trackers, no algorithm deciding what you see.
 
-[Claim your subdomain](https://myjay.net/register "button")
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0;"><tr><td style="background-color:#c7522a;"><a href="https://myjay.net/register" style="display:inline-block;padding:12px 24px;font-family:''Courier New'', Courier, monospace;font-size:14px;color:#ffffff;text-decoration:none;">Claim your subdomain</a></td></tr></table>
 
 No strings attached.', '2026-06-20T18:57:26.531Z', '2026-06-20T18:57:26.531Z');
 INSERT OR IGNORE INTO email_templates (id, label, category, subject, body, created_at, updated_at) VALUES ('reengagement', 'Re-engagement ("we miss you")', 'Engagement', 'We miss you on MyJay.net', 'Hi %username,
 
 It''s been a while since you last updated %sitetitle. Your site is still live, we just wanted to check in.
 
-[Visit your dashboard](https://myjay.net/dashboard "button")', '2026-06-20T18:57:26.531Z', '2026-06-20T18:57:26.531Z');
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0;"><tr><td style="background-color:#c7522a;"><a href="https://myjay.net/dashboard" style="display:inline-block;padding:12px 24px;font-family:''Courier New'', Courier, monospace;font-size:14px;color:#ffffff;text-decoration:none;">Visit your dashboard</a></td></tr></table>', '2026-06-20T18:57:26.531Z', '2026-06-20T18:57:26.531Z');
 INSERT OR IGNORE INTO email_templates (id, label, category, subject, body, created_at, updated_at) VALUES ('milestone', 'Milestone / thank you', 'Engagement', 'Thanks for being part of MyJay.net', 'Hi %username,
 
 [Describe the milestone here, e.g. "it''s been a year since you joined" or "MyJay.net just crossed some number of sites"].
@@ -109,7 +109,7 @@ INSERT OR IGNORE INTO email_templates (id, label, category, subject, body, creat
 
 You signed up but haven''t uploaded anything yet. Your subdomain is ready and waiting.
 
-[Get started](https://myjay.net/dashboard "button")
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0;"><tr><td style="background-color:#c7522a;"><a href="https://myjay.net/dashboard" style="display:inline-block;padding:12px 24px;font-family:''Courier New'', Courier, monospace;font-size:14px;color:#ffffff;text-decoration:none;">Get started</a></td></tr></table>
 
 The [docs](https://myjay.net/docs) walk through uploading your first file if you want a hand.', '2026-06-20T18:57:26.531Z', '2026-06-20T18:57:26.531Z');
 INSERT OR IGNORE INTO email_templates (id, label, category, subject, body, created_at, updated_at) VALUES ('admin_update', 'Update for fellow admins', 'Admin', 'Update for MyJay.net admins', 'Hi %username,
@@ -121,12 +121,12 @@ INSERT OR IGNORE INTO email_templates (id, label, category, subject, body, creat
 
 Your site (%sitetitle) is approaching its 50MB storage limit. Once you hit it, new uploads will be rejected until you free up space.
 
-[Manage your files](https://myjay.net/dashboard "button")', '2026-06-20T18:57:26.531Z', '2026-06-20T18:57:26.531Z');
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0;"><tr><td style="background-color:#c7522a;"><a href="https://myjay.net/dashboard" style="display:inline-block;padding:12px 24px;font-family:''Courier New'', Courier, monospace;font-size:14px;color:#ffffff;text-decoration:none;">Manage your files</a></td></tr></table>', '2026-06-20T18:57:26.531Z', '2026-06-20T18:57:26.531Z');
 INSERT OR IGNORE INTO email_templates (id, label, category, subject, body, created_at, updated_at) VALUES ('storage_reached', 'Storage limit reached', 'Storage & limits', '%sitetitle has reached its storage limit', 'Hi %username,
 
 %sitetitle has hit its 50MB storage limit. New uploads will be rejected until you free up space.
 
-[Manage your files](https://myjay.net/dashboard "button")
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0;"><tr><td style="background-color:#c7522a;"><a href="https://myjay.net/dashboard" style="display:inline-block;padding:12px 24px;font-family:''Courier New'', Courier, monospace;font-size:14px;color:#ffffff;text-decoration:none;">Manage your files</a></td></tr></table>
 
 Delete anything you don''t need, or get in touch if you think this is a mistake.', '2026-06-20T18:57:26.531Z', '2026-06-20T18:57:26.531Z');
 INSERT OR IGNORE INTO email_templates (id, label, category, subject, body, created_at, updated_at) VALUES ('policy_update', 'Terms update', 'Legal & policy', 'Updates to MyJay.net''s terms', 'Hi %username,
