@@ -715,13 +715,14 @@
       await loadUser();
     }
 
-    async function uploadFiles(fileList, useRelativePath = false) {
-      if (!fileList || fileList.length === 0) return;
+    // Shared tail end of every upload path: a list of { file, path } pairs
+    // (path already absolute, i.e. including currentPath) goes in one
+    // multipart request to the one upload endpoint everything funnels
+    // through (uploads, the "New file" button, saving an edited file).
+    async function uploadEntries(entries) {
+      if (!entries || entries.length === 0) return;
       const formData = new FormData();
-      for (const file of fileList) {
-        const path = useRelativePath && file.webkitRelativePath
-          ? currentPath + file.webkitRelativePath
-          : currentPath + file.name;
+      for (const { file, path } of entries) {
         formData.append('files', file, path);
       }
       const res = await apiFetch('/api/site/upload', { method: 'POST', body: formData });
@@ -729,6 +730,94 @@
       if (!res.ok) { await showAlert(data.error || 'Upload failed.'); return; }
       await loadFiles();
       await loadUser();
+    }
+
+    async function uploadFiles(fileList, useRelativePath = false) {
+      if (!fileList || fileList.length === 0) return;
+      const entries = [...fileList].map((file) => ({
+        file,
+        path: useRelativePath && file.webkitRelativePath
+          ? currentPath + file.webkitRelativePath
+          : currentPath + file.name,
+      }));
+      await uploadEntries(entries);
+    }
+
+    // Drag-and-drop folder support. A plain drop's e.dataTransfer.files is
+    // a flat FileList, files dropped as part of a folder don't carry
+    // webkitRelativePath the way an <input webkitdirectory> selection
+    // does (that property is specific to that input, not to drag-and-drop),
+    // so without this a dropped folder's files all land at the top level
+    // with the folder structure thrown away. Reading the real structure
+    // needs DataTransferItem.webkitGetAsEntry() and the FileSystemEntry
+    // API instead. Despite the vendor prefix this is supported in every
+    // current browser and is the de facto standard every drag-and-drop
+    // uploader uses for this, there's no unprefixed equivalent with the
+    // same support.
+    function entryToFile(fileEntry) {
+      return new Promise((resolve) => fileEntry.file(resolve));
+    }
+
+    function readAllDirEntries(dirEntry) {
+      return new Promise((resolve) => {
+        const reader = dirEntry.createReader();
+        const all = [];
+        // readEntries() doesn't guarantee the whole directory in one call,
+        // it has to be called repeatedly until it comes back empty.
+        function readBatch() {
+          reader.readEntries((batch) => {
+            if (batch.length === 0) { resolve(all); return; }
+            all.push(...batch);
+            readBatch();
+          }, () => resolve(all));
+        }
+        readBatch();
+      });
+    }
+
+    // Strictly one entry at a time, depth-first, no Promise.all anywhere
+    // in here. An earlier version resolved multiple FileSystemFileEntry
+    // .file() calls concurrently and that measurably paired some files
+    // with the wrong entry's content (two plain files dropped together
+    // would occasionally swap, e.g. index.html ending up holding
+    // style.css's bytes). A reproduction with mock entries under
+    // deliberately adversarial callback timing showed plain JS
+    // closures/Promise.all ordering isn't actually the culprit, which
+    // points at the browser's native .file() implementation itself
+    // misbehaving under concurrency rather than anything fixable at the
+    // JS level, so this just avoids ever calling it concurrently. Slower
+    // for a many-file folder drop, but correctness matters a lot more
+    // here than shaving off the wall-clock time.
+    async function walkEntry(entry, prefix, out) {
+      if (entry.isFile) {
+        const file = await entryToFile(entry);
+        out.push({ file, path: prefix + entry.name });
+        return;
+      }
+      if (entry.isDirectory) {
+        const children = await readAllDirEntries(entry);
+        for (const child of children) {
+          await walkEntry(child, prefix + entry.name + '/', out);
+        }
+      }
+    }
+
+    async function walkEntries(entries) {
+      const out = [];
+      for (const entry of entries) {
+        await walkEntry(entry, '', out);
+      }
+      return out;
+    }
+
+    // webkitGetAsEntry() has to be called synchronously, off the original
+    // drop event, for every item, before any of the async walking below.
+    // Browsers tear down the drag data store as soon as the event handler
+    // yields, so capturing the entries has to happen first, not lazily.
+    function getDroppedEntries(items) {
+      return [...items]
+        .map((item) => (typeof item.webkitGetAsEntry === 'function' ? item.webkitGetAsEntry() : null))
+        .filter(Boolean);
     }
 
     // A blank file created from the dashboard itself, rather than uploaded.
@@ -757,8 +846,15 @@
 
       await loadFiles();
       await loadUser();
-      const created = allFiles.find((f) => f.key === path);
-      if (created) openEditor(created);
+      // Not allFiles.find(...): that array's entries are the raw
+      // { key, size, modified } shape /api/site/files returns, with no
+      // .name. openEditor() reads file.name (for extOf() / CodeMirror mode
+      // detection) and would throw on undefined before ever calling
+      // cm.setValue(), silently aborting and leaving whatever the editor
+      // last had loaded on screen, looking exactly like the new file came
+      // pre-filled with the previous file's content. path/name are already
+      // right here, no lookup needed.
+      openEditor({ key: path, name });
     }
 
     // ── Editor ──────────────────────────────────────────────────────────────
@@ -937,7 +1033,28 @@
       ['dragleave', 'drop'].forEach((evt) =>
         dropEl.addEventListener(evt, (e) => { e.preventDefault(); dropEl.classList.remove('drag-over'); })
       );
-      dropEl.addEventListener('drop', (e) => uploadFiles(e.dataTransfer.files, false));
+      dropEl.addEventListener('drop', async (e) => {
+        const items = e.dataTransfer.items;
+        const entries = items ? getDroppedEntries(items) : [];
+
+        // Nothing resolved (no FileSystemEntry support in this browser),
+        // or a plain drop with no folder in it at all: the FileSystemEntry
+        // walk only exists to recover folder structure that
+        // dataTransfer.files can't see, a flat set of files doesn't need
+        // it and dataTransfer.files is the simpler, already-proven path
+        // (same one the file-input uploads use).
+        if (entries.length === 0 || !entries.some((entry) => entry.isDirectory)) {
+          uploadFiles(e.dataTransfer.files, false);
+          return;
+        }
+
+        const flat = (await walkEntries(entries)).map(({ file, path }) => ({ file, path: currentPath + path }));
+        if (flat.length === 0) {
+          await showAlert('Nothing to upload, the dropped folder appears to be empty.');
+          return;
+        }
+        await uploadEntries(flat);
+      });
     }
 
     function setupDownloadAll() {
