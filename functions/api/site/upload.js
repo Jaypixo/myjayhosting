@@ -1,5 +1,14 @@
 import { contentTypeFor, isAllowedFile, sanitizeFilePath, getStorageUsed } from '../../_lib/storage.js';
 import { json, errorResponse } from '../../_lib/auth.js';
+import { sendEmail } from '../../_lib/mailer.js';
+import { getEmailSignature } from '../../_lib/settings.js';
+import { storageWarning, storageLimitReached } from '../../_lib/email-templates.js';
+
+// Fires once per crossing, not on every upload made while already over a
+// threshold: an upload that lands above REACHED also satisfies WARN, but
+// only the more urgent one goes out for that request.
+const WARN_THRESHOLD = 0.8;
+const REACHED_THRESHOLD = 0.95;
 
 // Another upload endpoint.
 export async function onRequestPost(context) {
@@ -58,6 +67,19 @@ export async function onRequestPost(context) {
   await env.DB.prepare('UPDATE sites SET updated_at = ?, storage_bytes = ? WHERE user_id = ?')
     .bind(now, storageBytes, user.id)
     .run();
+
+  const beforeRatio = currentUsage / maxTotal;
+  const afterRatio = storageBytes / maxTotal;
+  const siteLabel = `${user.username}.myjay.net`;
+  if (beforeRatio < REACHED_THRESHOLD && afterRatio >= REACHED_THRESHOLD) {
+    const signature = await getEmailSignature(env);
+    const { subject, html } = storageLimitReached(siteLabel, signature);
+    await sendEmail(env, { to: user.email, type: 'storage_reached', subject, bodyHtml: html, userId: user.id });
+  } else if (beforeRatio < WARN_THRESHOLD && afterRatio >= WARN_THRESHOLD) {
+    const signature = await getEmailSignature(env);
+    const { subject, html } = storageWarning(siteLabel, Math.round(afterRatio * 100), signature);
+    await sendEmail(env, { to: user.email, type: 'storage_warning', subject, bodyHtml: html, userId: user.id });
+  }
 
   return json({ uploaded });
 }

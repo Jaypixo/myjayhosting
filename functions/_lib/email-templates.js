@@ -228,6 +228,74 @@ export function broadcastAnnouncement(subject, body, unsubscribeUrl, signature) 
   };
 }
 
+export function welcomeEmail(username, signature) {
+  const siteUrl = `https://${username}.myjay.net`;
+  const subject = 'Welcome to MyJay.net';
+  return {
+    subject,
+    html: baseLayout({
+      subject,
+      signature,
+      preheader: "You're verified, your subdomain is ready to go.",
+      bodyHtml: `
+        <p style="margin:0 0 16px;">You're verified. <strong>${escapeHtml(siteUrl)}</strong> is yours, upload something and publish whenever you're ready.</p>
+        ${button('https://myjay.net/dashboard', 'Go to your dashboard')}
+        <p style="margin:16px 0 0;font-size:13px;color:${MUTED};">The <a href="https://myjay.net/docs/getting-started" style="color:${TERRACOTTA};">getting started guide</a> walks through uploading your first file.</p>
+      `,
+    }),
+  };
+}
+
+export function storageWarning(siteLabel, percentUsed, signature) {
+  const subject = 'Your MyJay.net site is close to its storage limit';
+  return {
+    subject,
+    html: baseLayout({
+      subject,
+      signature,
+      preheader: `${siteLabel} is at ${percentUsed}% of its storage limit.`,
+      bodyHtml: `
+        <p style="margin:0 0 16px;"><strong>${escapeHtml(siteLabel)}</strong> is now at ${percentUsed}% of its 50MB storage limit. Once it's full, new uploads will be rejected until you free up space.</p>
+        ${button('https://myjay.net/dashboard', 'Manage your files')}
+      `,
+    }),
+  };
+}
+
+export function storageLimitReached(siteLabel, signature) {
+  const subject = `${siteLabel} has reached its storage limit`;
+  return {
+    subject,
+    html: baseLayout({
+      subject,
+      signature,
+      preheader: `${siteLabel} is full. New uploads will be rejected until you free up space.`,
+      bodyHtml: `
+        <p style="margin:0 0 16px;"><strong>${escapeHtml(siteLabel)}</strong> has hit its 50MB storage limit. New uploads will be rejected until you free up space.</p>
+        ${button('https://myjay.net/dashboard', 'Manage your files')}
+      `,
+    }),
+  };
+}
+
+export function sitePublished(username, signature) {
+  const url = `https://${username}.myjay.net`;
+  const subject = 'Your MyJay.net site is live';
+  return {
+    subject,
+    html: baseLayout({
+      subject,
+      signature,
+      preheader: `${url} is now live.`,
+      bodyHtml: `
+        <p style="margin:0 0 16px;"><strong>${escapeHtml(url)}</strong> is live now, anyone with the link can see it.</p>
+        ${button(url, 'View your site')}
+        <p style="margin:16px 0 0;font-size:13px;color:${MUTED};">You can unpublish any time from the dashboard, your files stay put either way.</p>
+      `,
+    }),
+  };
+}
+
 export function blogNotification(siteName, postTitle, postUrl, unsubscribeUrl, signature) {
   const subject = `${siteName} just posted: ${postTitle}`;
   return {

@@ -9,13 +9,23 @@
 // Bindings: DB (D1, same as the rest), RESEND_API_KEY (the fucking secret)
 
 // Shit that HAS to go out no matter what the recipient thinks.
-// Everything else gets gated by notification_prefs, but these three?
+// Everything else gets gated by notification_prefs, but these?
 // Nope. Can't opt out of 'your password got changed' emails, sorry.
-const TRANSACTIONAL_TYPES = new Set(['verify', 'reset', 'security_alert']);
+// welcome/storage_warning/storage_reached/site_published joined this list
+// for the same reason: each one is either a one-time direct response to
+// something the account holder just did (verifying, publishing) or an
+// operational heads-up they need regardless of preference (their uploads
+// are about to start failing). None of them are a recurring "category" of
+// mail the way broadcast/blog_notification are, so there's nothing to mute.
+const TRANSACTIONAL_TYPES = new Set([
+  'verify', 'reset', 'security_alert',
+  'welcome', 'storage_warning', 'storage_reached', 'site_published',
+]);
 
 const VALID_TYPES = new Set([
   'verify', 'reset', 'security_alert',
   'admin_message', 'broadcast', 'blog_notification',
+  'welcome', 'storage_warning', 'storage_reached', 'site_published',
 ]);
 
 const FROM_ADDRESS = 'MyJay.net <noreply@myjay.net>';

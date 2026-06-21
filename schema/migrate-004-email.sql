@@ -13,7 +13,7 @@ UPDATE users SET email_verified = 1;
 CREATE TABLE IF NOT EXISTS email_log (
   id TEXT PRIMARY KEY,            -- UUID
   recipient TEXT NOT NULL,
-  type TEXT NOT NULL,             -- verify | reset | security_alert | admin_message | broadcast | blog_notification
+  type TEXT NOT NULL,             -- verify | reset | security_alert | admin_message | broadcast | blog_notification | welcome | storage_warning | storage_reached | site_published
   subject TEXT NOT NULL,
   body_html TEXT,                 -- the rendered HTML that was sent, needed so POST /api/admin/email/resend/:logId has something to resend
   status TEXT NOT NULL DEFAULT 'queued', -- queued | sent | delivered | bounced | failed

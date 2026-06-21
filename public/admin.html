@@ -335,6 +335,19 @@
               <tbody id="email-templates-body"><tr><td colspan="4" class="text-muted">loading...</td></tr></tbody>
             </table>
           </div>
+
+          <h3 class="mt-2">System emails</h3>
+          <p class="text-muted">
+            These send automatically when their trigger happens, not from the composer above.
+            They're code, not editable here, but you can preview exactly what each one renders
+            with sample data.
+          </p>
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>Email</th><th>Trigger</th><th>Actions</th></tr></thead>
+              <tbody id="system-emails-body"></tbody>
+            </table>
+          </div>
         </div>
 
         <div id="email-log-panel" class="subtab-panel">
@@ -352,6 +365,10 @@
                 <option value="verify">Verify</option>
                 <option value="reset">Reset</option>
                 <option value="security_alert">Security alert</option>
+                <option value="welcome">Welcome</option>
+                <option value="storage_warning">Storage warning</option>
+                <option value="storage_reached">Storage limit reached</option>
+                <option value="site_published">Site published</option>
                 <option value="admin_message">Admin message</option>
                 <option value="broadcast">Broadcast</option>
                 <option value="blog_notification">Blog notification</option>
@@ -1423,6 +1440,57 @@
       labelInput.focus();
     }
 
+    // Automated, self-triggered emails, fixed (not loaded from the DB, this
+    // list mirrors what's actually wired up in code: see CLAUDE.md's Email
+    // Infrastructure section for the trigger sites). Preview renders each
+    // one with sample data through /api/admin/email/preview-system, the
+    // real template functions, never a hand-maintained copy of them.
+    const SYSTEM_EMAILS = [
+      { type: 'verify', label: 'Verify email', trigger: 'Right after registration.' },
+      { type: 'reset', label: 'Password reset', trigger: 'When a reset is requested from the login page.' },
+      { type: 'security_alert', label: 'Security alert', trigger: 'When a password changes.' },
+      { type: 'welcome', label: 'Welcome', trigger: 'Once, right after a new account verifies its email.' },
+      { type: 'storage_warning', label: 'Storage warning', trigger: 'First upload that pushes a site to 80% of its storage limit.' },
+      { type: 'storage_reached', label: 'Storage limit reached', trigger: 'First upload that pushes a site to 95% of its storage limit.' },
+      { type: 'site_published', label: 'Site published', trigger: 'First time a site is switched from draft to live.' },
+    ];
+
+    function renderSystemEmailsTable() {
+      const body = document.getElementById('system-emails-body');
+      body.innerHTML = '';
+      for (const e of SYSTEM_EMAILS) {
+        const tr = document.createElement('tr');
+
+        const previewBtn = document.createElement('button');
+        previewBtn.className = 'btn btn-ghost btn-sm';
+        previewBtn.textContent = 'Preview';
+        previewBtn.addEventListener('click', () => previewSystemEmail(e.type, previewBtn));
+
+        const actions = document.createElement('td');
+        actions.appendChild(previewBtn);
+
+        tr.appendChild(td(e.label));
+        tr.appendChild(td(e.trigger));
+        tr.appendChild(actions);
+        body.appendChild(tr);
+      }
+    }
+
+    async function previewSystemEmail(type, btn) {
+      btn.disabled = true;
+      const res = await apiFetch('/api/admin/email/preview-system', { method: 'POST', body: JSON.stringify({ type }) });
+      btn.disabled = false;
+      if (!res.ok) {
+        await showAlert('Could not render that preview.');
+        return;
+      }
+      const data = await res.json();
+      const blob = new Blob([data.html], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank', 'noopener');
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    }
+
     // Just for the confirm-before-sending dialog text, the segment select's
     // own <option> labels are the source of truth for the dropdown itself.
     const SEGMENT_LABELS = {
@@ -1802,6 +1870,7 @@
       viewerIsRootAdmin = Boolean(user.isRootAdmin);
       setupTabs();
       setupEmailTab();
+      renderSystemEmailsTable();
       await Promise.all([
         loadUsers(), loadSites(), loadContact(), loadStats(), loadSettings(),
         loadEmailStats(), loadEmailLogs(), loadEmailBounces(), loadEmailSignature(),

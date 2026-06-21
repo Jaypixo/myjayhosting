@@ -2,6 +2,10 @@
 // account verified and consumes the token in one shot, then shows a plain
 // result page. No JSON round-trip needed, this route does the work directly.
 
+import { sendEmail } from '../_lib/mailer.js';
+import { getEmailSignature } from '../_lib/settings.js';
+import { welcomeEmail } from '../_lib/email-templates.js';
+
 function page({ title, heading, message, ctaHref, ctaText }) {
   return `<!DOCTYPE html>
 <html lang="en">
@@ -56,6 +60,16 @@ export async function onRequestGet(context) {
 
   await env.DB.prepare('UPDATE users SET email_verified = 1 WHERE id = ?').bind(userId).run();
   await env.SESSIONS.delete(`verify:${token}`);
+
+  // Welcome email is a one-time thing, fired right off the back of
+  // verification succeeding rather than at signup, since signup is the
+  // moment we DON'T yet know the address is real.
+  const user = await env.DB.prepare('SELECT email, username FROM users WHERE id = ?').bind(userId).first();
+  if (user) {
+    const signature = await getEmailSignature(env);
+    const { subject, html: bodyHtml } = welcomeEmail(user.username, signature);
+    await sendEmail(env, { to: user.email, type: 'welcome', subject, bodyHtml, userId });
+  }
 
   const html = page({
     title: 'Email verified',
