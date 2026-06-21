@@ -1320,6 +1320,14 @@ input:focus, textarea:focus, select:focus {
   flex-shrink: 0;
 }
 
+.fm-panel-fname-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex: 1;
+  min-width: 0;
+}
+
 .fm-panel-fname {
   font-family: var(--font-mono);
   font-size: 0.78rem;
@@ -1327,7 +1335,16 @@ input:focus, textarea:focus, select:focus {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  flex: 1;
+  min-width: 0;
+}
+
+/* Shown next to the editor filename while there are unsaved edits, the
+   same dot-on-a-tab convention VS Code and most code editors use. */
+.fm-dirty-dot {
+  color: var(--primary);
+  font-size: 0.9rem;
+  line-height: 1;
+  flex-shrink: 0;
 }
 
 .fm-panel-tools {

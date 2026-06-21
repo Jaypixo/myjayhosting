@@ -311,6 +311,12 @@ Main: Files tab:
 - Publish toggle (big, obvious): *"Site is LIVE"* / *"Site is DRAFT"*, POST `/api/site/publish`
 - Code editor: clicking a file in the tree opens it in a simple `<textarea>` (or CodeMirror if you can load it from a CDN without npm) with a Save button
 
+This is the original Phase 1 sketch. The file manager actually built is
+considerably more than this (rename/move, multi-select, search/sort, a
+whole-site zip export, a unified upload control, an editor dark mode
+toggle), see the dedicated "Dashboard File Manager" section below for
+what's really there.
+
 Main: Settings tab:
 - Site title field
 - Bio field
@@ -352,6 +358,132 @@ Main: Settings tab:
 
 ### `about.html`
 Static page. Voice: dry, honest. Cover: what this is, what it isn't, the hosting limits (50MB, no server-side code, no databases for user sites), the ethos (indie web, no tracking, no ads on the platform itself). Include the roadmap for future features (blogs, guestbooks, ad network) framed as a dev log.
+
+---
+
+## Dashboard File Manager
+
+`public/dashboard.html`'s Files tab, expanded well past the Phase 1 sketch
+above. Still no separate files table (per Architecture Deep-Dive, R2 is
+enumerated directly), everything here is built from the same
+`GET /api/site/files` listing, plus three new endpoints under
+`functions/api/site/`: `download.js`, `rename.js`, and the writer they
+share, `functions/_lib/zip.js`.
+
+**One "New ▾" menu covers every creation action.** `#new-btn` opens
+`.fm-dropdown`'s menu (`#new-menu`): New file, New folder, Upload files,
+Upload folder, rather than several separate, equally-weighted toolbar
+buttons (an earlier pass had New folder as its own button alongside a
+separate Upload split-button; consolidating both creation paths into one
+menu, GitHub's "Add file" dropdown is the closest analog, freed up enough
+toolbar width that the squeezed 280px layout below stopped clipping
+controls off the edge). Drag-and-drop onto the file list still works
+independently of this menu. **New file** (`createNewFile()`) doesn't need
+its own endpoint, it's a zero-byte `File` pushed through the same
+`POST /api/site/upload` everything else uses, then opens straight into
+the editor, same flow as GitHub's "Create new file."
+
+**Row actions are always visible, not hover-only.** They used to be
+`display: none` until `:hover`, which made them unreachable on touch and
+could read as buttons that had simply gone missing. They're rendered at
+all times now (just dimmed to 0.6 opacity at rest, full opacity on
+hover/focus, see `.fm-row-actions` in `style.css`), and are icon-only
+(`.icon-btn`, pencil/trash) rather than labelled `.btn`s so a row with
+3-4 actions doesn't run out of width. The filename column keeps its
+`flex: 1; min-width: 0` + ellipsis, so a long name truncates instead of
+ever pushing into the action icons. Folder rows show a recursive item
+count (`N items`, `.keep` placeholders not counted) in the same column a
+file row uses for its size, for the same "how much is actually in here"
+reason a real file manager shows it.
+
+**The side panel only ever opens when something is actually showing in
+it.** `setPanelOpen(true/false)` toggles `.fm-container`'s `panel-open`
+class, which is what squeezes `.fm-left` down to 280px to make room for
+the editor/viewer. `closeEditor()`/`closeViewer()` each take a
+`closePanelIfEmpty` flag (default `true`) and only call
+`setPanelOpen(false)` once *both* are confirmed closed, so closing one
+while the other is still open doesn't collapse the panel out from under
+it. Every call site that closes both at once (`navigateTo()`,
+`renameEntry()`, `deleteFolder()`) must call them with that default,
+*not* `closeEditor(false)`: passing `false` was tried for navigation and
+rename and was wrong, it suppressed `setPanelOpen(false)` unconditionally
+since neither call alone could ever see "both are closed", leaving an
+empty, still-squeezed panel open with nothing rendered inside it after
+navigating away from an open file. If you add a new call site that closes
+both, use the plain default-argument calls, not `false`.
+
+**Rename doubles as move.** `POST /api/site/rename` (`{ from, to }`) is a
+copy-then-delete, R2 has no native rename. The dashboard's rename prompt
+(pencil icon, both file and folder rows) pre-fills the current relative
+path and lets the user edit the whole thing, so changing the directory
+portion *is* how something moves, there's no separate move UI, no
+drag-to-a-folder interaction to maintain. Folder rename detects "folder"
+by absence: an `env.SITES.head()` hit on the exact key means it's a single
+file; no hit means `from` is treated as a prefix and every object beneath
+it gets remapped. Moving a folder inside itself is rejected
+(`newDirPrefix.startsWith(dirPrefix)`), and landing on an existing file
+path is rejected with 409, both before anything is written.
+
+**Multi-select and bulk actions.** Each file row (not folder rows, those
+keep their own "Delete all") gets a checkbox; checking one swaps the
+`.fm-subtoolbar` (search + sort) for `.fm-bulkbar` ("N selected · Download
+· Delete · Clear") rather than showing both at once. Selection is scoped
+to the current, currently-filtered folder view on purpose: navigating to
+a different folder clears it, and `renderFileManager()` prunes any
+selected key that's no longer visible (deleted, renamed, filtered out) on
+every render, so the count can never silently include something the user
+can no longer see or act on.
+
+**Search and sort.** `#fm-search` filters the current folder's rows
+client-side by substring match on name (matches a folder by its own name
+too, not its contents); `#fm-sort` is Name / Size (largest first) / Type.
+Both are purely client-side over the already-fetched `allFiles` listing,
+no new endpoint.
+
+**Whole-site export.** `GET /api/site/download` zips every object under
+`sites/{username}/` (skipping `.keep` placeholder files, see Architecture
+Deep-Dive on empty-folder markers) and returns it as
+`{username}-myjay-site.zip`. Repeat `?key=` to zip a subset instead, the
+bulk-selection "Download" button and the toolbar's "Download .zip" button
+(whole site) both hit this same endpoint, one with keys, one without.
+`functions/_lib/zip.js` is a from-scratch, dependency-free ZIP writer
+(stored/uncompressed entries, hand-rolled CRC32 and the three classic
+PKZIP records), for the same reason `marked` had to be vendored instead of
+bare-imported (see Email Infrastructure, above): this project doesn't run
+`npm install` at deploy time, so a real zip library would hit the exact
+same "Could not resolve" build failure. Each object is fetched with its
+own `env.SITES.get()` subrequest; Workers' free-plan cap (50 subrequests
+per request) means a site with more than ~50 files can't be exported in
+one shot there, paid plans get 1000. Not worth pagination/streaming
+complexity for a feature bounded by a 50MB-total quota.
+
+**Editor dark mode.** A manual toggle (moon/sun icon button in the editor
+panel header, `#editor-theme-btn`), independent of the site's own
+light/dark switching via `prefers-color-scheme`, since someone may want a
+dark editor on a light system or vice versa. Persisted in `localStorage`
+(`myjay-editor-dark`). Swaps the CodeMirror `theme` option between
+`default` and `myjay-dark`, a theme defined in `style.css`
+(`.cm-s-myjay-dark`) using the same dark-mode tokens and brand accent
+colors as the rest of the site, hardcoded rather than `var(...)` since
+CodeMirror themes don't participate in the `prefers-color-scheme` query
+themselves.
+
+**Unsaved changes can't be silently discarded.** `editorDirty` flips true
+on the editor's first real edit (a CodeMirror `change` event;
+`suppressDirtyEvent` is set around the `setValue()` call that loads a
+file, so loading content doesn't count as "the user changed something")
+and shows a dot next to the filename (`#editor-dirty-dot`, the same
+dot-on-a-tab convention most code editors use). `confirmDiscardIfDirty()`
+is the one gate everything funnels through: opening a different file,
+opening the viewer, navigating to another folder, renaming the open file,
+or clicking the editor's own Close button all call it first and bail out
+if the user cancels. It's a no-op (resolves `true` immediately) whenever
+nothing is open or nothing is dirty, so it never prompts when there's
+genuinely nothing to lose. A `beforeunload` listener covers the
+tab-close/refresh case the same way. Deleting the open file (single or
+via bulk/folder delete) does *not* go through this gate, the delete
+confirmation the user already clicked through covers it, a second "discard
+changes" prompt on top would be redundant.
 
 ---
 
@@ -442,6 +574,8 @@ PATCH /api/user/notification-prefs  { broadcast?, blogNotification? } → { broa
 GET  /api/site/files         → { files: [{ key, size, modified }] }
 POST /api/site/upload        multipart/form-data → { uploaded: [filenames] }
 DELETE /api/site/delete      { key } → { ok }
+POST /api/site/rename        { from, to } → { ok }  (copy+delete; also how a file/folder moves)
+GET  /api/site/download      ?key= (repeatable, omit for whole site) → application/zip
 POST /api/site/publish       { published: bool } → { ok }
 
 GET  /api/explore            → { sites: [{ username, siteTitle, updatedAt, viewCount }] }
@@ -746,6 +880,61 @@ this is the one auth surface that must never confirm or deny an email's
 existence. Reset tokens live under `reset:{token}` in KV, 1h TTL. A
 successful reset fires a `security_alert` email (always sends, transactional)
 with the requesting IP and a rough location from `request.cf`.
+
+### Automated lifecycle emails
+
+Four more `email_log` types beyond `verify`/`reset`/`security_alert`, all
+fired by the platform itself off a real event, no admin composes or
+triggers any of these. All four are transactional (`TRANSACTIONAL_TYPES`
+in `mailer/mailer.js`, same set `verify`/`reset`/`security_alert` already
+sit in), they're either a one-time response to something the account
+holder just did, or an operational heads-up they can't usefully opt out
+of, neither is the kind of recurring "category" `notification_prefs`
+exists to gate (that's `broadcast`/`blog_notification` only, see
+"Notification preferences" below).
+
+- **`welcome`** (`welcomeEmail()` in `email-templates.js`): sent once,
+  from `functions/auth/verify.js` right after a token successfully flips
+  `email_verified` to `1`. Fired off verification rather than signup on
+  purpose, signup is the one moment we don't yet know the address is real.
+  Admin bootstrap signups (`ADMIN_EMAIL`) skip `/auth/verify` entirely
+  (see Auth integration, above) so they never get one, consistent with
+  every other bypass that account already has.
+- **`storage_warning`** / **`storage_reached`** (`storageWarning()` /
+  `storageLimitReached()`): sent from `functions/api/site/upload.js`,
+  comparing storage-used-before-this-upload against
+  storage-used-after against two fixed thresholds (`WARN_THRESHOLD = 0.8`,
+  `REACHED_THRESHOLD = 0.95` of `MAX_UPLOAD_BYTES`). Each only fires the
+  *first* upload that crosses its threshold, not every subsequent upload
+  made while already over it, otherwise sitting above 80% would email the
+  user on every single small file they add. If one upload crosses both
+  thresholds at once, only `storage_reached` sends, it's the more urgent
+  of the two and sending both for the same upload would be noise. Crossing
+  back down (deleting files) and back up again re-fires, that's intentional.
+  These are separate from the similarly-named `storage_warning` /
+  `storage_reached` rows in the canned `email_templates` table, those are
+  admin-composed starting text for a *manual* one-off `admin_message`,
+  this is the fully automatic path, different `type` tag, different code
+  path, no relationship between the two beyond covering the same scenario.
+- **`site_published`** (`sitePublished()`): sent from
+  `functions/api/site/publish.js`, only on the `published` 0 → 1
+  transition (the route reads the row's current `published` value before
+  writing the new one specifically to detect this), not on every toggle,
+  so flipping it on and off while testing doesn't spam the inbox.
+
+All four route through the existing `sendEmail()` / mailer / `email_log`
+pipeline exactly like every other type, so they're logged, searchable,
+and resendable from the admin Log tab for free, no special-casing needed
+there. The Email tab's **Templates** sub-tab has a **System emails** card
+listing all the automated types (the three above plus `verify`/`reset`/
+`security_alert`) with a **Preview** button per row, calling
+`POST /api/admin/email/preview-system` (`{ type }` →`{ subject, html }`),
+which renders that exact template function with sample data the same way
+`/api/admin/email/preview` does for admin-composed mail. This is
+read-only, code is the source of truth here, not a database row, so
+there's nothing to edit or save, the point is just letting an admin see
+what a given trigger actually sends without waiting for a real signup,
+upload, or publish to set one off.
 
 ### Unsubscribe (`functions/_lib/unsubscribe.js`, `functions/unsubscribe.js`)
 

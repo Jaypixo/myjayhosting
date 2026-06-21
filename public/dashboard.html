@@ -70,13 +70,13 @@
                 <button class="fm-crumb-btn">root</button>
               </nav>
               <div class="fm-toolbar-actions">
-                <button class="icon-btn icon-btn-toolbar" id="fm-new-folder-btn" type="button" title="New folder" aria-label="New folder"></button>
-
-                <div class="fm-dropdown" id="upload-dropdown">
-                  <button class="btn btn-sm" id="upload-btn" aria-haspopup="true" aria-expanded="false">
-                    Upload <span class="fm-dropdown-caret" id="fm-upload-caret"></span>
+                <div class="fm-dropdown" id="new-dropdown">
+                  <button class="btn btn-sm" id="new-btn" aria-haspopup="true" aria-expanded="false">
+                    New <span class="fm-dropdown-caret" id="fm-new-caret"></span>
                   </button>
-                  <div class="fm-dropdown-menu hidden" id="upload-menu" role="menu">
+                  <div class="fm-dropdown-menu hidden" id="new-menu" role="menu">
+                    <button type="button" role="menuitem" id="new-file-item">New file</button>
+                    <button type="button" role="menuitem" id="new-folder-item">New folder</button>
                     <button type="button" role="menuitem" id="upload-files-item">Upload files</button>
                     <button type="button" role="menuitem" id="upload-folder-item">Upload folder</button>
                   </div>
@@ -135,7 +135,10 @@
 
             <div id="editor-panel" class="fm-panel hidden">
               <div class="fm-panel-header">
-                <span class="fm-panel-fname" id="editor-filename"></span>
+                <span class="fm-panel-fname-wrap">
+                  <span class="fm-panel-fname" id="editor-filename"></span>
+                  <span class="fm-dirty-dot hidden" id="editor-dirty-dot" title="Unsaved changes">●</span>
+                </span>
                 <div class="fm-panel-tools">
                   <span class="text-ok hidden" id="editor-saved-msg">Saved.</span>
                   <button class="icon-btn" id="editor-theme-btn" type="button" title="Toggle editor dark mode" aria-label="Toggle editor dark mode"></button>
@@ -268,7 +271,6 @@
       font:   `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>`,
       pencil: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>`,
       trash:  `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>`,
-      folderPlus: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg>`,
       download: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`,
       chevronDown: `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`,
       moon:   `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`,
@@ -283,6 +285,8 @@
     let viewingKey = null;
     let editor = null;
     let editorDark = localStorage.getItem('myjay-editor-dark') === '1';
+    let editorDirty = false;
+    let suppressDirtyEvent = false;
     const selectedKeys = new Set();
     let sortMode = 'name';
     let searchQuery = '';
@@ -299,8 +303,27 @@
           theme: editorDark ? 'myjay-dark' : 'default',
           extraKeys: { 'Ctrl-S': saveFile, 'Cmd-S': saveFile },
         });
+        // setValue() (loading a file) also fires "change", suppressDirtyEvent
+        // is how openEditor() tells this listener "this one doesn't count".
+        editor.on('change', () => { if (!suppressDirtyEvent) setEditorDirty(true); });
       }
       return editor;
+    }
+
+    function setEditorDirty(value) {
+      editorDirty = value;
+      document.getElementById('editor-dirty-dot').classList.toggle('hidden', !value);
+    }
+
+    // Gate for anything that would throw away the editor's content: opening
+    // a different file, navigating, closing the panel. Resolves true when
+    // it's safe to proceed (nothing open, nothing unsaved, or the user
+    // explicitly chose to discard), false when the caller should abort.
+    async function confirmDiscardIfDirty() {
+      if (!editingKey || !editorDirty) return true;
+      return showConfirm('You have unsaved changes in the editor. Discard them?', {
+        title: 'Unsaved changes', confirmText: 'Discard', danger: true,
+      });
     }
 
     function updateEditorThemeBtn() {
@@ -473,6 +496,11 @@
           if (!e.target.closest('button')) navigateTo(dirPath);
         });
 
+        const itemCount = allFiles.filter((f) => f.key.startsWith(dirPath) && !f.key.endsWith('/.keep')).length;
+        const count = document.createElement('span');
+        count.className = 'fm-row-size';
+        count.textContent = itemCount === 1 ? '1 item' : `${itemCount} items`;
+
         const actions = document.createElement('div');
         actions.className = 'fm-row-actions';
         actions.appendChild(makeIconBtn('pencil', 'Rename or move this folder', () => renameEntry(dirRelPath, true)));
@@ -484,6 +512,7 @@
 
         row.appendChild(icon);
         row.appendChild(name);
+        row.appendChild(count);
         row.appendChild(actions);
         listEl.appendChild(row);
       }
@@ -569,13 +598,14 @@
       updateSelectAllCheckbox();
     }
 
-    function navigateTo(path) {
+    async function navigateTo(path) {
+      if (!(await confirmDiscardIfDirty())) return;
       currentPath = path;
       selectedKeys.clear();
       searchQuery = '';
       document.getElementById('fm-search').value = '';
-      closeEditor(false);
-      closeViewer(false);
+      closeEditor();
+      closeViewer();
       renderFileManager();
     }
 
@@ -630,6 +660,8 @@
     // ── Rename / move ───────────────────────────────────────────────────────
 
     async function renameEntry(relPath, isFolder) {
+      if (relPath === editingKey && !(await confirmDiscardIfDirty())) return;
+
       const newPath = await showPrompt('New path (edit the folder portion to move it):', {
         title: isFolder ? 'Rename / move folder' : 'Rename / move file',
         defaultValue: relPath,
@@ -642,8 +674,8 @@
         await showAlert(d.error || 'Rename failed.');
         return;
       }
-      if (editingKey === relPath) closeEditor(false);
-      if (viewingKey === relPath) closeViewer(false);
+      if (editingKey === relPath) closeEditor();
+      if (viewingKey === relPath) closeViewer();
       selectedKeys.clear();
       await loadFiles();
     }
@@ -676,6 +708,8 @@
       for (const f of targets) {
         await apiFetch('/api/site/delete', { method: 'DELETE', body: JSON.stringify({ key: f.key }) });
         selectedKeys.delete(f.key);
+        if (editingKey === f.key) closeEditor();
+        if (viewingKey === f.key) closeViewer();
       }
       await loadFiles();
       await loadUser();
@@ -697,10 +731,41 @@
       await loadUser();
     }
 
+    // A blank file created from the dashboard itself, rather than uploaded.
+    // Goes through the same upload endpoint as everything else (an empty
+    // File object), then opens straight into the editor, same flow as
+    // GitHub's "Create new file".
+    async function createNewFile() {
+      const name = await showPrompt('File name:', { title: 'New file', placeholder: 'untitled.html' });
+      if (!name) return;
+      if (!/^[a-zA-Z0-9._-]+$/.test(name)) {
+        await showAlert('File name can only contain letters, numbers, hyphens, underscores, and dots.');
+        return;
+      }
+      const path = currentPath + name;
+      if (allFiles.some((f) => f.key === path)) {
+        await showAlert('A file already exists at that path.');
+        return;
+      }
+
+      const file = new File([''], path, { type: 'text/plain' });
+      const formData = new FormData();
+      formData.append('files', file, path);
+      const res = await apiFetch('/api/site/upload', { method: 'POST', body: formData });
+      const data = await res.json();
+      if (!res.ok) { await showAlert(data.error || 'Could not create that file.'); return; }
+
+      await loadFiles();
+      await loadUser();
+      const created = allFiles.find((f) => f.key === path);
+      if (created) openEditor(created);
+    }
+
     // ── Editor ──────────────────────────────────────────────────────────────
 
     async function openEditor(file) {
       if (editingKey === file.key) return;
+      if (!(await confirmDiscardIfDirty())) return;
       const res = await apiFetch(`/api/site/file?key=${encodeURIComponent(file.key)}`);
       if (!res.ok) { await showAlert('Could not load that file.'); return; }
       const data = await res.json();
@@ -716,9 +781,12 @@
 
       const cm = getEditor();
       const ext = extOf(file.name);
+      suppressDirtyEvent = true;
       cm.setValue(data.content);
+      suppressDirtyEvent = false;
       cm.setOption('mode', CM_MODE_BY_EXT[ext] ?? null);
       cm.clearHistory();
+      setEditorDirty(false);
       setTimeout(() => { cm.refresh(); cm.focus(); }, 50);
 
       refreshActiveRow();
@@ -726,6 +794,7 @@
 
     function closeEditor(closePanelIfEmpty = true) {
       editingKey = null;
+      setEditorDirty(false);
       document.getElementById('editor-panel').classList.add('hidden');
       document.getElementById('editor-saved-msg').classList.add('hidden');
       if (closePanelIfEmpty && !viewingKey) setPanelOpen(false);
@@ -740,6 +809,7 @@
       formData.append('files', file, editingKey);
       const res = await apiFetch('/api/site/upload', { method: 'POST', body: formData });
       if (!res.ok) { await showAlert('Save failed.'); return; }
+      setEditorDirty(false);
       const msg = document.getElementById('editor-saved-msg');
       msg.classList.remove('hidden');
       setTimeout(() => msg.classList.add('hidden'), 1500);
@@ -749,10 +819,12 @@
 
     // ── Image viewer ─────────────────────────────────────────────────────────
 
-    function openViewer(file) {
+    async function openViewer(file) {
       if (viewingKey === file.key) return;
+      if (!(await confirmDiscardIfDirty())) return;
 
       editingKey = null;
+      setEditorDirty(false);
       document.getElementById('editor-panel').classList.add('hidden');
 
       viewingKey = file.key;
@@ -822,34 +894,36 @@
 
     // ── Setup ────────────────────────────────────────────────────────────────
 
-    // One "Upload" button covers the common case (files) directly; the
-    // caret opens a small menu for the less common "upload folder" so the
-    // toolbar doesn't need two separate, equally-weighted buttons for what
-    // is really one action with a secondary mode.
-    function setupUpload() {
-      document.getElementById('fm-upload-caret').innerHTML = ICON.chevronDown;
+    // One "New ▾" menu covers everything that adds something to the current
+    // folder (new file, new folder, upload files, upload folder), the same
+    // role GitHub's "Add file" dropdown plays, rather than several
+    // separate, equally-weighted toolbar buttons competing for room.
+    function setupNewMenu() {
+      document.getElementById('fm-new-caret').innerHTML = ICON.chevronDown;
 
       const fileInput = document.getElementById('file-input');
       const folderInput = document.getElementById('folder-input');
-      const menu = document.getElementById('upload-menu');
-      const uploadBtn = document.getElementById('upload-btn');
+      const menu = document.getElementById('new-menu');
+      const newBtn = document.getElementById('new-btn');
 
       function closeMenu() {
         menu.classList.add('hidden');
-        uploadBtn.setAttribute('aria-expanded', 'false');
+        newBtn.setAttribute('aria-expanded', 'false');
       }
 
-      uploadBtn.addEventListener('click', (e) => {
+      newBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         const isOpen = !menu.classList.contains('hidden');
         menu.classList.toggle('hidden', isOpen);
-        uploadBtn.setAttribute('aria-expanded', String(!isOpen));
+        newBtn.setAttribute('aria-expanded', String(!isOpen));
       });
       document.addEventListener('click', (e) => {
-        if (!e.target.closest('#upload-dropdown')) closeMenu();
+        if (!e.target.closest('#new-dropdown')) closeMenu();
       });
       document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMenu(); });
 
+      document.getElementById('new-file-item').addEventListener('click', () => { closeMenu(); createNewFile(); });
+      document.getElementById('new-folder-item').addEventListener('click', () => { closeMenu(); createNewFolder(); });
       document.getElementById('upload-files-item').addEventListener('click', () => { closeMenu(); fileInput.click(); });
       document.getElementById('upload-folder-item').addEventListener('click', () => { closeMenu(); folderInput.click(); });
 
@@ -913,7 +987,7 @@
     // own Escape handling) or while the user is actually typing somewhere,
     // so this never fights with the editor, the search box, or a prompt.
     function setupKeyboardShortcuts() {
-      document.addEventListener('keydown', (e) => {
+      document.addEventListener('keydown', async (e) => {
         if (document.querySelector('.modal-overlay')) return;
         if (!document.getElementById('files-tab').classList.contains('active')) return;
 
@@ -922,7 +996,7 @@
           e.target.isContentEditable || !!e.target.closest('.CodeMirror');
 
         if (e.key === 'Escape') {
-          if (editingKey) { closeEditor(); return; }
+          if (editingKey) { if (await confirmDiscardIfDirty()) closeEditor(); return; }
           if (viewingKey) { closeViewer(); return; }
           if (!isTyping && selectedKeys.size > 0) { selectedKeys.clear(); renderFileManager(); }
           return;
@@ -933,32 +1007,38 @@
           bulkDelete();
         }
       });
-    }
 
-    function setupNewFolder() {
-      document.getElementById('fm-new-folder-btn').innerHTML = ICON.folderPlus;
-      document.getElementById('fm-new-folder-btn').addEventListener('click', async () => {
-        const name = await showPrompt('Folder name:', { title: 'New folder', placeholder: 'blog' });
-        if (!name) return;
-        if (!/^[a-zA-Z0-9._-]+$/.test(name)) {
-          await showAlert('Folder name can only contain letters, numbers, hyphens, underscores, and dots.');
-          return;
-        }
-        const res = await apiFetch('/api/site/folder', {
-          method: 'POST',
-          body: JSON.stringify({ name, path: currentPath }),
-        });
-        if (!res.ok) {
-          const d = await res.json().catch(() => ({}));
-          await showAlert(d.error || 'Could not create folder.');
-          return;
-        }
-        await loadFiles();
+      // Standard "you'll lose your edits" browser-level guard, in case the
+      // tab itself gets closed/refreshed/navigated away from, not just
+      // in-app navigation (which confirmDiscardIfDirty already covers).
+      window.addEventListener('beforeunload', (e) => {
+        if (editorDirty) { e.preventDefault(); e.returnValue = ''; }
       });
     }
 
+    async function createNewFolder() {
+      const name = await showPrompt('Folder name:', { title: 'New folder', placeholder: 'blog' });
+      if (!name) return;
+      if (!/^[a-zA-Z0-9._-]+$/.test(name)) {
+        await showAlert('Folder name can only contain letters, numbers, hyphens, underscores, and dots.');
+        return;
+      }
+      const res = await apiFetch('/api/site/folder', {
+        method: 'POST',
+        body: JSON.stringify({ name, path: currentPath }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        await showAlert(d.error || 'Could not create folder.');
+        return;
+      }
+      await loadFiles();
+    }
+
     function setupEditor() {
-      document.getElementById('close-editor-btn').addEventListener('click', () => closeEditor());
+      document.getElementById('close-editor-btn').addEventListener('click', async () => {
+        if (await confirmDiscardIfDirty()) closeEditor();
+      });
       document.getElementById('save-btn').addEventListener('click', saveFile);
       document.getElementById('editor-theme-btn').addEventListener('click', toggleEditorTheme);
       updateEditorThemeBtn();
@@ -1159,12 +1239,11 @@
       await loadStats();
       await loadEmailPrefs();
       setupTabs();
-      setupUpload();
+      setupNewMenu();
       setupDownloadAll();
       setupSearchSort();
       setupBulkBar();
       setupKeyboardShortcuts();
-      setupNewFolder();
       setupEditor();
       setupViewer();
       setupPublish();
