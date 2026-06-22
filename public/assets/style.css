@@ -1018,6 +1018,32 @@ input:focus, textarea:focus, select:focus {
 
 .fm-crumb-sep { color: var(--muted); padding: 0 0.2rem; user-select: none; }
 
+/* Replaces the breadcrumb entirely while a search query is active, see
+   renderSearchResultsView(). The "x" is a real button (clears the query
+   and drops back to normal browsing), the rest is inert label text. */
+.fm-search-results-label {
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.fm-search-results-label strong {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.fm-search-clear-btn {
+  background: none;
+  border: none;
+  color: var(--primary);
+  cursor: pointer;
+  padding: 0;
+  font-family: inherit;
+  font-size: inherit;
+  text-decoration: underline;
+}
+
 .fm-toolbar-actions {
   display: flex;
   align-items: center;
@@ -1352,6 +1378,113 @@ input:focus, textarea:focus, select:focus {
   gap: 0.4rem;
   align-items: center;
   flex-shrink: 0;
+}
+
+/* In-file find/replace bar (Ctrl+F / Ctrl+H in the editor) */
+.fm-findbar {
+  border-bottom: 1px solid var(--border);
+  background: var(--paper-alt);
+  padding: 0.4rem 0.6rem;
+  flex-shrink: 0;
+}
+
+.fm-findbar-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.fm-findbar-row + .fm-findbar-row {
+  margin-top: 0.35rem;
+}
+
+.fm-findbar-icon,
+.fm-findbar-icon-spacer {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+}
+
+#fm-find-input, #fm-replace-input {
+  flex: 1;
+  min-width: 80px;
+  font-size: 0.8rem;
+  padding: 0.4em 0.6em;
+}
+
+.fm-findbar-count {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  color: var(--muted);
+  min-width: 2.6em;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* Toggleable buttons (case-match, replace-disclosure) get a visible
+   pressed state, same idea as an <input type=checkbox> but styled as a
+   button since "Aa" reads better as a button label than a checkbox. */
+.fm-find-toggle {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 500;
+}
+
+.fm-find-toggle.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--paper);
+}
+
+#fm-find-toggle-replace svg {
+  transition: transform 0.1s ease;
+}
+
+#fm-find-toggle-replace.expanded svg {
+  transform: rotate(90deg);
+}
+
+/* All matches get a soft highlight, the current one a stronger one, both
+   need to stay legible against either editor theme (light or
+   .cm-s-myjay-dark), so these are deliberately translucent rather than a
+   flat color. */
+.cm-search-match {
+  background: rgba(212, 160, 23, 0.35);
+}
+
+.cm-search-match-current {
+  background: rgba(199, 82, 42, 0.55);
+}
+
+.fm-editor-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding: 0.25rem 0.6rem;
+  border-top: 1px solid var(--border);
+  background: var(--paper-alt);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  flex-shrink: 0;
+}
+
+.fm-editor-status-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--muted);
+  font: inherit;
+  cursor: pointer;
+}
+
+.fm-editor-status-btn:hover {
+  color: var(--primary);
+  text-decoration: underline;
 }
 
 .fm-viewer {

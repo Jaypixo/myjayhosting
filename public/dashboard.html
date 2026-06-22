@@ -95,7 +95,7 @@
               </label>
               <div class="fm-search-wrap">
                 <span class="fm-search-icon" id="fm-search-icon"></span>
-                <input type="text" id="fm-search" placeholder="Filter files in this folder...">
+                <input type="text" id="fm-search" placeholder="Search all files and folders...">
               </div>
               <select id="fm-sort" aria-label="Sort by">
                 <option value="name">Name</option>
@@ -141,12 +141,35 @@
                 </span>
                 <div class="fm-panel-tools">
                   <span class="text-ok hidden" id="editor-saved-msg">Saved.</span>
+                  <button class="icon-btn" id="editor-find-btn" type="button" title="Find (Ctrl+F)" aria-label="Find in file"></button>
                   <button class="icon-btn" id="editor-theme-btn" type="button" title="Toggle editor dark mode" aria-label="Toggle editor dark mode"></button>
                   <button class="btn btn-sm" id="save-btn">Save</button>
                   <button class="btn btn-ghost btn-sm" id="close-editor-btn">Close</button>
                 </div>
               </div>
+              <div class="fm-findbar hidden" id="editor-findbar">
+                <div class="fm-findbar-row">
+                  <span class="fm-findbar-icon" id="fm-findbar-icon"></span>
+                  <input type="text" id="fm-find-input" placeholder="Find" aria-label="Find in file">
+                  <span class="fm-findbar-count" id="fm-find-count">0/0</span>
+                  <button class="icon-btn" id="fm-find-prev" type="button" title="Previous match (Shift+Enter)" aria-label="Previous match"></button>
+                  <button class="icon-btn" id="fm-find-next" type="button" title="Next match (Enter)" aria-label="Next match"></button>
+                  <button class="icon-btn fm-find-toggle" id="fm-find-case" type="button" title="Match case">Aa</button>
+                  <button class="icon-btn" id="fm-find-toggle-replace" type="button" title="Toggle replace" aria-label="Toggle replace"></button>
+                  <button class="icon-btn" id="fm-find-close" type="button" title="Close (Esc)" aria-label="Close find bar"></button>
+                </div>
+                <div class="fm-findbar-row hidden" id="fm-replace-row">
+                  <span class="fm-findbar-icon-spacer"></span>
+                  <input type="text" id="fm-replace-input" placeholder="Replace" aria-label="Replace with">
+                  <button class="btn btn-ghost btn-sm" id="fm-replace-one" type="button">Replace</button>
+                  <button class="btn btn-ghost btn-sm" id="fm-replace-all" type="button">Replace all</button>
+                </div>
+              </div>
               <div id="editor-container" class="editor-container"></div>
+              <div class="fm-editor-status">
+                <button type="button" class="fm-editor-status-btn" id="editor-cursor-pos" title="Go to line (Ctrl+G)">Ln 1, Col 1</button>
+                <span id="editor-stats" class="text-muted"></span>
+              </div>
             </div>
 
           </div>
@@ -246,6 +269,7 @@
       apiFetch, getCurrentUser, logout,
       showAlert, showConfirm, showPrompt,
       setFieldError, clearFieldError, clearFormErrors,
+      buildModal, attachDismiss,
     } from '/assets/main.js';
 
     const IMAGE_EXTENSIONS  = new Set(['jpg', 'jpeg', 'png', 'gif', 'webp']);
@@ -276,11 +300,17 @@
       moon:   `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`,
       sun:    `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`,
       search: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>`,
+      close:  `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`,
+      chevronUp: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>`,
+      chevronRight: `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>`,
+      info:   `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`,
+      copy:   `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`,
     };
 
     let allFiles = [];
     let currentPath = '';
     let currentPublished = false;
+    let currentUsername = '';
     let editingKey = null;
     let viewingKey = null;
     let editor = null;
@@ -301,11 +331,20 @@
           indentUnit: 2,
           tabSize: 2,
           theme: editorDark ? 'myjay-dark' : 'default',
-          extraKeys: { 'Ctrl-S': saveFile, 'Cmd-S': saveFile },
+          extraKeys: {
+            'Ctrl-S': saveFile, 'Cmd-S': saveFile,
+            'Ctrl-F': () => openFindBar(false), 'Cmd-F': () => openFindBar(false),
+            // Cmd-H is "hide window" at the OS level on Mac and a page can't
+            // override that, Windows/Linux only, Mac users reach replace via
+            // the disclosure arrow next to find instead.
+            'Ctrl-H': () => openFindBar(true),
+            'Ctrl-G': () => goToLine(), 'Cmd-G': () => goToLine(),
+          },
         });
         // setValue() (loading a file) also fires "change", suppressDirtyEvent
         // is how openEditor() tells this listener "this one doesn't count".
-        editor.on('change', () => { if (!suppressDirtyEvent) setEditorDirty(true); });
+        editor.on('change', () => { if (!suppressDirtyEvent) setEditorDirty(true); updateEditorStats(); });
+        editor.on('cursorActivity', updateCursorStatus);
       }
       return editor;
     }
@@ -338,6 +377,165 @@
       localStorage.setItem('myjay-editor-dark', editorDark ? '1' : '0');
       if (editor) editor.setOption('theme', editorDark ? 'myjay-dark' : 'default');
       updateEditorThemeBtn();
+    }
+
+    // ── Cursor position / go to line ────────────────────────────────────────
+
+    function updateCursorStatus() {
+      if (!editor) return;
+      const cur = editor.getCursor();
+      const sel = editor.getSelection();
+      const posBtn = document.getElementById('editor-cursor-pos');
+      posBtn.textContent = sel
+        ? `Ln ${cur.line + 1}, Col ${cur.ch + 1} (${sel.length} selected)`
+        : `Ln ${cur.line + 1}, Col ${cur.ch + 1}`;
+    }
+
+    function updateEditorStats() {
+      if (!editor) return;
+      const lines = editor.lineCount();
+      const chars = editor.getValue().length;
+      document.getElementById('editor-stats').textContent =
+        `${lines} line${lines === 1 ? '' : 's'} · ${chars.toLocaleString()} char${chars === 1 ? '' : 's'}`;
+    }
+
+    async function goToLine() {
+      if (!editor) return;
+      const lineCount = editor.lineCount();
+      const input = await showPrompt(`Line number (1-${lineCount}):`, {
+        title: 'Go to line', placeholder: String(editor.getCursor().line + 1),
+      });
+      if (!input) { editor.focus(); return; }
+      const lineNum = parseInt(input, 10);
+      if (!Number.isInteger(lineNum) || lineNum < 1 || lineNum > lineCount) {
+        await showAlert(`Enter a number between 1 and ${lineCount}.`);
+        return;
+      }
+      const pos = { line: lineNum - 1, ch: 0 };
+      editor.setCursor(pos);
+      editor.scrollIntoView(pos, 100);
+      editor.focus();
+    }
+
+    // ── Find / replace ───────────────────────────────────────────────────────
+    // Built on CodeMirror's core API directly (posFromIndex/markText/
+    // setSelection), not the addon/search/search.js bundle: that addon's
+    // own UI is a plain unstyled prompt, replicating its few lines of
+    // search-cursor logic here gets a find bar that actually matches the
+    // design system for about the same amount of code.
+
+    let findMatches = [];
+    let findCurrentIndex = -1;
+    let findCaseSensitive = false;
+    let findMarks = [];
+
+    function clearFindMarks() {
+      findMarks.forEach((m) => m.clear());
+      findMarks = [];
+    }
+
+    function applyFindMarks() {
+      clearFindMarks();
+      if (!editor) return;
+      findMatches.forEach(({ from, to }, i) => {
+        const cls = i === findCurrentIndex ? 'cm-search-match-current' : 'cm-search-match';
+        findMarks.push(editor.markText(from, to, { className: cls }));
+      });
+    }
+
+    function updateFindCount() {
+      document.getElementById('fm-find-count').textContent =
+        findMatches.length === 0 ? '0/0' : `${findCurrentIndex + 1}/${findMatches.length}`;
+    }
+
+    function scrollToCurrentMatch() {
+      const m = findMatches[findCurrentIndex];
+      if (!m || !editor) return;
+      editor.setSelection(m.from, m.to);
+      editor.scrollIntoView({ from: m.from, to: m.to }, 60);
+    }
+
+    function performFind() {
+      findMatches = [];
+      findCurrentIndex = -1;
+      const query = document.getElementById('fm-find-input').value;
+      if (editor && query) {
+        const text = editor.getValue();
+        const haystack = findCaseSensitive ? text : text.toLowerCase();
+        const needle = findCaseSensitive ? query : query.toLowerCase();
+        let idx = 0;
+        for (;;) {
+          const found = haystack.indexOf(needle, idx);
+          if (found === -1) break;
+          findMatches.push({ from: editor.posFromIndex(found), to: editor.posFromIndex(found + needle.length) });
+          idx = found + needle.length;
+        }
+        if (findMatches.length > 0) findCurrentIndex = 0;
+      }
+      applyFindMarks();
+      updateFindCount();
+      if (findCurrentIndex >= 0) scrollToCurrentMatch();
+    }
+
+    function findNext() {
+      if (findMatches.length === 0) return;
+      findCurrentIndex = (findCurrentIndex + 1) % findMatches.length;
+      applyFindMarks();
+      updateFindCount();
+      scrollToCurrentMatch();
+    }
+
+    function findPrev() {
+      if (findMatches.length === 0) return;
+      findCurrentIndex = (findCurrentIndex - 1 + findMatches.length) % findMatches.length;
+      applyFindMarks();
+      updateFindCount();
+      scrollToCurrentMatch();
+    }
+
+    function replaceCurrent() {
+      if (findCurrentIndex < 0 || findMatches.length === 0 || !editor) return;
+      const replacement = document.getElementById('fm-replace-input').value;
+      const { from, to } = findMatches[findCurrentIndex];
+      editor.replaceRange(replacement, from, to);
+      performFind();
+    }
+
+    function replaceAll() {
+      if (findMatches.length === 0 || !editor) return;
+      const replacement = document.getElementById('fm-replace-input').value;
+      // Reverse order: replacing later matches first means earlier
+      // matches' positions never shift out from under us.
+      for (let i = findMatches.length - 1; i >= 0; i--) {
+        const { from, to } = findMatches[i];
+        editor.replaceRange(replacement, from, to);
+      }
+      performFind();
+    }
+
+    function setReplaceExpanded(expanded) {
+      document.getElementById('fm-replace-row').classList.toggle('hidden', !expanded);
+      document.getElementById('fm-find-toggle-replace').classList.toggle('expanded', expanded);
+    }
+
+    function openFindBar(withReplace) {
+      if (!editingKey || !editor) return;
+      document.getElementById('editor-findbar').classList.remove('hidden');
+      if (withReplace) setReplaceExpanded(true);
+      const input = document.getElementById('fm-find-input');
+      const selection = editor.getSelection();
+      if (selection && !selection.includes('\n')) input.value = selection;
+      input.focus();
+      input.select();
+      performFind();
+    }
+
+    function closeFindBar() {
+      document.getElementById('editor-findbar').classList.add('hidden');
+      clearFindMarks();
+      findMatches = [];
+      findCurrentIndex = -1;
+      if (editor) editor.focus();
     }
 
     // ── Utilities ───────────────────────────────────────────────────────────
@@ -373,6 +571,88 @@
         const key = r.dataset.key;
         r.classList.toggle('fm-active', !!key && (key === editingKey || key === viewingKey));
       });
+    }
+
+    // ── File / folder info modals ───────────────────────────────────────────
+
+    function formatDate(iso) {
+      if (!iso) return 'Unknown';
+      const d = new Date(iso);
+      if (isNaN(d)) return 'Unknown';
+      return d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+    }
+
+    function copyToClipboard(text, btn) {
+      if (!navigator.clipboard || !navigator.clipboard.writeText) return;
+      navigator.clipboard.writeText(text).then(() => {
+        if (!btn) return;
+        const originalTitle = btn.title;
+        btn.title = 'Copied!';
+        btn.setAttribute('aria-label', 'Copied');
+        setTimeout(() => {
+          btn.title = originalTitle;
+          btn.setAttribute('aria-label', originalTitle);
+        }, 1200);
+      }).catch(() => {});
+    }
+
+    function metaRow(dl, label, value, { copyable = false } = {}) {
+      const dt = document.createElement('dt');
+      dt.textContent = label;
+      const dd = document.createElement('dd');
+      if (copyable) {
+        const code = document.createElement('code');
+        code.textContent = value;
+        code.style.wordBreak = 'break-all';
+        dd.appendChild(code);
+        const copyBtn = makeIconBtn('copy', `Copy ${label.toLowerCase()}`, () => copyToClipboard(value, copyBtn));
+        copyBtn.style.marginLeft = '0.4rem';
+        copyBtn.style.verticalAlign = 'middle';
+        dd.appendChild(copyBtn);
+      } else {
+        dd.textContent = value;
+      }
+      dl.appendChild(dt);
+      dl.appendChild(dd);
+    }
+
+    function openInfoModal(title, dl) {
+      const { overlay, actions } = buildModal({ title, body: dl });
+      function finish() { detach(); overlay.remove(); }
+      const detach = attachDismiss(overlay, finish);
+      const closeBtn = document.createElement('button');
+      closeBtn.className = 'btn btn-sm';
+      closeBtn.textContent = 'Close';
+      closeBtn.addEventListener('click', finish);
+      actions.appendChild(closeBtn);
+      closeBtn.focus();
+    }
+
+    function showFileInfo(file) {
+      const dl = document.createElement('dl');
+      dl.className = 'modal-meta';
+      metaRow(dl, 'Path', file.key, { copyable: true });
+      metaRow(dl, 'Size', `${formatSize(file.size)} (${file.size.toLocaleString()} bytes)`);
+      metaRow(dl, 'Modified', formatDate(file.modified));
+      const ext = extOf(file.key);
+      metaRow(dl, 'Type', ext ? `.${ext} file` : 'No extension');
+      if (currentUsername) {
+        metaRow(dl, 'Live URL', `https://${currentUsername}.myjay.net/${file.key}`, { copyable: true });
+      }
+      openInfoModal('File info', dl);
+    }
+
+    function showFolderInfo(dirRelPath, dirName, itemFiles) {
+      const totalBytes = itemFiles.reduce((sum, f) => sum + f.size, 0);
+      const dl = document.createElement('dl');
+      dl.className = 'modal-meta';
+      metaRow(dl, 'Path', dirRelPath + '/', { copyable: true });
+      metaRow(dl, 'Items', itemFiles.length === 1 ? '1 file' : `${itemFiles.length} files`);
+      metaRow(dl, 'Total size', formatSize(totalBytes));
+      if (currentUsername) {
+        metaRow(dl, 'Live URL', `https://${currentUsername}.myjay.net/${dirRelPath}/`, { copyable: true });
+      }
+      openInfoModal(`Folder info: ${dirName}`, dl);
     }
 
     // ── File manager ────────────────────────────────────────────────────────
@@ -425,7 +705,137 @@
       return btn;
     }
 
+    // Folder rows are only ever built in the normal browse view (search
+    // results show matching files with their full path, not synthesized
+    // folder entries, see renderSearchResultsView), so this stays a plain
+    // one-off builder rather than needing an onOpen-style override.
+    function buildFolderRow(dirName, dirPath, dirRelPath) {
+      const row = document.createElement('div');
+      row.className = 'fm-row fm-row-dir';
+
+      const icon = document.createElement('span');
+      icon.className = 'fm-row-icon';
+      icon.innerHTML = ICON.folder;
+
+      const name = document.createElement('span');
+      name.className = 'fm-row-name';
+      name.textContent = dirName;
+      name.title = dirName;
+      name.style.cursor = 'pointer';
+      row.addEventListener('click', (e) => {
+        if (!e.target.closest('button')) navigateTo(dirPath);
+      });
+
+      const itemFiles = allFiles.filter((f) => f.key.startsWith(dirPath) && !f.key.endsWith('/.keep'));
+      const count = document.createElement('span');
+      count.className = 'fm-row-size';
+      count.textContent = itemFiles.length === 1 ? '1 item' : `${itemFiles.length} items`;
+
+      const actions = document.createElement('div');
+      actions.className = 'fm-row-actions';
+      actions.appendChild(makeIconBtn('info', 'Folder info', () => showFolderInfo(dirRelPath, dirName, itemFiles)));
+      actions.appendChild(makeIconBtn('pencil', 'Rename or move this folder', () => renameEntry(dirRelPath, true)));
+      const delBtn = document.createElement('button');
+      delBtn.className = 'btn btn-ghost btn-sm';
+      delBtn.textContent = 'Delete all';
+      delBtn.addEventListener('click', (e) => { e.stopPropagation(); deleteFolder(dirPath); });
+      actions.appendChild(delBtn);
+
+      row.appendChild(icon);
+      row.appendChild(name);
+      row.appendChild(count);
+      row.appendChild(actions);
+      return row;
+    }
+
+    // Shared between the normal browse view and global search results.
+    // file.name is whatever should be *displayed* (a bare basename when
+    // browsing, a full path in search results, see renderSearchResultsView),
+    // file.key is always the real path. onOpen lets search results
+    // navigate to the file's actual folder before opening it instead of
+    // opening in place; browse view leaves it default (open right here).
+    function buildFileRow(file, onOpen) {
+      const { icon: iconKey, rowCls, kind } = getTypeInfo(file.name);
+      const open = onOpen || (kind === 'image' ? openViewer : openEditor);
+
+      const row = document.createElement('div');
+      row.className = `fm-row${rowCls ? ' ' + rowCls : ''}`;
+      row.dataset.key = file.key;
+      if (file.key === editingKey || file.key === viewingKey) row.classList.add('fm-active');
+
+      const check = document.createElement('input');
+      check.type = 'checkbox';
+      check.className = 'fm-row-check';
+      check.checked = selectedKeys.has(file.key);
+      check.setAttribute('aria-label', `Select ${file.name}`);
+      check.addEventListener('click', (e) => e.stopPropagation());
+      check.addEventListener('change', () => toggleSelectKey(file.key, check.checked));
+
+      let icon;
+      if (kind === 'image') {
+        icon = document.createElement('img');
+        icon.className = 'fm-row-thumb';
+        icon.src = `/api/site/preview?key=${encodeURIComponent(file.key)}`;
+        icon.loading = 'lazy';
+        icon.alt = '';
+        icon.addEventListener('error', () => {
+          icon.replaceWith(Object.assign(document.createElement('span'), { className: 'fm-row-icon', innerHTML: ICON.image }));
+        });
+      } else {
+        icon = document.createElement('span');
+        icon.className = 'fm-row-icon';
+        icon.innerHTML = ICON[iconKey] || ICON.file;
+      }
+
+      const name = document.createElement('span');
+      name.className = 'fm-row-name';
+      name.textContent = file.name;
+      name.title = file.name;
+
+      const size = document.createElement('span');
+      size.className = 'fm-row-size';
+      size.textContent = formatSize(file.size);
+
+      const actions = document.createElement('div');
+      actions.className = 'fm-row-actions';
+
+      if (kind === 'text') {
+        name.style.cursor = 'pointer';
+        row.addEventListener('click', (e) => { if (!e.target.closest('button, input')) open(file); });
+        const editBtn = document.createElement('button');
+        editBtn.className = 'btn btn-ghost btn-sm';
+        editBtn.textContent = 'Edit';
+        editBtn.addEventListener('click', (e) => { e.stopPropagation(); open(file); });
+        actions.appendChild(editBtn);
+      } else if (kind === 'image') {
+        name.style.cursor = 'pointer';
+        row.addEventListener('click', (e) => { if (!e.target.closest('button, input')) open(file); });
+        const viewBtn = document.createElement('button');
+        viewBtn.className = 'btn btn-ghost btn-sm';
+        viewBtn.textContent = 'View';
+        viewBtn.addEventListener('click', (e) => { e.stopPropagation(); open(file); });
+        actions.appendChild(viewBtn);
+      }
+
+      actions.appendChild(makeIconBtn('info', 'File info', () => showFileInfo(file)));
+      actions.appendChild(makeIconBtn('pencil', 'Rename or move', () => renameEntry(file.key, false)));
+      actions.appendChild(makeIconBtn('trash', 'Delete', () => deleteFile(file.key)));
+
+      row.appendChild(check);
+      row.appendChild(icon);
+      row.appendChild(name);
+      row.appendChild(size);
+      row.appendChild(actions);
+      return row;
+    }
+
     function renderFileManager() {
+      const query = searchQuery.trim().toLowerCase();
+      if (query) renderSearchResultsView(query);
+      else renderBrowseView();
+    }
+
+    function renderBrowseView() {
       buildBreadcrumb();
 
       const listEl = document.getElementById('fm-list');
@@ -433,8 +843,7 @@
       listEl.innerHTML = '';
 
       const folders = new Set();
-      let files = [];
-      const query = searchQuery.trim().toLowerCase();
+      const files = [];
 
       for (const f of allFiles) {
         if (!f.key.startsWith(currentPath)) continue;
@@ -444,11 +853,9 @@
           if (rest && rest !== '.keep') files.push({ ...f, name: rest });
         } else {
           const dir = rest.slice(0, slash);
-          if (dir && (!query || dir.toLowerCase().includes(query))) folders.add(dir);
+          if (dir) folders.add(dir);
         }
       }
-
-      if (query) files = files.filter((f) => f.name.toLowerCase().includes(query));
 
       const sortedFolders = [...folders].sort();
       const sortedFiles = sortEntries(files);
@@ -463,9 +870,9 @@
 
       if (sortedFolders.length === 0 && sortedFiles.length === 0) {
         emptyEl.classList.remove('hidden');
-        emptyEl.textContent = query
-          ? 'Nothing matches that filter.'
-          : (allFiles.length ? `${allFiles.length} file(s) total, this folder is empty` : 'No files here. Drop files to upload.');
+        emptyEl.textContent = allFiles.length
+          ? `${allFiles.length} file(s) total, this folder is empty`
+          : 'No files here. Drop files to upload.';
         document.getElementById('log-summary').textContent = allFiles.length
           ? `${allFiles.length} file(s) total, this folder is empty`
           : 'No files yet. Drop files here to upload.';
@@ -476,118 +883,11 @@
 
       emptyEl.classList.add('hidden');
 
-      // Folder rows
       for (const dirName of sortedFolders) {
-        const dirPath = currentPath + dirName + '/';
-        const dirRelPath = currentPath + dirName;
-        const row = document.createElement('div');
-        row.className = 'fm-row fm-row-dir';
-
-        const icon = document.createElement('span');
-        icon.className = 'fm-row-icon';
-        icon.innerHTML = ICON.folder;
-
-        const name = document.createElement('span');
-        name.className = 'fm-row-name';
-        name.textContent = dirName;
-        name.title = dirName;
-        name.style.cursor = 'pointer';
-        row.addEventListener('click', (e) => {
-          if (!e.target.closest('button')) navigateTo(dirPath);
-        });
-
-        const itemCount = allFiles.filter((f) => f.key.startsWith(dirPath) && !f.key.endsWith('/.keep')).length;
-        const count = document.createElement('span');
-        count.className = 'fm-row-size';
-        count.textContent = itemCount === 1 ? '1 item' : `${itemCount} items`;
-
-        const actions = document.createElement('div');
-        actions.className = 'fm-row-actions';
-        actions.appendChild(makeIconBtn('pencil', 'Rename or move this folder', () => renameEntry(dirRelPath, true)));
-        const delBtn = document.createElement('button');
-        delBtn.className = 'btn btn-ghost btn-sm';
-        delBtn.textContent = 'Delete all';
-        delBtn.addEventListener('click', (e) => { e.stopPropagation(); deleteFolder(dirPath); });
-        actions.appendChild(delBtn);
-
-        row.appendChild(icon);
-        row.appendChild(name);
-        row.appendChild(count);
-        row.appendChild(actions);
-        listEl.appendChild(row);
+        listEl.appendChild(buildFolderRow(dirName, currentPath + dirName + '/', currentPath + dirName));
       }
-
-      // File rows
       for (const file of sortedFiles) {
-        const { icon: iconKey, rowCls, kind } = getTypeInfo(file.name);
-        const row = document.createElement('div');
-        row.className = `fm-row${rowCls ? ' ' + rowCls : ''}`;
-        row.dataset.key = file.key;
-        if (file.key === editingKey || file.key === viewingKey) row.classList.add('fm-active');
-
-        const check = document.createElement('input');
-        check.type = 'checkbox';
-        check.className = 'fm-row-check';
-        check.checked = selectedKeys.has(file.key);
-        check.setAttribute('aria-label', `Select ${file.name}`);
-        check.addEventListener('click', (e) => e.stopPropagation());
-        check.addEventListener('change', () => toggleSelectKey(file.key, check.checked));
-
-        let icon;
-        if (kind === 'image') {
-          icon = document.createElement('img');
-          icon.className = 'fm-row-thumb';
-          icon.src = `/api/site/preview?key=${encodeURIComponent(file.key)}`;
-          icon.loading = 'lazy';
-          icon.alt = '';
-          icon.addEventListener('error', () => {
-            icon.replaceWith(Object.assign(document.createElement('span'), { className: 'fm-row-icon', innerHTML: ICON.image }));
-          });
-        } else {
-          icon = document.createElement('span');
-          icon.className = 'fm-row-icon';
-          icon.innerHTML = ICON[iconKey] || ICON.file;
-        }
-
-        const name = document.createElement('span');
-        name.className = 'fm-row-name';
-        name.textContent = file.name;
-        name.title = file.name;
-
-        const size = document.createElement('span');
-        size.className = 'fm-row-size';
-        size.textContent = formatSize(file.size);
-
-        const actions = document.createElement('div');
-        actions.className = 'fm-row-actions';
-
-        if (kind === 'text') {
-          name.style.cursor = 'pointer';
-          row.addEventListener('click', (e) => { if (!e.target.closest('button, input')) openEditor(file); });
-          const editBtn = document.createElement('button');
-          editBtn.className = 'btn btn-ghost btn-sm';
-          editBtn.textContent = 'Edit';
-          editBtn.addEventListener('click', (e) => { e.stopPropagation(); openEditor(file); });
-          actions.appendChild(editBtn);
-        } else if (kind === 'image') {
-          name.style.cursor = 'pointer';
-          row.addEventListener('click', (e) => { if (!e.target.closest('button, input')) openViewer(file); });
-          const viewBtn = document.createElement('button');
-          viewBtn.className = 'btn btn-ghost btn-sm';
-          viewBtn.textContent = 'View';
-          viewBtn.addEventListener('click', (e) => { e.stopPropagation(); openViewer(file); });
-          actions.appendChild(viewBtn);
-        }
-
-        actions.appendChild(makeIconBtn('pencil', 'Rename or move', () => renameEntry(file.key, false)));
-        actions.appendChild(makeIconBtn('trash', 'Delete', () => deleteFile(file.key)));
-
-        row.appendChild(check);
-        row.appendChild(icon);
-        row.appendChild(name);
-        row.appendChild(size);
-        row.appendChild(actions);
-        listEl.appendChild(row);
+        listEl.appendChild(buildFileRow(file));
       }
 
       const totalBytes = allFiles.reduce((sum, f) => sum + f.size, 0);
@@ -596,6 +896,82 @@
 
       updateBulkBar();
       updateSelectAllCheckbox();
+    }
+
+    // Search reaches every file on the whole site, not just the current
+    // folder, results show their full path so it's clear where each one
+    // actually lives. Clicking a result navigates there (see
+    // openSearchResult) rather than opening in place, so closing the file
+    // or clearing the search afterward leaves you somewhere sensible
+    // instead of back wherever you happened to be browsing before.
+    function renderSearchResultsView(query) {
+      const rawQuery = searchQuery.trim();
+      const nav = document.getElementById('fm-breadcrumb');
+      nav.innerHTML = '';
+      const label = document.createElement('span');
+      label.className = 'fm-search-results-label';
+      const strong = document.createElement('strong');
+      strong.textContent = `"${rawQuery}"`;
+      label.append('Search results for ', strong, ' ');
+      const clearBtn = document.createElement('button');
+      clearBtn.type = 'button';
+      clearBtn.className = 'fm-search-clear-btn';
+      clearBtn.textContent = 'Clear';
+      clearBtn.addEventListener('click', () => {
+        searchQuery = '';
+        document.getElementById('fm-search').value = '';
+        renderFileManager();
+      });
+      label.appendChild(clearBtn);
+      nav.appendChild(label);
+
+      const listEl = document.getElementById('fm-list');
+      const emptyEl = document.getElementById('fm-empty');
+      listEl.innerHTML = '';
+
+      const matches = sortEntries(
+        allFiles
+          .filter((f) => !f.key.endsWith('/.keep') && f.key.toLowerCase().includes(query))
+          .map((f) => ({ ...f, name: f.key }))
+      );
+
+      const visibleKeys = new Set(matches.map((f) => f.key));
+      for (const key of selectedKeys) {
+        if (!visibleKeys.has(key)) selectedKeys.delete(key);
+      }
+
+      if (matches.length === 0) {
+        emptyEl.classList.remove('hidden');
+        emptyEl.textContent = `No files match "${rawQuery}".`;
+        document.getElementById('log-summary').textContent = `0 results for "${rawQuery}"`;
+        updateBulkBar();
+        updateSelectAllCheckbox();
+        return;
+      }
+      emptyEl.classList.add('hidden');
+
+      for (const file of matches) {
+        listEl.appendChild(buildFileRow(file, openSearchResult));
+      }
+
+      document.getElementById('log-summary').textContent = `${matches.length} result(s) for "${rawQuery}"`;
+      updateBulkBar();
+      updateSelectAllCheckbox();
+    }
+
+    async function openSearchResult(file) {
+      if (!(await confirmDiscardIfDirty())) return;
+      closeEditor();
+      closeViewer();
+      const slash = file.key.lastIndexOf('/');
+      currentPath = slash === -1 ? '' : file.key.slice(0, slash + 1);
+      searchQuery = '';
+      document.getElementById('fm-search').value = '';
+      selectedKeys.clear();
+      renderFileManager();
+      const kind = getTypeInfo(file.name).kind;
+      if (kind === 'text') await openEditor(file);
+      else if (kind === 'image') await openViewer(file);
     }
 
     async function navigateTo(path) {
@@ -869,6 +1245,7 @@
       viewingKey = null;
       document.getElementById('viewer-panel').classList.add('hidden');
       document.getElementById('viewer-img').src = '';
+      closeFindBar();
 
       editingKey = data.key;
       document.getElementById('editor-filename').textContent = data.key;
@@ -883,6 +1260,8 @@
       cm.setOption('mode', CM_MODE_BY_EXT[ext] ?? null);
       cm.clearHistory();
       setEditorDirty(false);
+      updateCursorStatus();
+      updateEditorStats();
       setTimeout(() => { cm.refresh(); cm.focus(); }, 50);
 
       refreshActiveRow();
@@ -891,6 +1270,7 @@
     function closeEditor(closePanelIfEmpty = true) {
       editingKey = null;
       setEditorDirty(false);
+      closeFindBar();
       document.getElementById('editor-panel').classList.add('hidden');
       document.getElementById('editor-saved-msg').classList.add('hidden');
       if (closePanelIfEmpty && !viewingKey) setPanelOpen(false);
@@ -963,6 +1343,7 @@
       const user = await getCurrentUser();
       if (!user) { window.location.href = '/login'; return null; }
 
+      currentUsername = user.username;
       document.getElementById('avatar').textContent = user.username.charAt(0).toUpperCase();
       document.getElementById('username').textContent = user.username;
 
@@ -1098,11 +1479,16 @@
       });
     }
 
-    // Escape backs out one level at a time (close editor/viewer, then drop
-    // selection) and Delete removes selected rows, same conventions as any
-    // OS file manager. Skipped entirely while a modal is open (it has its
-    // own Escape handling) or while the user is actually typing somewhere,
-    // so this never fights with the editor, the search box, or a prompt.
+    // Escape backs out one level at a time (close the find bar, then the
+    // editor/viewer, then drop selection) and Delete removes selected rows,
+    // same conventions as any OS file manager. Skipped entirely while a
+    // modal is open (it has its own Escape handling) or while the user is
+    // actually typing somewhere, so this never fights with the editor, the
+    // search box, or a prompt. The find-bar check has to come first and
+    // can't rely on isTyping alone: pressing Escape with focus on one of
+    // the find bar's own buttons (not its input) isn't "typing" by that
+    // check, and would otherwise fall through to closing the whole editor
+    // immediately after.
     function setupKeyboardShortcuts() {
       document.addEventListener('keydown', async (e) => {
         if (document.querySelector('.modal-overlay')) return;
@@ -1113,6 +1499,8 @@
           e.target.isContentEditable || !!e.target.closest('.CodeMirror');
 
         if (e.key === 'Escape') {
+          const findBarOpen = !document.getElementById('editor-findbar').classList.contains('hidden');
+          if (findBarOpen) { closeFindBar(); return; }
           if (editingKey) { if (await confirmDiscardIfDirty()) closeEditor(); return; }
           if (viewingKey) { closeViewer(); return; }
           if (!isTyping && selectedKeys.size > 0) { selectedKeys.clear(); renderFileManager(); }
@@ -1158,7 +1546,51 @@
       });
       document.getElementById('save-btn').addEventListener('click', saveFile);
       document.getElementById('editor-theme-btn').addEventListener('click', toggleEditorTheme);
+      document.getElementById('editor-find-btn').innerHTML = ICON.search;
+      document.getElementById('editor-find-btn').addEventListener('click', () => openFindBar(false));
+      document.getElementById('editor-cursor-pos').addEventListener('click', goToLine);
       updateEditorThemeBtn();
+    }
+
+    // The find bar's own Escape handling has to stop the event from
+    // bubbling to the document-level shortcut handler (setupKeyboardShortcuts),
+    // which also reacts to Escape and would otherwise immediately close the
+    // whole editor right after this just closed the find bar.
+    function setupFindBar() {
+      document.getElementById('fm-findbar-icon').innerHTML = ICON.search;
+      document.getElementById('fm-find-prev').innerHTML = ICON.chevronUp;
+      document.getElementById('fm-find-next').innerHTML = ICON.chevronDown;
+      document.getElementById('fm-find-toggle-replace').innerHTML = ICON.chevronRight;
+      document.getElementById('fm-find-close').innerHTML = ICON.close;
+
+      const findInput = document.getElementById('fm-find-input');
+      const replaceInput = document.getElementById('fm-replace-input');
+
+      findInput.addEventListener('input', () => performFind());
+      findInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); if (e.shiftKey) findPrev(); else findNext(); }
+        else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closeFindBar(); }
+      });
+      replaceInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); replaceCurrent(); }
+        else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closeFindBar(); }
+      });
+
+      document.getElementById('fm-find-prev').addEventListener('click', findPrev);
+      document.getElementById('fm-find-next').addEventListener('click', findNext);
+      document.getElementById('fm-find-close').addEventListener('click', closeFindBar);
+      document.getElementById('fm-find-case').addEventListener('click', () => {
+        findCaseSensitive = !findCaseSensitive;
+        document.getElementById('fm-find-case').classList.toggle('active', findCaseSensitive);
+        performFind();
+      });
+      document.getElementById('fm-find-toggle-replace').addEventListener('click', () => {
+        const expanded = document.getElementById('fm-replace-row').classList.contains('hidden');
+        setReplaceExpanded(expanded);
+        if (expanded) replaceInput.focus();
+      });
+      document.getElementById('fm-replace-one').addEventListener('click', replaceCurrent);
+      document.getElementById('fm-replace-all').addEventListener('click', replaceAll);
     }
 
     function setupViewer() {
@@ -1362,6 +1794,7 @@
       setupBulkBar();
       setupKeyboardShortcuts();
       setupEditor();
+      setupFindBar();
       setupViewer();
       setupPublish();
       setupSettings();
