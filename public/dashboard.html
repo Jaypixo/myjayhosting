@@ -126,7 +126,9 @@
             <div id="viewer-panel" class="fm-panel hidden">
               <div class="fm-panel-header">
                 <span class="fm-panel-fname" id="viewer-filename"></span>
-                <button class="btn btn-ghost btn-sm" id="close-viewer-btn">Close</button>
+                <div class="fm-panel-tools">
+                  <button class="btn btn-ghost btn-sm" id="close-viewer-btn">Close</button>
+                </div>
               </div>
               <div class="fm-viewer">
                 <img id="viewer-img" src="" alt="">
@@ -305,6 +307,7 @@
       chevronRight: `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>`,
       info:   `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`,
       copy:   `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`,
+      check:  `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`,
     };
 
     let allFiles = [];
@@ -582,18 +585,57 @@
       return d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
     }
 
+    // Modern Clipboard API first, falling back to the classic hidden
+    // <textarea> + execCommand('copy') trick. navigator.clipboard.writeText
+    // can fail or simply not exist for reasons that have nothing to do with
+    // the user doing anything wrong (document focus, permissions policy,
+    // browser support), and silently swallowing that failure (the previous
+    // version's .catch(() => {})) looked exactly like the button doing
+    // nothing at all. This always ends in visible feedback on the button
+    // itself, success or failure, never silence.
     function copyToClipboard(text, btn) {
-      if (!navigator.clipboard || !navigator.clipboard.writeText) return;
-      navigator.clipboard.writeText(text).then(() => {
+      function showResult(success) {
         if (!btn) return;
-        const originalTitle = btn.title;
-        btn.title = 'Copied!';
-        btn.setAttribute('aria-label', 'Copied');
+        const originalHtml = btn.innerHTML;
+        const originalLabel = btn.title;
+        const feedback = success ? 'Copied!' : 'Copy failed, select the text and copy manually';
+        btn.innerHTML = success ? ICON.check : ICON.close;
+        btn.title = feedback;
+        btn.setAttribute('aria-label', feedback);
+        btn.classList.toggle('icon-btn-success', success);
+        btn.classList.toggle('icon-btn-error', !success);
         setTimeout(() => {
-          btn.title = originalTitle;
-          btn.setAttribute('aria-label', originalTitle);
-        }, 1200);
-      }).catch(() => {});
+          btn.innerHTML = originalHtml;
+          btn.title = originalLabel;
+          btn.setAttribute('aria-label', originalLabel);
+          btn.classList.remove('icon-btn-success', 'icon-btn-error');
+        }, 1300);
+      }
+
+      function legacyCopy() {
+        try {
+          const ta = document.createElement('textarea');
+          ta.value = text;
+          ta.setAttribute('readonly', '');
+          ta.style.position = 'fixed';
+          ta.style.top = '0';
+          ta.style.left = '-9999px';
+          document.body.appendChild(ta);
+          ta.focus();
+          ta.select();
+          const ok = document.execCommand('copy');
+          document.body.removeChild(ta);
+          showResult(ok);
+        } catch {
+          showResult(false);
+        }
+      }
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => showResult(true)).catch(legacyCopy);
+      } else {
+        legacyCopy();
+      }
     }
 
     function metaRow(dl, label, value, { copyable = false } = {}) {
@@ -616,10 +658,32 @@
       dl.appendChild(dd);
     }
 
-    function openInfoModal(title, dl) {
+    // Returns the <dd> so the caller can fill it in later once async data
+    // (image dimensions, text file stats) resolves, the modal opens
+    // immediately with "Loading..." rather than waiting on a fetch first.
+    function metaRowDeferred(dl, label) {
+      const dt = document.createElement('dt');
+      dt.textContent = label;
+      const dd = document.createElement('dd');
+      dd.textContent = 'Loading...';
+      dl.appendChild(dt);
+      dl.appendChild(dd);
+      return dd;
+    }
+
+    function openInfoModal(title, dl, { downloadKeys } = {}) {
       const { overlay, actions } = buildModal({ title, body: dl });
       function finish() { detach(); overlay.remove(); }
       const detach = attachDismiss(overlay, finish);
+
+      if (downloadKeys && downloadKeys.length > 0) {
+        const downloadBtn = document.createElement('button');
+        downloadBtn.className = 'btn btn-ghost btn-sm';
+        downloadBtn.textContent = downloadKeys.length === 1 ? 'Download' : 'Download .zip';
+        downloadBtn.addEventListener('click', () => { window.location.href = downloadKeysUrl(downloadKeys); });
+        actions.appendChild(downloadBtn);
+      }
+
       const closeBtn = document.createElement('button');
       closeBtn.className = 'btn btn-sm';
       closeBtn.textContent = 'Close';
@@ -636,10 +700,37 @@
       metaRow(dl, 'Modified', formatDate(file.modified));
       const ext = extOf(file.key);
       metaRow(dl, 'Type', ext ? `.${ext} file` : 'No extension');
+
+      const { kind } = getTypeInfo(file.key);
+      const extraDd = kind === 'image' ? metaRowDeferred(dl, 'Dimensions')
+        : kind === 'text' ? metaRowDeferred(dl, 'Contents')
+        : null;
+
       if (currentUsername) {
         metaRow(dl, 'Live URL', `https://${currentUsername}.myjay.net/${file.key}`, { copyable: true });
       }
-      openInfoModal('File info', dl);
+      openInfoModal('File info', dl, { downloadKeys: [file.key] });
+
+      if (kind === 'image' && extraDd) {
+        const img = new Image();
+        img.onload = () => { extraDd.textContent = `${img.naturalWidth} × ${img.naturalHeight} px`; };
+        img.onerror = () => { extraDd.textContent = 'Unknown'; };
+        img.src = `/api/site/preview?key=${encodeURIComponent(file.key)}`;
+      } else if (kind === 'text' && extraDd) {
+        apiFetch(`/api/site/file?key=${encodeURIComponent(file.key)}`)
+          .then((res) => (res.ok ? res.json() : null))
+          .then((data) => {
+            if (!data) { extraDd.textContent = 'Unavailable'; return; }
+            const text = data.content;
+            const lines = text === '' ? 0 : text.split('\n').length;
+            const words = text.trim() === '' ? 0 : text.trim().split(/\s+/).length;
+            extraDd.textContent =
+              `${lines.toLocaleString()} line${lines === 1 ? '' : 's'} · ` +
+              `${words.toLocaleString()} word${words === 1 ? '' : 's'} · ` +
+              `${text.length.toLocaleString()} char${text.length === 1 ? '' : 's'}`;
+          })
+          .catch(() => { extraDd.textContent = 'Unavailable'; });
+      }
     }
 
     function showFolderInfo(dirRelPath, dirName, itemFiles) {
@@ -652,7 +743,7 @@
       if (currentUsername) {
         metaRow(dl, 'Live URL', `https://${currentUsername}.myjay.net/${dirRelPath}/`, { copyable: true });
       }
-      openInfoModal(`Folder info: ${dirName}`, dl);
+      openInfoModal(`Folder info: ${dirName}`, dl, { downloadKeys: itemFiles.map((f) => f.key) });
     }
 
     // ── File manager ────────────────────────────────────────────────────────
@@ -1248,7 +1339,9 @@
       closeFindBar();
 
       editingKey = data.key;
-      document.getElementById('editor-filename').textContent = data.key;
+      const editorFnameEl = document.getElementById('editor-filename');
+      editorFnameEl.textContent = data.key;
+      editorFnameEl.title = data.key;
       document.getElementById('editor-panel').classList.remove('hidden');
       setPanelOpen(true);
 
@@ -1304,7 +1397,9 @@
       document.getElementById('editor-panel').classList.add('hidden');
 
       viewingKey = file.key;
-      document.getElementById('viewer-filename').textContent = file.key;
+      const viewerFnameEl = document.getElementById('viewer-filename');
+      viewerFnameEl.textContent = file.key;
+      viewerFnameEl.title = file.key;
       document.getElementById('viewer-img').src = `/api/site/preview?key=${encodeURIComponent(file.key)}`;
       document.getElementById('viewer-panel').classList.remove('hidden');
       setPanelOpen(true);

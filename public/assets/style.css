@@ -1318,6 +1318,18 @@ input:focus, textarea:focus, select:focus {
   border-color: var(--ink);
 }
 
+/* Brief feedback state after a copy-to-clipboard action, see
+   copyToClipboard(). Swapped back to normal automatically after ~1.3s. */
+.icon-btn-success {
+  color: var(--tertiary);
+  border-color: var(--tertiary);
+}
+
+.icon-btn-error {
+  color: var(--error);
+  border-color: var(--error);
+}
+
 /* Toolbar-level icon buttons (new folder, download all) are the same
    shape as row-level ones but sit on the toolbar's own paper-alt
    background and stay at full opacity, they're not a hover reveal. */
@@ -1361,6 +1373,14 @@ input:focus, textarea:focus, select:focus {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  /* flex: 1 is the actual fix, not just decoration: without a flex-grow,
+     a flex item defaults to flex: 0 1 auto and never claims the parent's
+     spare width, so it sat at a near-zero auto-computed size in some
+     layouts and ellipsis kicked in almost immediately, the filename
+     showing as just its first character. flex: 1 makes it claim
+     available space first and only truncate once genuinely squeezed by
+     its siblings (the dirty-dot, or the toolbar buttons). */
+  flex: 1;
   min-width: 0;
 }
 
