@@ -1376,7 +1376,6 @@ input:focus, textarea:focus, select:focus {
 .fm-panel-header-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 0.75rem;
   min-width: 0;
 }
@@ -1421,6 +1420,14 @@ input:focus, textarea:focus, select:focus {
   gap: 0.4rem;
   align-items: center;
   flex-shrink: 0;
+  /* margin-left: auto, not the row's justify-content: space-between, is
+     what pushes this to the right edge: space-between only works when
+     there's a second sibling to space against, and the viewer panel's
+     tools row has just this one child (no saved-message span the way the
+     editor's does), which would otherwise collapse to flex-start and
+     leave Close sitting on the left instead of the top-right corner
+     every other "close" control in this app uses. */
+  margin-left: auto;
 }
 
 /* In-file find/replace bar (Ctrl+F / Ctrl+H in the editor) */
