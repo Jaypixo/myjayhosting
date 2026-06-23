@@ -1285,6 +1285,23 @@ input:focus, textarea:focus, select:focus {
   padding-left: 0.5rem;
 }
 
+/* Once the side panel is open, .fm-left locks to a fixed 280px (see
+   .fm-container.panel-open .fm-left further down) no matter how wide the
+   window is, so a row's fixed-width chrome, checkbox, icon, size/item
+   count, the Edit/View text button, and 2-3 icon actions, could add up
+   to nearly the whole 280px before .fm-row-name's flex:1 ever saw any
+   space left to claim, truncating the name to nothing regardless of
+   window size (resizing the window never touches .fm-left's width once
+   it's pinned). Size/count and the Edit/View button are the two things
+   that give way here, not the name: size/count is one click away in the
+   info modal, and Edit/View duplicates the row's own click-to-open
+   (row.addEventListener('click', ...) in buildFileRow()), so hiding it
+   loses no capability, only a redundant second way to trigger it. */
+.fm-container.panel-open .fm-row-size,
+.fm-container.panel-open .fm-row-open-btn {
+  display: none;
+}
+
 /* Always rendered (not hover-only): a row's actions only appearing on
    hover meant they were unreachable on touch and could read as buttons
    that had simply gone missing or were covered by something else. They

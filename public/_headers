@@ -1,0 +1,10 @@
+# Cloudflare Pages' default Cache-Control for /assets/* is several hours
+# (currently 14400s). During active development that means a CSS/JS fix
+# can be live on the server while a browser that loaded the page recently
+# keeps rendering the new HTML with an hours-old stylesheet, no visible
+# error, just stale-looking layout that looks like the fix didn't land.
+# no-cache still lets the browser keep a cached copy, but forces a
+# revalidation (cheap 304 via ETag) before using it, so a real change is
+# never more than one request away instead of waiting out the max-age.
+/assets/*
+  Cache-Control: no-cache

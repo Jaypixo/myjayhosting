@@ -964,7 +964,7 @@
         name.style.cursor = 'pointer';
         row.addEventListener('click', (e) => { if (!e.target.closest('button, input')) open(file); });
         const editBtn = document.createElement('button');
-        editBtn.className = 'btn btn-ghost btn-sm';
+        editBtn.className = 'btn btn-ghost btn-sm fm-row-open-btn';
         editBtn.textContent = 'Edit';
         editBtn.addEventListener('click', (e) => { e.stopPropagation(); open(file); });
         actions.appendChild(editBtn);
@@ -972,7 +972,7 @@
         name.style.cursor = 'pointer';
         row.addEventListener('click', (e) => { if (!e.target.closest('button, input')) open(file); });
         const viewBtn = document.createElement('button');
-        viewBtn.className = 'btn btn-ghost btn-sm';
+        viewBtn.className = 'btn btn-ghost btn-sm fm-row-open-btn';
         viewBtn.textContent = 'View';
         viewBtn.addEventListener('click', (e) => { e.stopPropagation(); open(file); });
         actions.appendChild(viewBtn);
