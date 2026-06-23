@@ -946,9 +946,9 @@ input:focus, textarea:focus, select:focus {
 .fm-container {
   display: flex;
   border: 1px solid var(--border);
-  min-height: 420px;
-  height: calc(100vh - 340px);
-  max-height: 820px;
+  min-height: 460px;
+  height: calc(100vh - 300px);
+  max-height: 900px;
 }
 
 .fm-left {
@@ -973,6 +973,15 @@ input:focus, textarea:focus, select:focus {
 
 .fm-container.panel-open .fm-right {
   display: flex;
+}
+
+/* "Hide file list for more room" toggle (editor-maximize-btn). Editor.js
+   calls cm.refresh() right after this class flips, CodeMirror caches
+   measurements and needs telling explicitly when its container's actual
+   pixel size changes, see CLAUDE.md on the line-gutter glitches that
+   skipping that caused. */
+.fm-container.panel-open.maximized .fm-left {
+  display: none;
 }
 
 @media (max-width: 860px) {
@@ -1347,15 +1356,29 @@ input:focus, textarea:focus, select:focus {
   min-height: 0;
 }
 
+/* A column of one or more .fm-panel-header-row strips, not a single row.
+   The filename used to share a row with the action buttons and lose the
+   width fight to them (a row with Find/theme/Save/Close could easily need
+   more space than was left over, squeezing the name down to a character
+   or two). Giving the filename its own row removes that fight entirely:
+   it gets the full header width to itself and only truncates if the name
+   itself is wider than the whole panel, not because of any button. */
 .fm-panel-header {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: 0.4rem;
   padding: 0.45rem 0.75rem;
   border-bottom: 1px solid var(--border);
   background: var(--paper-alt);
-  gap: 0.75rem;
   flex-shrink: 0;
+}
+
+.fm-panel-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-width: 0;
 }
 
 .fm-panel-fname-wrap {
@@ -1619,9 +1642,10 @@ tr[data-clickable]:hover {
 
 .editor-container .CodeMirror {
   height: 100%;
-  min-height: 320px;
+  min-height: 360px;
   font-family: var(--font-mono);
-  font-size: 0.85rem;
+  font-size: 0.88rem;
+  line-height: 1.55;
 }
 
 /* Editor dark mode: a manual per-user toggle (the icon button in the

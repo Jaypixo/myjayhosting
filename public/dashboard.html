@@ -125,9 +125,11 @@
 
             <div id="viewer-panel" class="fm-panel hidden">
               <div class="fm-panel-header">
-                <span class="fm-panel-fname" id="viewer-filename"></span>
-                <div class="fm-panel-tools">
-                  <button class="btn btn-ghost btn-sm" id="close-viewer-btn">Close</button>
+                <div class="fm-panel-header-row">
+                  <span class="fm-panel-fname" id="viewer-filename"></span>
+                  <div class="fm-panel-tools">
+                    <button class="btn btn-ghost btn-sm" id="close-viewer-btn">Close</button>
+                  </div>
                 </div>
               </div>
               <div class="fm-viewer">
@@ -137,16 +139,24 @@
 
             <div id="editor-panel" class="fm-panel hidden">
               <div class="fm-panel-header">
-                <span class="fm-panel-fname-wrap">
-                  <span class="fm-panel-fname" id="editor-filename"></span>
-                  <span class="fm-dirty-dot hidden" id="editor-dirty-dot" title="Unsaved changes">●</span>
-                </span>
-                <div class="fm-panel-tools">
+                <!-- Filename gets its own row, full width, so it can never
+                     be squeezed out by the action buttons below it, see
+                     CLAUDE.md on why a shared row didn't work. -->
+                <div class="fm-panel-header-row">
+                  <span class="fm-panel-fname-wrap">
+                    <span class="fm-panel-fname" id="editor-filename"></span>
+                    <span class="fm-dirty-dot hidden" id="editor-dirty-dot" title="Unsaved changes">●</span>
+                  </span>
+                </div>
+                <div class="fm-panel-header-row">
                   <span class="text-ok hidden" id="editor-saved-msg">Saved.</span>
-                  <button class="icon-btn" id="editor-find-btn" type="button" title="Find (Ctrl+F)" aria-label="Find in file"></button>
-                  <button class="icon-btn" id="editor-theme-btn" type="button" title="Toggle editor dark mode" aria-label="Toggle editor dark mode"></button>
-                  <button class="btn btn-sm" id="save-btn">Save</button>
-                  <button class="btn btn-ghost btn-sm" id="close-editor-btn">Close</button>
+                  <div class="fm-panel-tools">
+                    <button class="icon-btn" id="editor-maximize-btn" type="button" title="Hide file list for more room" aria-label="Maximize editor"></button>
+                    <button class="icon-btn" id="editor-find-btn" type="button" title="Find (Ctrl+F)" aria-label="Find in file"></button>
+                    <button class="icon-btn" id="editor-theme-btn" type="button" title="Toggle editor dark mode" aria-label="Toggle editor dark mode"></button>
+                    <button class="btn btn-sm" id="save-btn">Save</button>
+                    <button class="btn btn-ghost btn-sm" id="close-editor-btn">Close</button>
+                  </div>
                 </div>
               </div>
               <div class="fm-findbar hidden" id="editor-findbar">
@@ -308,6 +318,17 @@
       info:   `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`,
       copy:   `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`,
       check:  `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`,
+      maximize: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>`,
+      minimize: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/></svg>`,
+      // Distinct shapes per file type instead of one generic code-brackets
+      // icon for everything that isn't HTML: a droplet for stylesheets, a
+      // bolt for scripts, braces for structured data, a hash for markdown
+      // headings, ruled lines for plain text.
+      css:    `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>`,
+      js:     `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`,
+      json:   `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4c-2 0-3 1-3 3v2c0 1-1 2-2 2 1 0 2 1 2 2v2c0 2 1 3 3 3"/><path d="M15 4c2 0 3 1 3 3v2c0 1 1 2 2 2-1 0-2 1-2 2v2c0 2-1 3-3 3"/></svg>`,
+      md:     `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></svg>`,
+      txt:    `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="17" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="17" y1="18" x2="3" y2="18"/></svg>`,
     };
 
     let allFiles = [];
@@ -516,9 +537,21 @@
       performFind();
     }
 
+    // CodeMirror caches line/gutter measurements against its container's
+    // actual pixel size and doesn't notice when that size changes from
+    // CSS alone (the find bar appearing/disappearing, the replace row
+    // expanding, the maximize toggle). Skipping this is what caused line
+    // numbers and wrapped lines to drift out of sync with the visible
+    // text, especially noticeable in .md files since prose lines are far
+    // more likely to actually wrap than code.
+    function refreshEditorSoon() {
+      setTimeout(() => { if (editor) editor.refresh(); }, 50);
+    }
+
     function setReplaceExpanded(expanded) {
       document.getElementById('fm-replace-row').classList.toggle('hidden', !expanded);
       document.getElementById('fm-find-toggle-replace').classList.toggle('expanded', expanded);
+      refreshEditorSoon();
     }
 
     function openFindBar(withReplace) {
@@ -531,6 +564,7 @@
       input.focus();
       input.select();
       performFind();
+      refreshEditorSoon();
     }
 
     function closeFindBar() {
@@ -539,6 +573,24 @@
       findMatches = [];
       findCurrentIndex = -1;
       if (editor) editor.focus();
+      refreshEditorSoon();
+    }
+
+    function updateMaximizeBtn(maximized) {
+      const btn = document.getElementById('editor-maximize-btn');
+      if (!btn) return;
+      btn.innerHTML = maximized ? ICON.minimize : ICON.maximize;
+      const label = maximized ? 'Restore the file list' : 'Hide the file list for more room';
+      btn.title = label;
+      btn.setAttribute('aria-label', label);
+    }
+
+    function toggleMaximize() {
+      const container = document.getElementById('fm-container');
+      const maximized = !container.classList.contains('maximized');
+      container.classList.toggle('maximized', maximized);
+      updateMaximizeBtn(maximized);
+      refreshEditorSoon();
     }
 
     // ── Utilities ───────────────────────────────────────────────────────────
@@ -554,10 +606,15 @@
       return idx === -1 ? '' : name.slice(idx + 1).toLowerCase();
     }
 
+    // Same color grouping as before (html/code/image), but each extension
+    // within the "code" group now gets its own icon shape instead of all
+    // of them sharing one generic brackets icon.
+    const CODE_ICON_BY_EXT = { css: 'css', js: 'js', json: 'json', md: 'md', txt: 'txt', xml: 'code', svg: 'code' };
+
     function getTypeInfo(name) {
       const ext = extOf(name);
       if (ext === 'html' || ext === 'htm') return { icon: 'code', rowCls: 'fm-row-html', kind: 'text' };
-      if (['css', 'js', 'json', 'xml', 'svg', 'md', 'txt'].includes(ext)) return { icon: 'code', rowCls: 'fm-row-code', kind: 'text' };
+      if (ext in CODE_ICON_BY_EXT) return { icon: CODE_ICON_BY_EXT[ext], rowCls: 'fm-row-code', kind: 'text' };
       if (IMAGE_EXTENSIONS.has(ext)) return { icon: 'image', rowCls: 'fm-row-img', kind: 'image' };
       if (['woff', 'woff2', 'ttf'].includes(ext)) return { icon: 'font', rowCls: '', kind: 'binary' };
       return { icon: 'file', rowCls: '', kind: 'binary' };
@@ -566,7 +623,16 @@
     // ── Panel open/close ────────────────────────────────────────────────────
 
     function setPanelOpen(open) {
-      document.getElementById('fm-container').classList.toggle('panel-open', open);
+      const container = document.getElementById('fm-container');
+      container.classList.toggle('panel-open', open);
+      // Maximized only ever makes sense while something is actually open;
+      // reset it here, in the one place every close path already funnels
+      // through, rather than re-deriving "did we just fully close" in
+      // every caller.
+      if (!open) {
+        container.classList.remove('maximized');
+        updateMaximizeBtn(false);
+      }
     }
 
     function refreshActiveRow() {
@@ -1644,7 +1710,15 @@
       document.getElementById('editor-find-btn').innerHTML = ICON.search;
       document.getElementById('editor-find-btn').addEventListener('click', () => openFindBar(false));
       document.getElementById('editor-cursor-pos').addEventListener('click', goToLine);
+      document.getElementById('editor-maximize-btn').addEventListener('click', toggleMaximize);
       updateEditorThemeBtn();
+      updateMaximizeBtn(false);
+
+      // CodeMirror needs telling explicitly whenever its container's
+      // actual size changes for reasons CSS alone doesn't notify it about,
+      // a browser window resize is the other case besides the find bar/
+      // maximize toggle (which already call this themselves).
+      window.addEventListener('resize', refreshEditorSoon);
     }
 
     // The find bar's own Escape handling has to stop the event from
