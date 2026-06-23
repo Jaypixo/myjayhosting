@@ -536,7 +536,7 @@ bulk-selection "Download" button and the toolbar's "Download .zip" button
 (whole site) both hit this same endpoint, one with keys, one without.
 `functions/_lib/zip.js` is a from-scratch, dependency-free ZIP writer
 (stored/uncompressed entries, hand-rolled CRC32 and the three classic
-PKZIP records), for the same reason `marked` had to be vendored instead of
+PKZIP records), for the same reason `remarker` had to be vendored instead of
 bare-imported (see Email Infrastructure, above): this project doesn't run
 `npm install` at deploy time, so a real zip library would hit the exact
 same "Could not resolve" build failure. Each object is fetched with its
@@ -572,6 +572,195 @@ tab-close/refresh case the same way. Deleting the open file (single or
 via bulk/folder delete) does *not* go through this gate, the delete
 confirmation the user already clicked through covers it, a second "discard
 changes" prompt on top would be redundant.
+
+**In-file find/replace is hand-built on CodeMirror's core API, not the
+`addon/search/search.js` bundle.** That addon's own UI is a plain
+unstyled prompt bar; replicating its handful of lines of search-cursor
+logic (`posFromIndex`/`markText`/`setSelection`/`scrollIntoView`/
+`replaceRange`, see the "Find / replace" section of the script) gets a
+find bar that actually matches the design system for about the same
+amount of code, with no extra CDN script. Matches are found with a plain
+`indexOf` scan over `cm.getValue()`, not a real search-cursor object,
+which is why replace-all walks `findMatches` in *reverse* order: replacing
+a later match first means earlier matches' `{line, ch}` positions never
+shift out from under it. Tested against a mock CodeMirror object (not the
+real one, there's no browser in this environment) covering multi-line
+matches, case sensitivity, empty-query (no infinite loop), and both
+longer- and shorter-replacement-text reflow. `Ctrl-H` opens find with
+replace expanded; `Cmd-H` doesn't exist as a binding at all, it's "hide
+window" at the OS level on Mac and a page can never intercept that, Mac
+users reach replace via the disclosure arrow next to the find input
+instead. Escape closes the find bar before anything else: the global
+Escape handler (`setupKeyboardShortcuts`) checks whether the find bar is
+open *before* its `editingKey` check, otherwise pressing Escape with
+focus on one of the find bar's own buttons (not its input, so it doesn't
+register as "typing") would fall through and close the whole editor right
+behind it.
+
+**The cursor-position readout doubles as the "go to line" trigger.**
+`#editor-cursor-pos` (`Ln X, Col Y`, plus a live selection-length suffix
+when there's a selection) is a real `<button>`, not just text, clicking
+it opens the same `Ctrl-G`/`Cmd-G` prompt. Both read off CodeMirror's
+`cursorActivity` event, not a polling loop.
+
+**File/folder info is a modal, not a new row of text.** Both the file and
+folder row actions get an "info" icon (`showFileInfo()`/
+`showFolderInfo()`) opening a `buildModal()` popup with a `.modal-meta`
+dt/dd grid: path, exact size, last-modified date, extension, and (since
+the username is already known client-side, see `currentUsername`, set in
+`loadUser()`) the live `username.myjay.net` URL, each copyable via a
+small inline icon button. The modal also gets a "Download" (single file)
+or "Download .zip" (folder) button next to Close, reusing the same
+`downloadKeysUrl()` the bulk-selection bar already uses, rather than
+adding a 5th icon to an already-busy row (file rows already carry
+Edit/View, info, rename, delete). Folder info aggregates item count and
+total size from the already-loaded `allFiles` list, no new endpoint, same
+as the existing recursive item count on each folder row. Image files get
+an additional "Dimensions" row and text files a "Contents" row (line /
+word / character count), both filled in *after* the modal opens
+(`metaRowDeferred()` renders "Loading..." first) since both need an extra
+read: dimensions come from loading the file through `new Image()` (the
+same `/api/site/preview` URL the row thumbnail already uses), line/word/
+character counts from the same `GET /api/site/file` the editor uses to
+open a file, neither blocks the modal from appearing immediately with
+the metadata that's already on hand.
+
+**Copying to the clipboard always gives visible feedback, success or
+failure, never silence.** An earlier version called
+`navigator.clipboard.writeText()` and swallowed any rejection
+(`.catch(() => {})`) — that API can fail or simply not exist for reasons
+that have nothing to do with the user doing anything wrong (document
+focus, permissions policy, browser support), and silently eating the
+failure looked exactly like the button doing nothing at all, which is
+exactly what got reported. `copyToClipboard()` now falls back to the
+classic hidden-`<textarea>` + `document.execCommand('copy')` trick
+whenever the modern API is missing or rejects, and *always* swaps the
+button's icon to a checkmark (success) or the close-X (failure, with a
+title telling you to copy manually) for about a second, regardless of
+which path actually copied the text.
+
+**The editor/viewer filename used to render as just its first character
+plus an ellipsis.** `.fm-panel-fname` had `overflow: hidden;
+text-overflow: ellipsis; white-space: nowrap;` but no `flex: 1`, so as a
+flex item it defaulted to `flex: 0 1 auto`, never claimed its parent's
+spare width, and ellipsis kicked in almost immediately. Giving it
+`flex: 1` directly (so it claims available space first and only
+truncates once genuinely squeezed by its siblings) fixed the filename's
+own sizing, but wasn't the whole story: `.fm-panel-header` still laid the
+filename and the entire button cluster (saved-msg, find, theme, save,
+close, now also maximize) out in one shared row, so on anything but a
+wide panel the buttons alone could still eat the row before the filename
+got a real chance at it, "buttons take up all the space" rather than the
+original one-letter-ellipsis symptom. The actual fix is structural:
+`.fm-panel-header` is `flex-direction: column` now, holding two separate
+`.fm-panel-header-row` rows that never compete for the same horizontal
+space *by construction* — row 1 is `.fm-panel-fname-wrap` alone (filename
++ dirty dot), row 2 is the saved-message and `.fm-panel-tools` button
+cluster alone. The viewer panel got the same two-row treatment, and its
+close button is wrapped in `.fm-panel-tools` like the editor's, so it
+also gets `flex-shrink: 0` protection. `.fm-panel-header-row` no longer
+relies on `justify-content: space-between` to push `.fm-panel-tools` to
+the right, that only works when there's a second sibling in the row to
+space against, and the viewer's tools row has just the one Close button,
+no saved-message span the way the editor's row 2 does, so space-between
+would collapse to flex-start and leave Close sitting on the left.
+`.fm-panel-tools` carries its own `margin-left: auto` instead, so it
+self-anchors to the right edge of whichever row it's in regardless of
+what else (if anything) shares that row. Both filename spans keep a `title`
+attribute with the full path, for whatever truncation a genuinely narrow
+window still forces.
+
+**"File names don't show up" turned out to be about the file *list* rows
+(`.fm-row-name`), not the editor/viewer panel header above.** Both use the
+same `flex: 1; min-width: 0` idiom, and the panel header fix above is real
+and was never the bug, it was just the wrong element: every report of
+names rendering as a single character or nothing, in any window size,
+turned out to reproduce only once a file was actually open. That's the
+tell, because `.fm-container.panel-open .fm-left { flex: 0 0 280px; }`
+locks the file list to a **fixed** 280px the moment the side panel opens,
+independent of the window or browser width entirely, which is exactly why
+resizing the window never changed anything. At 280px, a row's fixed-width
+chrome, checkbox, type icon, the size/item-count column, the Edit/View
+text button, and 2-4 icon actions, adds up to most or all of that budget
+on its own before `.fm-row-name`'s `flex: 1` ever gets handed anything to
+grow into, since it's the only column actually allowed to shrink. A file
+row with all of Edit + info + rename + delete present is the worst case,
+which is consistent with it being "one letter or none at all" rather than
+a consistent amount of truncation. The fix gives two things back instead
+of widening the list (which would fight directly against making the
+editor bigger, the squeeze exists specifically to make room for it):
+`.fm-container.panel-open .fm-row-size` and
+`.fm-container.panel-open .fm-row-open-btn` both go `display: none`.
+Size/item-count is one click away in the existing info modal regardless.
+The Edit/View button (now tagged with the `fm-row-open-btn` class
+specifically so this rule can target it without also catching folder's
+"Delete all", which has no equivalent fallback and stays visible) is
+genuinely redundant, not just hidden capability: `buildFileRow()` already
+wires `row.addEventListener('click', ...)` to open the same file, Edit/
+View was always a second way to trigger the exact same action. Worth
+remembering for any future "the name's not visible" report on this same
+component: check whether the side panel is open before chasing the panel
+header again, the two truncate under completely different conditions.
+
+**The editor can hide the file list entirely for more room.**
+`#editor-maximize-btn` (in the editor's button row) toggles a
+`.maximized` class on `.fm-container` via `toggleMaximize()`; CSS
+(`.fm-container.panel-open.maximized .fm-left { display: none; }`) hides
+the file tree/toolbar column so the editor panel takes the full width
+instead of sharing it with the squeezed 280px file list. `updateMaximizeBtn()`
+swaps the icon/title between maximize and minimize, and `setPanelOpen()`
+resets `.maximized` (and the icon) back to its default state whenever the
+panel fully closes, so closing the editor and opening a different file
+later doesn't silently start maximized. This is the toggle, not a layout
+that's always full-width: the side-by-side file list is still the default
+because seeing both at once (e.g. while renaming things or checking
+what's nearby) is useful most of the time, maximize is for when it isn't.
+
+**CodeMirror needs an explicit `.refresh()` after anything resizes its
+container with pure CSS, or its gutter/line-wrap measurements go stale.**
+This showed up as "line markings bug out", most noticeably in `.md` files
+since `lineWrapping: true` means prose lines wrap more often than code
+and are therefore more sensitive to a stale cached wrap-height. Every
+place that changes the editor's pixel size after it's already mounted —
+opening or closing the find bar, expanding or collapsing the replace row,
+toggling maximize, or the window itself resizing — now calls
+`refreshEditorSoon()` (a `setTimeout(() => editor.refresh(), 50)`,
+deferred one tick so the CSS change has actually applied to layout before
+CodeMirror re-measures against it).
+
+**File-type icons have more visual variety now.** Previously every
+non-HTML text type (css/js/json/xml/svg/md/txt) shared one generic
+"code brackets" icon; `getTypeInfo()` now looks extension up in
+`CODE_ICON_BY_EXT` for five of them (`css` gets a droplet, `js` a
+lightning bolt, `json` literal curly-brace strokes, `md` a hash mark,
+`txt` ruled horizontal lines), and leaves `xml`/`svg` on the shared
+brackets icon since they're genuinely markup rather than code, prose, or
+plain text.
+
+**Search reaches every file on the site, not just the current folder.**
+Typing in `#fm-search` switches `renderFileManager()` from
+`renderBrowseView()` to `renderSearchResultsView()`, which filters the
+*whole* `allFiles` array by substring match on the full key (so searching
+a folder's name surfaces everything under it, see below) and displays
+each result's full path instead of a bare filename, replacing the
+breadcrumb with a "Search results for "x" · Clear" label rather than
+leaving it pointing at a folder that's no longer what's on screen.
+Clearing the query (or the explicit Clear link) drops back to
+`renderBrowseView()` at whatever `currentPath` was last set to,
+unchanged. Deliberately files-only: a query matching a folder's *name*
+still surfaces every file under it (typing "blog" finds everything in
+`blog/`), but there's no synthesized folder row for it to navigate into
+directly, the existing per-folder browsing already covers that case,
+and inventing one just for search results wasn't worth the extra
+complexity. Clicking a result (`openSearchResult()`) navigates
+`currentPath` to that file's actual parent folder and re-renders the
+browse view *before* opening it, the same confirm-then-close-then-mutate
+order `navigateTo()` already uses, so closing the file or clearing the
+search afterward leaves you looking at the folder the file actually lives
+in, not wherever you happened to be browsing before you searched.
+`buildFileRow()` is shared between both views (an `onOpen` parameter
+swaps in `openSearchResult` instead of opening in place); `buildFolderRow`
+stays browse-view-only since search has no folder rows to build.
 
 ---
 
@@ -855,44 +1044,70 @@ real Impressum or terms page ever needs a link from these emails, add it
 back deliberately rather than restoring the old one on autopilot.
 
 **`adminMessage()` and `broadcastAnnouncement()` render their `body` as
-Markdown, through the real `marked` package**, not a hand-rolled regex
-subset, that was tried and explicitly rejected. It's imported from
-`functions/_lib/vendor/marked.js`, a **vendored, verbatim copy** of marked's
-own pre-built `lib/marked.esm.js` (a self-contained bundle with zero
-imports of its own), not a bare `import { Marked } from 'marked'`.
+Markdown, through `remarker`** (`functions/_lib/vendor/remarker.js`), a
+from-scratch parser, not a third-party package. This replaced an earlier
+setup built on `marked` (vendored the same way, for the same no-build-step
+reason described below); the swap was a deliberate choice to use an
+in-house parser instead, not something marked did wrong.
 
-That detour exists because the bare import was tried first and broke the
-Cloudflare Pages build with "Could not resolve marked": this project has no
-custom Build command configured (see Cloudflare Setup, above, "leave
-blank, no build step needed for Phase 1"), and in that configuration Pages
-does not reliably run `npm install` before bundling `functions/` with
-esbuild, so a bare npm specifier that resolves fine locally can still fail
-to resolve at deploy time. Vendoring the already-self-contained ESM build
-sidesteps that entirely, no `node_modules` lookup happens at deploy time at
-all, it's just a relative-path import to a file already checked into the
-repo. `marked` itself stays a `devDependency` (used to regenerate the
-vendored file, see the header comment in `vendor/marked.js` for how), it is
-not what actually ships. If a future dependency needs real `node_modules` resolution inside
-`functions/`, configure an explicit Build command (e.g. `npm install`) on
-the Pages project first and confirm a deploy actually picks it up, don't
-assume a bare import will resolve just because it works locally.
+`remarker.js` is a **UMD/CommonJS-style module**, not a real ES module the
+way the old vendored `marked.esm.js` build was (that one had genuine
+`export { ... }` statements). It has to be imported as a **default**
+import, not a named one: `import remarker from './vendor/remarker.js'`.
+`import { remarker } from ...` resolves to `undefined` and fails at
+runtime, the module's own CJS-interop default export *is* the callable
+`remarker` function, with `.parse`/`.parseInline`/etc. as properties on
+it, there's nothing named `remarker` to destructure off of it. Confirmed
+against the actual esbuild-based Pages Functions bundler, not just plain
+Node, before relying on it.
 
-The `Marked` instance lives in `email-templates.js` itself (not a separate
-`_lib/markdown.js`) because its only renderer override, `link`, needs the
-module's existing `button()` helper and color constants. `gfm`/`breaks` are
-both on, so a plain message typed without blank lines between paragraphs
-still looks right (single line breaks become `<br>`), matching how the old
-plain-text-only composer behaved. The `link` override has one special case:
-a markdown link whose title is literally `"button"` (`[label](url
-"button")`) renders as the same terracotta CTA button used in the system
-templates, instead of a plain inline link, this is the documented way to
-get a button without writing raw HTML. Every other markdown construct
-(bold, italic, lists, headings, blockquotes, code) is left to marked's
-default output and inherits font/color from the wrapping `<td>` in
-`baseLayout()`, the only element that needed a color override at all was
-`<a>` (browsers default it to blue).
+It's vendored as a plain relative-path file for the same reason `marked`
+was: this project has no custom Build command configured (see Cloudflare
+Setup, above, "leave blank, no build step needed for Phase 1"), and in
+that configuration Pages does not reliably run `npm install` before
+bundling `functions/` with esbuild, so anything needing real
+`node_modules` resolution has to be vendored instead. Unlike `marked`,
+there's no upstream npm package to regenerate this file from, it's
+hand-written, so there's no matching `devDependency` either.
 
-**Raw HTML in the body passes through untouched, on purpose.** `marked`
+`renderMarkdown()` calls `remarker.parse(source, { gfm: true, breaks:
+true })` fresh each time rather than keeping one configured instance
+around (remarker's API is stateless per call, there's nothing like
+`marked`'s `new Marked({...})` to instantiate once). `breaks: true` is
+what makes a plain message typed without blank lines between paragraphs
+still look right (single line breaks become `<br>`), matching how the old
+plain-text-only composer behaved; this took a small fix to
+`vendor/remarker.js` itself (`renderInlineMultiline()`) since the option
+was accepted but silently never wired up to anything, confirmed by testing
+before and after, not just reading the source, the bug was non-obvious
+(it's invisible-character sentinel logic, easy to misread by eye).
+
+**There's no "button" link convention anymore.** `marked`'s setup had a
+custom `link` renderer override that special-cased a markdown link titled
+literally `"button"` into the terracotta CTA button. `remarker` has no
+renderer-override hook to hang an equivalent on (by design, it's a much
+simpler/smaller parser), so this was deliberately *not* rebuilt. A button
+in an admin-composed message is just the button's actual HTML pasted
+directly into the body instead, which already worked and still does (see
+below), the Compose UI hint text under each Message textarea now shows
+that literal snippet (URL/LABEL placeholders) instead of describing a
+shorthand. The seven canned templates that used to rely on `[label](url
+"button")` (`welcome`, `reinstated`, `feature_update`, `invite`,
+`reengagement`, `getting_started`, `storage_warning`, `storage_reached`)
+now embed that HTML directly in their seed `body` text in
+`migrate-005-email-templates.sql`. Existing databases that already had
+these rows seeded from before don't get touched by re-running that file
+(`INSERT OR IGNORE`), so `migrate-007-button-html-templates.sql` carries
+matching `UPDATE` statements for the same seven rows; both files were
+generated from the same source text so they can't drift from each other.
+Every other markdown construct (bold, italic, lists, headings,
+blockquotes, code, plain links) is left to remarker's default output and
+inherits font/color from the wrapping `<td>` in `baseLayout()`; plain
+markdown links no longer get the terracotta color override `marked`'s
+`link` renderer used to apply (same missing-hook reason), they render in
+whatever color the recipient's email client defaults `<a>` to.
+
+**Raw HTML in the body passes through untouched, on purpose.** `remarker`
 doesn't sanitize by default, and nothing here adds sanitization on top.
 Only admins reach this composer, and they already hold equivalent or
 greater trust elsewhere in this same panel (ban/delete users, delete sites,
@@ -903,13 +1118,20 @@ Don't add HTML sanitization here "for safety", it would just break the
 "add buttons into emails" use case this was built for without protecting
 against anything that isn't already covered by admin trust.
 
-The Compose UI surfaces this as a one-line hint under each Message
-textarea, the `"button"` title convention isn't discoverable otherwise.
-Keep that hint in sync (`public/admin.html`, both the one-off Send form and
-the Broadcast form) if the supported syntax changes.
+The Compose UI surfaces the button snippet as a one-line hint under each
+Message textarea (`public/admin.html`, both the one-off Send form and the
+Broadcast form), it isn't discoverable otherwise. Keep that hint's snippet
+byte-for-byte consistent with `button()`'s actual output if either one
+changes, an admin copying a stale snippet would get a button that's
+subtly off from the rest of the system's emails.
 
 A few adaptations from how this might first get described:
 
+- `vendor/marked.js` is gone. The markdown parser used to be `marked`,
+  vendored verbatim; it's been replaced by the hand-written `remarker.js`
+  described above, and the `marked` devDependency (and its
+  `package-lock.json` entry) went with it, there's nothing left to
+  regenerate it from.
 - The asset-path comment for the old logo image is gone along with the
   image itself, the wordmark is plain inline-styled HTML now, nothing to
   host.
@@ -1222,7 +1444,7 @@ when the recipient has no account (a one-off sent to a raw email with no
 matching user row) or no username; `%sitetitle` falls back to `"your
 site"`; `%role` falls back to `"user"`; `%email` is always the address
 being sent to, no fallback needed. Substitution runs on the raw markdown
-*before* it reaches `marked`, so a substituted value is just plain text and
+*before* it reaches `remarker`, so a substituted value is just plain text and
 gets escaped the same as anything else the admin typed, there's no separate
 escaping step to keep in sync.
 
@@ -1355,6 +1577,7 @@ npx wrangler pages deployment tail
 - **Do not hardcode secrets.** All secrets come from environment variables or `wrangler secret put`.
 - **Subdomains are case-insensitive.** Normalize usernames to lowercase everywhere.
 - **No scrolling marquee / fixed top status bar.** An earlier iteration had a `position: fixed` bar across the top of every page with a blinking cursor and a scrolling marquee (`status: nominal :: ...`). It was removed as silly and distracting. Do not re-add a global ticker/marquee/status bar of this kind.
+- **`public/_headers` sets `Cache-Control: no-cache` on `/assets/*`.** Cloudflare Pages' own default for static assets is several hours (`max-age=14400`), while `dashboard.html` and every other HTML page get `max-age=0` and always revalidate. That mismatch means a CSS/JS fix can be live on the server while a browser that loaded the dashboard recently keeps rendering the new HTML against an hours-old cached stylesheet, no error, just a layout that silently looks like the fix never shipped (this is exactly what happened with the editor-panel filename fix above: the deployed CSS was correct, byte-for-byte, but a stale cached copy made it look broken again). `no-cache` still lets the browser keep a cached copy, it just forces a revalidation (a cheap ETag/304, not a full re-download) before using it, so a real change is never more than one request away instead of waiting out the max-age. Don't remove this or widen its cache lifetime without the same staleness risk in mind, this file exists specifically because that risk was observed, not preemptively.
 
 ---
 
