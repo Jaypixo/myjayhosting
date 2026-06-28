@@ -8,7 +8,7 @@ MyJay is a small, independently run platform (built by Jaypix, https://jaypix.de
 
 - [Homepage](https://myjay.net/): what MyJay is and how it works
 - [Register](https://myjay.net/register): create a free account and claim a subdomain
-- [Explore](https://myjay.net/explore): recently updated sites hosted on the platform
+- [Search](https://myjay.net/search): MyJay's own search engine, indexing MyJay, Neocities, and Nekoweb
 - [About](https://myjay.net/about): what MyJay is, what it isn't, who runs it, the roadmap
 - [Contact](https://myjay.net/contact): bug reports, abuse reports, account help, press
 - [Status](https://myjay.net/status): live system checks and maintenance mode
@@ -29,6 +29,8 @@ The full reference lives under /docs. Each of these is its own page:
 - [Public files API](https://myjay.net/docs/public-api): GET /api/sites/:username/files, the public cross-origin endpoint for listing a published site's files
 - [File types & limits](https://myjay.net/docs/file-types-and-limits): the full allowed-extensions list, storage quota, upload ceiling
 - [Analytics](https://myjay.net/docs/analytics): what view tracking does and deliberately doesn't do
+- [Search](https://myjay.net/docs/search): using MyJay Search, filters, autocomplete, did-you-mean, tags
+- [Search indexing](https://myjay.net/docs/search-indexing): how indexing works, robots.txt, opting out, removal requests
 - [Account & security](https://myjay.net/docs/account-and-security): username rules, password hashing, session handling
 - [Troubleshooting](https://myjay.net/docs/troubleshooting): fixes for the issues that actually come up
 
@@ -38,3 +40,4 @@ The full reference lives under /docs. Each of these is its own page:
 - The dashboard and admin panel require login and have no public content; please don't index them.
 - This is not a company. There's no enterprise plan and no affiliate program.
 - There is one public API: GET https://myjay.net/api/sites/:username/files, listing a published site's files. No key or login needed, open to requests from any origin. See https://myjay.net/docs/public-api.
+- MyJay also operates its own crawler (User-Agent: MyJaySearch/1.0) that indexes public pages from MyJay, Neocities, and Nekoweb for https://myjay.net/search. It respects robots.txt and rate limits itself to one request per second per domain. See https://myjay.net/docs/search-indexing for the full policy, including how to opt out or request removal.

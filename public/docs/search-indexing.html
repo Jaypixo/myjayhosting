@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Search Indexing | MyJay Docs</title>
+  <meta name="description" content="How MyJay Search indexes MyJay, Neocities, and Nekoweb sites: robots.txt, rate limits, opting out, and removal requests.">
+  <link rel="canonical" href="https://myjay.net/docs/search-indexing">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Search Indexing | MyJay Docs">
+  <meta property="og:description" content="How MyJay Search indexes sites, and how to stop it or remove yours.">
+  <meta property="og:url" content="https://myjay.net/docs/search-indexing">
+  <meta property="og:image" content="https://myjay.net/assets/img/logo.png">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Search Indexing | MyJay Docs">
+  <meta name="twitter:description" content="How MyJay Search indexes sites, and how to stop it.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@1,300&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="/assets/img/favicon.png">
+  <link rel="stylesheet" href="/assets/style.css">
+</head>
+<body>
+  <header class="torn-header compact">
+    <div class="nav-auth" data-nav-auth>
+      <a href="/login" class="btn btn-sm btn-outline">Log in</a>
+      <a href="/register" class="btn btn-sm">Register</a>
+    </div>
+    <div class="logo">
+      <img src="/assets/img/logo.png" alt="MyJay.net" onerror="var s=this.nextElementSibling; this.remove(); s.style.display=''">
+      <span class="logo-fallback" style="display:none"><span class="myjay">MyJay</span><span class="dotnet">.net</span></span>
+    </div>
+    <nav class="nav">
+      <a href="/">Home</a>
+      <a href="/search">Search</a>
+      <a href="/docs">Docs</a>
+      <a href="/about">About</a>
+      <a href="/contact">Contact</a>
+    </nav>
+  </header>
+
+  <main class="docs-layout">
+    <aside class="docs-sidebar">
+      <p class="docs-sidebar-title">Documentation</p>
+      <nav class="docs-nav">
+        <a href="/docs">Overview</a>
+        <a href="/docs/getting-started">Getting started</a>
+        <a href="/docs/dashboard">The dashboard</a>
+        <a href="/docs/file-manager">File manager</a>
+        <a href="/docs/code-editor">Code editor</a>
+        <a href="/docs/publishing">Publishing</a>
+        <a href="/docs/routing">How routing works</a>
+        <a href="/docs/public-api">Public files API</a>
+        <a href="/docs/file-types-and-limits">File types &amp; limits</a>
+        <a href="/docs/analytics">Analytics</a>
+        <a href="/docs/search">Search</a>
+        <a href="/docs/search-indexing" class="active">Search indexing</a>
+        <a href="/docs/account-and-security">Account &amp; security</a>
+        <a href="/docs/troubleshooting">Troubleshooting</a>
+      </nav>
+    </aside>
+
+    <div class="docs-content">
+      <span class="section-label">// docs / search indexing</span>
+      <h1>If a crawler from MyJay just visited your site.</h1>
+
+      <p>
+        It identifies itself as <code>MyJaySearch/1.0</code> in its User-Agent
+        string, with a link back to this exact page, and sends a custom
+        <code>X-Crawler-Info</code> header pointing here too, so you don't
+        have to guess what hit your server.
+      </p>
+
+      <h2>Stop it from visiting your site</h2>
+      <p>Three ways, in order of how fast they take effect:</p>
+      <ul>
+        <li>
+          Add a <code>Disallow</code> rule to your own <code>robots.txt</code>
+          (for everyone, or specifically <code>User-agent: MyJaySearch</code>).
+          Checked, and respected, before every single page fetch, and cached
+          for at most 24 hours, so a change takes effect within a day at most.
+        </li>
+        <li>
+          Use the <a href="/search">removal request</a> link on any of your
+          pages in search results, or submit one directly with just your
+          URL and an optional reason, no account needed. Approved requests
+          block the domain and delete it from the index, typically reviewed
+          within 24 hours.
+        </li>
+        <li>
+          If your site is on MyJay itself: turn off "Allow this site to be
+          indexed by MyJay Search" in your dashboard's Settings tab. Takes
+          effect on the next crawl.
+        </li>
+      </ul>
+
+      <h2>What gets indexed, and how</h2>
+      <p>Three platforms, three different discovery methods:</p>
+      <ul>
+        <li>
+          <strong>MyJay</strong>: every published site is indexed by default
+          (see the opt-out above), discovered directly from MyJay's own
+          records, no crawling needed for discovery.
+        </li>
+        <li>
+          <strong>Neocities</strong>: discovered from Neocities' own public
+          <code>/browse</code> listing (sorted by newest and most-recently
+          updated), the same page any search engine would use, not from
+          their API (their API's terms explicitly disallow using it to
+          enumerate all sites, so this crawler doesn't).
+        </li>
+        <li>
+          <strong>Nekoweb</strong>: Nekoweb has no bulk site listing at all.
+          Sites arrive either through a manual <a href="/search">submission</a>
+          (anyone can submit a URL) or by being linked to from a page on
+          another site that's already indexed.
+        </li>
+      </ul>
+      <p>
+        For a discovered site, the crawl follows links up to two clicks deep
+        from its homepage, extracting the page title, meta description, and
+        visible body text (scripts, navs, and footers are stripped first).
+        A handful of simple heuristics (presence of <code>&lt;canvas&gt;</code>,
+        image-heavy pages, frequent <code>&lt;article&gt;</code> tags, a few
+        keyword checks) infer rough tags like blog, art, or portfolio, shown
+        as filters in search.
+      </p>
+      <p class="text-muted">
+        Nothing more than that is stored: no personal data is pulled out of
+        a page, and raw page content isn't kept beyond what's needed to
+        show a title, excerpt, and tags in results.
+      </p>
+
+      <h2>robots.txt and rate limits</h2>
+      <p>
+        <code>robots.txt</code> is fetched and checked before a single page
+        on a domain is touched, including its <code>Crawl-delay</code>
+        directive if it sets one. The crawler never goes faster than one
+        request per second to any single domain, and slows down further if
+        a site's <code>robots.txt</code> asks for it. A page-level
+        <code>&lt;meta name="robots" content="noindex"&gt;</code> tag or
+        <code>X-Robots-Tag</code> header is honored too, even when
+        <code>robots.txt</code> itself allows the path.
+      </p>
+      <p>
+        If <code>robots.txt</code> can't be fetched at all (a timeout, a
+        server error, anything other than a clean 404), the crawler skips
+        that domain for the run entirely rather than guessing it's safe to
+        proceed. A 404 is treated as "no restrictions," same as any other
+        crawler would.
+      </p>
+
+      <h2>Re-crawl schedule</h2>
+      <p>
+        An incremental pass runs daily (recently changed MyJay sites,
+        recently updated Neocities sites); a full pass runs weekly across
+        everything currently indexed. Re-crawling refreshes a page's title,
+        excerpt, and tags, and can pick up new pages linked from existing ones.
+      </p>
+
+      <div class="docs-pager">
+        <a class="prev" href="/docs/search">
+          <span class="label">← Back</span>
+          Search
+        </a>
+        <a class="next" href="/docs/account-and-security">
+          <span class="label">Next</span>
+          Account &amp; security →
+        </a>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <span class="footnote">[1] Questions about a specific removal or block? <a href="/contact">Get in touch</a>.</span>
+    <span class="footnote">[2] v0.1.0-alpha, independently run.</span>
+    <span class="footnote">[3] <a href="/status">Status</a> · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a></span>
+  </footer>
+
+  <script type="module" src="/assets/main.js"></script>
+</body>
+</html>

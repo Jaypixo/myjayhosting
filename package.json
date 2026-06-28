@@ -12,7 +12,9 @@
     "router:dev": "wrangler dev worker/router.js",
     "router:deploy": "wrangler deploy worker/router.js --name myjay-router",
     "mailer:dev": "wrangler dev --config mailer/wrangler.toml",
-    "mailer:deploy": "wrangler deploy --config mailer/wrangler.toml"
+    "mailer:deploy": "wrangler deploy --config mailer/wrangler.toml",
+    "crawler:dev": "wrangler dev --config crawler/wrangler.toml",
+    "crawler:deploy": "wrangler deploy --config crawler/wrangler.toml"
   },
   "devDependencies": {
     "wrangler": "^3.78.0"

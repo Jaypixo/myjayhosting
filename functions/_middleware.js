@@ -20,11 +20,20 @@ const PUBLIC_API_PATHS = new Set([
   '/api/auth/resend-verification',
   '/api/auth/request-reset',
   '/api/auth/reset',
-  '/api/explore',
+  '/api/stats',
   '/api/settings',
   '/api/contact',
   '/api/health',
   '/api/webhooks/resend',
+  '/api/search',
+  '/api/search/autocomplete',
+  '/api/search/random',
+  '/api/search/recent',
+  '/api/search/tags',
+  '/api/search/similar',
+  '/api/search/stats',
+  '/api/search/submit',
+  '/api/search/remove-request',
 ]);
 
 // Paths meant to be called by code running literally anywhere, not just

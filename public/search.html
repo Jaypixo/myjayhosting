@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Search | MyJay.net</title>
+  <meta name="description" content="Search the indie web: MyJay, Neocities, and Nekoweb. No tracking, no SEO slop, no ranking algorithm, just a plain match on what you typed.">
+  <link rel="canonical" href="https://myjay.net/search">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Search | MyJay.net">
+  <meta property="og:description" content="Search the indie web: MyJay, Neocities, and Nekoweb. No tracking, no SEO slop.">
+  <meta property="og:url" content="https://myjay.net/search">
+  <meta property="og:image" content="https://myjay.net/assets/img/logo.png">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Search | MyJay.net">
+  <meta name="twitter:description" content="Search the indie web: MyJay, Neocities, and Nekoweb.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@1,300&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="/assets/img/favicon.png">
+  <link rel="stylesheet" href="/assets/style.css">
+</head>
+<body>
+  <header class="torn-header compact">
+    <div class="nav-auth" data-nav-auth>
+      <a href="/login" class="btn btn-sm btn-outline">Log in</a>
+      <a href="/register" class="btn btn-sm">Register</a>
+    </div>
+    <div class="logo">
+      <img src="/assets/img/logo.png" alt="MyJay.net" onerror="var s=this.nextElementSibling; this.remove(); s.style.display=''">
+      <span class="logo-fallback" style="display:none"><span class="myjay">MyJay</span><span class="dotnet">.net</span></span>
+    </div>
+    <nav class="nav">
+      <a href="/">Home</a>
+      <a href="/search" class="active">Search</a>
+      <a href="/docs">Docs</a>
+      <a href="/about">About</a>
+      <a href="/contact">Contact</a>
+    </nav>
+  </header>
+
+  <div id="sticky-bar" class="search-sticky-bar hidden">
+    <form id="sticky-search-form" class="search-bar-row">
+      <input type="search" id="sticky-search-input" placeholder="Search the indie web..." autocomplete="off">
+      <button type="submit" class="btn btn-sm">Search</button>
+      <div class="search-autocomplete hidden" id="sticky-autocomplete"></div>
+    </form>
+  </div>
+
+  <main>
+    <section id="hero-section" class="search-hero">
+      <span class="section-label">// myjay search</span>
+      <h1><em>Search the indie web.</em></h1>
+      <p class="tagline">MyJay, Neocities, and Nekoweb. No tracking, no ranking algorithm, no SEO slop.</p>
+
+      <form id="hero-search-form" class="search-bar-row">
+        <input type="search" id="hero-search-input" placeholder="Search the indie web..." autocomplete="off">
+        <button type="submit" class="btn">Search</button>
+        <div class="search-autocomplete hidden" id="hero-autocomplete"></div>
+      </form>
+
+      <div class="search-quick-links">
+        <a href="#" id="submit-link">Submit a site</a>
+        <a href="/about#myjay-search">About</a>
+        <a href="/status">Status</a>
+        <button type="button" id="hero-random-btn" class="btn btn-ghost btn-sm">Surprise me</button>
+      </div>
+    </section>
+
+    <section id="hero-extras" class="wrapper">
+      <div>
+        <span class="section-label">// recently indexed</span>
+        <div class="site-grid" id="recent-grid">
+          <div class="skeleton skeleton-card"></div>
+          <div class="skeleton skeleton-card"></div>
+          <div class="skeleton skeleton-card"></div>
+        </div>
+      </div>
+      <div class="mt-2">
+        <span class="section-label">// browse by tag</span>
+        <div id="hero-tags"></div>
+      </div>
+    </section>
+
+    <section id="results-section" class="hidden">
+      <div class="search-layout">
+        <aside class="search-sidebar">
+          <div class="search-filter-group">
+            <h3>Platform</h3>
+            <label class="checkbox-label"><input type="radio" name="platform-filter" class="platform-filter" value=""> All</label>
+            <label class="checkbox-label"><input type="radio" name="platform-filter" class="platform-filter" value="myjay"> MyJay</label>
+            <label class="checkbox-label"><input type="radio" name="platform-filter" class="platform-filter" value="neocities"> Neocities</label>
+            <label class="checkbox-label"><input type="radio" name="platform-filter" class="platform-filter" value="nekoweb"> Nekoweb</label>
+          </div>
+          <div class="search-filter-group">
+            <h3>Date indexed</h3>
+            <select id="since-filter">
+              <option value="">Any time</option>
+              <option value="7d">Past week</option>
+              <option value="30d">Past month</option>
+              <option value="90d">Past 90 days</option>
+            </select>
+          </div>
+          <div class="search-filter-group">
+            <h3>Tags</h3>
+            <div id="sidebar-tags"></div>
+          </div>
+          <button type="button" id="random-btn" class="btn btn-ghost btn-sm">Surprise me</button>
+        </aside>
+
+        <div class="search-results-main">
+          <div id="did-you-mean" class="form-error hidden" style="background:none;border:none;padding:0;"></div>
+          <p class="search-results-count" id="results-count"></p>
+          <div id="results-skeleton" class="hidden">
+            <div class="skeleton skeleton-card"></div>
+            <div class="skeleton skeleton-card"></div>
+            <div class="skeleton skeleton-card"></div>
+          </div>
+          <div id="results-list" class="search-results-list"></div>
+          <div id="pagination" class="search-pagination"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <span class="footnote">[1] Indexes public pages from MyJay, Neocities, and Nekoweb. <code>robots.txt</code> is always respected. <a href="/docs/search-indexing">How indexing works</a>.</span>
+    <span class="footnote">[2] v0.1.0-alpha, independently run.</span>
+    <span class="footnote">[3] <a href="/status">Status</a> · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a></span>
+  </footer>
+
+  <script type="module" src="/assets/main.js"></script>
+  <script type="module">
+    import { apiFetch, debounce, buildModal, attachDismiss, showAlert } from '/assets/main.js';
+
+    const PLATFORM_LABELS = { myjay: 'MyJay', neocities: 'Neocities', nekoweb: 'Nekoweb' };
+    const PAGE_SIZE = 20;
+
+    let state = {};
+    const similarCache = new Map();
+    let cachedTags = null;
+
+    // Builds a DOM node from createElement + setAttribute/textContent only,
+    // never innerHTML with interpolated values: every piece of text or URL
+    // rendered on this page can originate from a crawled third-party page,
+    // so nothing dynamic gets a chance to be parsed as markup.
+    function el(tag, props = {}, children = []) {
+      const node = document.createElement(tag);
+      for (const [key, value] of Object.entries(props)) {
+        if (key === 'text') node.textContent = value;
+        else if (key.startsWith('on') && typeof value === 'function') node.addEventListener(key.slice(2), value);
+        else if (key === 'className') node.className = value;
+        else node.setAttribute(key, value);
+      }
+      children.forEach((c) => c && node.appendChild(c));
+      return node;
+    }
+
+    function formatDate(iso) {
+      if (!iso) return 'unknown';
+      return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+
+    function hostnameOf(url) {
+      try { return new URL(url).hostname; } catch { return url; }
+    }
+
+    // ── URL state ────────────────────────────────────────────────────────────
+
+    function readStateFromUrl() {
+      const params = new URLSearchParams(window.location.search);
+      return {
+        q: params.get('q') || '',
+        platform: params.get('platform') || '',
+        tag: params.get('tag') || '',
+        since: params.get('since') || '',
+        page: Math.max(1, parseInt(params.get('page'), 10) || 1),
+      };
+    }
+
+    function writeUrl(next, { push = true } = {}) {
+      const params = new URLSearchParams();
+      if (next.q) params.set('q', next.q);
+      if (next.platform) params.set('platform', next.platform);
+      if (next.tag) params.set('tag', next.tag);
+      if (next.since) params.set('since', next.since);
+      if (next.page > 1) params.set('page', String(next.page));
+      const qs = params.toString();
+      const url = qs ? `/search?${qs}` : '/search';
+      if (push) window.history.pushState(next, '', url);
+      else window.history.replaceState(next, '', url);
+    }
+
+    function isBrowsing(s) {
+      return Boolean(s.q || s.platform || s.tag);
+    }
+
+    // ── Rendering ────────────────────────────────────────────────────────────
+
+    function render() {
+      document.getElementById('hero-search-input').value = state.q;
+      document.getElementById('sticky-search-input').value = state.q;
+      syncFilterControls();
+
+      const browsing = isBrowsing(state);
+      document.getElementById('hero-section').classList.toggle('hidden', browsing);
+      document.getElementById('hero-extras').classList.toggle('hidden', browsing);
+      document.getElementById('results-section').classList.toggle('hidden', !browsing);
+      document.getElementById('sticky-bar').classList.toggle('hidden', !browsing);
+
+      if (browsing) {
+        loadResults();
+      } else {
+        loadEmptyStateExtras();
+      }
+    }
+
+    function syncFilterControls() {
+      document.querySelectorAll('.platform-filter').forEach((input) => {
+        input.checked = input.value === state.platform;
+      });
+      document.getElementById('since-filter').value = state.since || '';
+      document.querySelectorAll('#sidebar-tags .tag-chip').forEach((chip) => {
+        chip.classList.toggle('active', chip.dataset.tag === state.tag);
+      });
+    }
+
+    async function loadResults() {
+      const list = document.getElementById('results-list');
+      const skeleton = document.getElementById('results-skeleton');
+      list.classList.add('is-loading');
+      skeleton.classList.remove('hidden');
+      document.getElementById('did-you-mean').classList.add('hidden');
+
+      try {
+        let data;
+        if (state.q) {
+          const params = new URLSearchParams({ q: state.q, page: String(state.page) });
+          if (state.platform) params.set('platform', state.platform);
+          if (state.tag) params.set('tag', state.tag);
+          if (state.since) params.set('since', state.since);
+          const res = await apiFetch(`/api/search?${params}`);
+          data = await res.json();
+        } else {
+          const params = new URLSearchParams({ limit: String(PAGE_SIZE), offset: String((state.page - 1) * PAGE_SIZE) });
+          if (state.platform) params.set('platform', state.platform);
+          if (state.tag) params.set('tag', state.tag);
+          const res = await apiFetch(`/api/search/recent?${params}`);
+          const recent = await res.json();
+          data = {
+            results: recent.results.map((r) => ({ ...r, excerpt: r.description || '', lastIndexedAt: r.crawled_at })),
+            total: null,
+            suggestion: null,
+          };
+        }
+        renderResults(data);
+      } catch {
+        list.innerHTML = '';
+        list.appendChild(el('div', { className: 'empty-state', text: 'Could not load results. Try again in a moment.' }));
+      } finally {
+        list.classList.remove('is-loading');
+        skeleton.classList.add('hidden');
+      }
+    }
+
+    function renderResults(data) {
+      const list = document.getElementById('results-list');
+      const countEl = document.getElementById('results-count');
+      list.innerHTML = '';
+
+      const dym = document.getElementById('did-you-mean');
+      if (data.suggestion) {
+        dym.textContent = '';
+        dym.appendChild(document.createTextNode('Did you mean '));
+        dym.appendChild(el('button', {
+          type: 'button', text: data.suggestion,
+          style: 'background:none;border:none;color:var(--secondary);border-bottom:1px dashed var(--secondary);cursor:pointer;font:inherit;padding:0',
+          onclick: () => { state.q = data.suggestion; state.page = 1; writeUrl(state); render(); },
+        }));
+        dym.appendChild(document.createTextNode('?'));
+        dym.classList.remove('hidden');
+      } else {
+        dym.classList.add('hidden');
+      }
+
+      if (data.results.length === 0) {
+        countEl.textContent = '';
+        const empty = el('div', { className: 'empty-state' });
+        empty.appendChild(document.createTextNode(state.q ? `No results for "${state.q}". Try ` : 'Nothing here yet. Try '));
+        empty.appendChild(el('a', { href: '/search', text: 'browsing recently indexed sites' }));
+        empty.appendChild(document.createTextNode(', a tag in the sidebar, or '));
+        empty.appendChild(el('button', { type: 'button', className: 'btn btn-ghost btn-sm', text: 'a random site', onclick: goRandom }));
+        empty.appendChild(document.createTextNode('.'));
+        list.appendChild(empty);
+        document.getElementById('pagination').innerHTML = '';
+        return;
+      }
+
+      countEl.textContent = data.total != null ? `${data.total.toLocaleString()} result${data.total === 1 ? '' : 's'}` : '';
+      data.results.forEach((r) => list.appendChild(buildResultCard(r)));
+      renderPagination(data.total, data.results.length);
+    }
+
+    function buildResultCard(r) {
+      const titleLink = el('a', { href: r.url, target: '_blank', rel: 'noopener', text: r.title || r.url });
+      const title = el('h3', { className: 'search-result-title' }, [titleLink]);
+      const urlLine = el('div', { className: 'search-result-url', text: r.url });
+      const badge = el('span', { className: `badge badge-${r.platform}`, text: PLATFORM_LABELS[r.platform] || r.platform });
+      const head = el('div', { className: 'search-result-head' }, [el('div', {}, [title, urlLine]), badge]);
+
+      const excerpt = el('p', { className: 'search-result-excerpt' });
+      // r.excerpt is pre-escaped server-side (highlightExcerpt() in
+      // functions/_lib/search-tokenize.js) before any <mark> tags are added,
+      // so it's the one place on this page where innerHTML over dynamic
+      // content is intentional rather than risky.
+      excerpt.innerHTML = r.excerpt || '';
+
+      const meta = el('div', { className: 'search-result-meta' }, [
+        el('span', { text: `indexed ${formatDate(r.lastIndexedAt)}` }),
+      ]);
+
+      const similarPanel = el('div', { className: 'search-similar-panel hidden' });
+      const similarBtn = el('button', { type: 'button', text: 'Sites like this' });
+      similarBtn.addEventListener('click', () => toggleSimilar(r.url, similarPanel));
+      const removeBtn = el('button', { type: 'button', text: 'Remove this site' });
+      removeBtn.addEventListener('click', () => openRemoveModal(r.url));
+      const actions = el('div', { className: 'search-result-actions' }, [similarBtn, removeBtn]);
+
+      return el('div', { className: 'search-result-card' }, [head, excerpt, meta, actions, similarPanel]);
+    }
+
+    async function toggleSimilar(url, panel) {
+      const wasHidden = panel.classList.contains('hidden');
+      panel.classList.toggle('hidden');
+      if (!wasHidden || panel.dataset.loaded) return;
+
+      panel.textContent = 'Loading…';
+      try {
+        let similar = similarCache.get(url);
+        if (!similar) {
+          const res = await apiFetch(`/api/search/similar?url=${encodeURIComponent(url)}`);
+          const data = await res.json();
+          similar = data.results || [];
+          similarCache.set(url, similar);
+        }
+        panel.textContent = '';
+        if (similar.length === 0) {
+          panel.textContent = 'Nothing similar indexed yet.';
+        } else {
+          const list = el('ul');
+          similar.forEach((s) => {
+            list.appendChild(el('li', {}, [el('a', { href: s.url, target: '_blank', rel: 'noopener', text: s.title || s.url })]));
+          });
+          panel.appendChild(list);
+        }
+        panel.dataset.loaded = '1';
+      } catch {
+        panel.textContent = 'Could not load.';
+      }
+    }
+
+    function renderPagination(total, resultCountOnPage) {
+      const el2 = document.getElementById('pagination');
+      el2.innerHTML = '';
+      const hasPrev = state.page > 1;
+      const hasNext = total != null ? state.page * PAGE_SIZE < total : resultCountOnPage === PAGE_SIZE;
+      if (!hasPrev && !hasNext) return;
+
+      const goToPage = (delta) => {
+        state.page += delta;
+        writeUrl(state);
+        render();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      };
+
+      if (hasPrev) el2.appendChild(el('button', { className: 'btn btn-ghost btn-sm', text: '← Prev', onclick: () => goToPage(-1) }));
+      if (hasNext) el2.appendChild(el('button', { className: 'btn btn-ghost btn-sm', text: 'Next →', onclick: () => goToPage(1) }));
+    }
+
+    // ── Hero / empty-state extras ────────────────────────────────────────────
+
+    async function getTags() {
+      if (!cachedTags) {
+        try {
+          const res = await apiFetch('/api/search/tags');
+          const data = await res.json();
+          cachedTags = data.tags || [];
+        } catch {
+          cachedTags = [];
+        }
+      }
+      return cachedTags;
+    }
+
+    async function loadEmptyStateExtras() {
+      const grid = document.getElementById('recent-grid');
+      try {
+        const res = await apiFetch('/api/search/recent?limit=6');
+        const data = await res.json();
+        grid.innerHTML = '';
+        if (data.results.length === 0) {
+          grid.appendChild(el('div', { className: 'empty-state', text: 'Nothing indexed yet.' }));
+        } else {
+          data.results.forEach((r) => {
+            grid.appendChild(el('a', { className: 'card site-card', href: r.url, target: '_blank', rel: 'noopener' }, [
+              el('div', { className: 'site-card-name', text: r.title || r.url }),
+              el('div', { className: 'site-card-url', text: hostnameOf(r.url) }),
+            ]));
+          });
+        }
+      } catch {
+        grid.innerHTML = '';
+        grid.appendChild(el('div', { className: 'empty-state', text: 'Could not load recently indexed sites.' }));
+      }
+
+      const tagsWrap = document.getElementById('hero-tags');
+      const tags = await getTags();
+      tagsWrap.innerHTML = '';
+      tags.slice(0, 10).forEach((t) => {
+        tagsWrap.appendChild(el('a', { className: 'tag-chip', href: `/search?tag=${encodeURIComponent(t.tag)}`, text: `${t.tag} (${t.count})` }));
+      });
+    }
+
+    async function loadSidebarTags() {
+      const wrap = document.getElementById('sidebar-tags');
+      const tags = await getTags();
+      wrap.innerHTML = '';
+      tags.forEach((t) => {
+        const chip = el('button', { type: 'button', className: 'tag-chip', text: `${t.tag} (${t.count})` });
+        chip.dataset.tag = t.tag;
+        chip.addEventListener('click', () => {
+          state.tag = state.tag === t.tag ? '' : t.tag;
+          state.page = 1;
+          writeUrl(state);
+          render();
+        });
+        wrap.appendChild(chip);
+      });
+    }
+
+    async function goRandom() {
+      try {
+        const params = state.platform ? `?platform=${encodeURIComponent(state.platform)}` : '';
+        const res = await apiFetch(`/api/search/random${params}`);
+        if (!res.ok) { await showAlert('Nothing indexed yet.'); return; }
+        const data = await res.json();
+        window.open(data.url, '_blank', 'noopener');
+      } catch {
+        await showAlert('Could not reach the index right now.');
+      }
+    }
+
+    // ── Search forms / autocomplete ─────────────────────────────────────────
+
+    function submitSearch(q) {
+      state.q = q.trim();
+      state.page = 1;
+      writeUrl(state);
+      render();
+    }
+
+    function setupAutocomplete(inputEl, dropdownEl) {
+      const run = debounce(async () => {
+        const q = inputEl.value.trim();
+        if (q.length < 2) { dropdownEl.classList.add('hidden'); return; }
+        try {
+          const res = await apiFetch(`/api/search/autocomplete?q=${encodeURIComponent(q)}`);
+          const data = await res.json();
+          dropdownEl.innerHTML = '';
+          if (!data.suggestions || data.suggestions.length === 0) { dropdownEl.classList.add('hidden'); return; }
+          data.suggestions.forEach((s) => {
+            dropdownEl.appendChild(el('button', {
+              type: 'button', text: s,
+              onclick: () => { inputEl.value = s; dropdownEl.classList.add('hidden'); submitSearch(s); },
+            }));
+          });
+          dropdownEl.classList.remove('hidden');
+        } catch {
+          dropdownEl.classList.add('hidden');
+        }
+      }, 200);
+
+      inputEl.addEventListener('input', run);
+      inputEl.addEventListener('blur', () => setTimeout(() => dropdownEl.classList.add('hidden'), 150));
+    }
+
+    function setupSearchForms() {
+      document.getElementById('hero-search-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        document.getElementById('hero-autocomplete').classList.add('hidden');
+        submitSearch(document.getElementById('hero-search-input').value);
+      });
+      document.getElementById('sticky-search-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        document.getElementById('sticky-autocomplete').classList.add('hidden');
+        submitSearch(document.getElementById('sticky-search-input').value);
+      });
+      setupAutocomplete(document.getElementById('hero-search-input'), document.getElementById('hero-autocomplete'));
+      setupAutocomplete(document.getElementById('sticky-search-input'), document.getElementById('sticky-autocomplete'));
+    }
+
+    function setupFilters() {
+      document.querySelectorAll('.platform-filter').forEach((input) => {
+        input.addEventListener('change', () => {
+          state.platform = input.value;
+          state.page = 1;
+          writeUrl(state);
+          render();
+        });
+      });
+      document.getElementById('since-filter').addEventListener('change', (e) => {
+        state.since = e.target.value;
+        state.page = 1;
+        writeUrl(state);
+        render();
+      });
+    }
+
+    // ── Submit / remove modals ───────────────────────────────────────────────
+
+    function openSubmitModal() {
+      const urlInput = el('input', { type: 'text', id: 'submit-url-input', placeholder: 'https://yourname.neocities.org' });
+      const categoryInput = el('input', { type: 'text', id: 'submit-category-input', placeholder: 'blog, art, portfolio...' });
+      const errorEl = el('div', { className: 'form-error' });
+      const body = el('div', {}, [
+        el('div', { className: 'field' }, [el('label', { for: 'submit-url-input', text: 'Site URL' }), urlInput]),
+        el('div', { className: 'field' }, [el('label', { for: 'submit-category-input', text: 'Category hint (optional)' }), categoryInput]),
+        errorEl,
+      ]);
+
+      const { overlay, actions } = buildModal({ title: 'Submit a site', body });
+      const cancelBtn = el('button', { className: 'btn btn-ghost btn-sm', text: 'Cancel' });
+      const submitBtn = el('button', { className: 'btn btn-sm', text: 'Submit' });
+      actions.appendChild(cancelBtn);
+      actions.appendChild(submitBtn);
+
+      const finish = () => { detach(); overlay.remove(); };
+      const detach = attachDismiss(overlay, finish);
+      cancelBtn.addEventListener('click', finish);
+
+      submitBtn.addEventListener('click', async () => {
+        errorEl.textContent = '';
+        const url = urlInput.value.trim();
+        if (!url) { errorEl.textContent = 'URL is required.'; return; }
+        const res = await apiFetch('/api/search/submit', {
+          method: 'POST',
+          body: JSON.stringify({ url, categoryHint: categoryInput.value.trim() }),
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          errorEl.textContent = data.error || 'Something went wrong.';
+          return;
+        }
+        finish();
+        await showAlert("Thanks. We'll review it and add it if it's a fit.", { title: 'Submitted' });
+      });
+
+      urlInput.focus();
+    }
+
+    function openRemoveModal(prefillUrl) {
+      const urlInput = el('input', { type: 'text', id: 'remove-url-input' });
+      urlInput.value = prefillUrl || '';
+      const reasonInput = el('textarea', { id: 'remove-reason-input', rows: '3', placeholder: 'optional' });
+      const errorEl = el('div', { className: 'form-error' });
+      const body = el('div', {}, [
+        el('div', { className: 'field' }, [el('label', { for: 'remove-url-input', text: 'Site URL' }), urlInput]),
+        el('div', { className: 'field' }, [el('label', { for: 'remove-reason-input', text: 'Reason' }), reasonInput]),
+        errorEl,
+      ]);
+
+      const { overlay, actions } = buildModal({ title: 'Request removal', body });
+      const cancelBtn = el('button', { className: 'btn btn-ghost btn-sm', text: 'Cancel' });
+      const submitBtn = el('button', { className: 'btn btn-sm', text: 'Send request' });
+      actions.appendChild(cancelBtn);
+      actions.appendChild(submitBtn);
+
+      const finish = () => { detach(); overlay.remove(); };
+      const detach = attachDismiss(overlay, finish);
+      cancelBtn.addEventListener('click', finish);
+
+      submitBtn.addEventListener('click', async () => {
+        errorEl.textContent = '';
+        const url = urlInput.value.trim();
+        if (!url) { errorEl.textContent = 'URL is required.'; return; }
+        const res = await apiFetch('/api/search/remove-request', {
+          method: 'POST',
+          body: JSON.stringify({ url, reason: reasonInput.value.trim() }),
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          errorEl.textContent = data.error || 'Something went wrong.';
+          return;
+        }
+        finish();
+        await showAlert("Got it. We'll review within 24 hours.", { title: 'Request sent' });
+      });
+
+      urlInput.focus();
+    }
+
+    // ── Init ─────────────────────────────────────────────────────────────────
+
+    async function init() {
+      state = readStateFromUrl();
+      setupSearchForms();
+      setupFilters();
+      document.getElementById('random-btn').addEventListener('click', goRandom);
+      document.getElementById('hero-random-btn').addEventListener('click', goRandom);
+      document.getElementById('submit-link').addEventListener('click', (e) => { e.preventDefault(); openSubmitModal(); });
+      window.addEventListener('popstate', () => { state = readStateFromUrl(); render(); });
+      await loadSidebarTags();
+      render();
+    }
+
+    init();
+  </script>
+</body>
+</html>

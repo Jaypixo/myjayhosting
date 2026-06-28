@@ -19,8 +19,12 @@ The platform lets anyone claim a subdomain (`username.myjay.net`), upload static
 - User dashboard (file manager, upload, publish)
 - Public site serving (`username.myjay.net/*`)
 - Admin panel (owner-only)
-- "Explore" page (recently updated sites)
 - Static about/info pages
+
+Superseding the original Phase 1 "Explore" page (recently updated sites):
+MyJay Search, an indie-web search engine indexing MyJay, Neocities, and
+Nekoweb. See the dedicated "Indie Web Search Engine" section below, it's
+well past a Phase 1 scope sketch at this point.
 
 Everything else (blog tool, guestbook, microblog, ad network, pro plan) is deferred. Build the foundation cleanly so those layers can be added later.
 
@@ -35,7 +39,7 @@ Everything else (blog tool, guestbook, microblog, ad network, pro plan) is defer
 ├── wrangler.toml              ← Cloudflare config (see §Cloudflare Setup)
 ├── public/                    ← Static assets for myjay.net itself
 │   ├── index.html             ← Marketing homepage
-│   ├── explore.html           ← Browse user sites
+│   ├── search.html            ← MyJay Search (see Indie Web Search Engine)
 │   ├── about.html
 │   ├── login.html
 │   ├── register.html
@@ -59,8 +63,7 @@ Everything else (blog tool, guestbook, microblog, ad network, pro plan) is defer
 │   │   │   ├── delete.js      ← DELETE file from R2
 │   │   │   ├── publish.js     ← POST mark site as published
 │   │   │   └── files.js       ← GET file tree for dashboard
-│   │   ├── explore/
-│   │   │   └── index.js       ← GET recently updated sites
+│   │   ├── search/             ← MyJay Search API (see Indie Web Search Engine)
 │   │   └── admin/
 │   │       ├── users.js       ← GET/PATCH/DELETE users
 │   │       └── sites.js       ← GET/DELETE any site
@@ -128,6 +131,23 @@ MAX_UPLOAD_BYTES=52428800   # 50MB free tier limit
 
 ### 8. wrangler.toml
 After cloning the repo, copy `wrangler.toml.example` to `wrangler.toml` and fill in your account ID and resource IDs (found in the Cloudflare dashboard). This file is gitignored.
+
+### 9. Search Engine Infrastructure (MyJay Search)
+Added well after the Phase 1 steps above; see "Indie Web Search Engine" for
+the full architecture. Steps, in order:
+- `wrangler queues create myjay-crawl-queue`
+- KV → Create namespace → name it `myjay-search-cache` → bind to the Pages
+  project as `SEARCH_CACHE` (Settings → Functions → Bindings) and to the
+  crawler Worker (its own `wrangler.toml`, see below)
+- Copy `crawler/wrangler.toml.example` to `crawler/wrangler.toml`, fill in
+  your account/resource IDs, then `npm run crawler:deploy`, this registers
+  both the Cron Triggers and the Queue consumer in one deploy
+- Add a `CRAWLER` service binding on the Pages project pointing at
+  `myjay-crawler` (Settings → Functions → Bindings → Service binding), the
+  same way `MAILER` is bound for the mailer Worker
+- `npx wrangler d1 execute myjay-db --file=schema/migrate-008-search-engine.sql`
+- Once deployed, bootstrap a few real Nekoweb seeds yourself via `/search`'s
+  "Submit a site" link, Nekoweb has no bulk discovery surface to crawl
 
 ---
 
@@ -251,8 +271,15 @@ authoritative source if this drifts.
 
 No separate files table, enumerate R2 directly. This keeps D1 lean.
 
-### Explore Page
-`GET /api/explore` returns the 24 most recently updated published sites. Query:
+### Platform stats and view counts
+`GET /api/stats` (`functions/api/stats.js`) returns the 24 most recently
+updated published sites plus platform-wide totals (total sites, total
+views). This is what it sounds like, not a search concept: it's the same
+query the old Explore page ran, kept alive as its own small endpoint
+because the homepage's hero counter and preview strip, and `/status`'s
+platform card, all still need it, even though the actual "browse sites"
+job moved to MyJay Search (see Indie Web Search Engine, below) once
+Explore was retired.
 ```sql
 SELECT s.username, s.updated_at, s.view_count, u.bio, u.site_title
 FROM sites s JOIN users u ON s.user_id = u.id
@@ -294,7 +321,7 @@ entirely and get `Access-Control-Allow-Origin: *` (via `openCorsHeaders()`)
 instead of the restrictive origin-echoing CORS response, and skip the
 session lookup too, since this is meant to be hit by plain server-side
 code with no cookie jar at all, not just by browsers. A new route that's
-meant to be public-and-same-origin-only (like `/api/explore`) belongs in
+meant to be public-and-same-origin-only (like `/api/stats` or `/api/search`) belongs in
 `PUBLIC_API_PATHS`, not `OPEN_API_PREFIXES`, those solve different
 problems: one skips auth, the other skips the origin restriction too. Only
 add something to `OPEN_API_PREFIXES` when the whole point is letting
@@ -309,7 +336,7 @@ arbitrary external code call it, which today is just this one feature.
 - Torn-paper header with MyJay logo
 - Graph paper body background
 - Footer with footnotes
-- Navigation: Home / Explore / About / Login (or Dashboard if logged in)
+- Navigation: Home / Search / About / Login (or Dashboard if logged in)
 - JS checks for session cookie on page load. If present, swap Login link for Dashboard + username
 
 ### `index.html`: Marketing Homepage
@@ -317,8 +344,8 @@ Hero: large torn-paper header. Headline (Crimson Pro italic): *"Your corner of t
 
 Below the header:
 - Three-column feature strip (terminal card style): Upload → Publish → Done
-- A live counter widget: *"X sites hosted, Y files served"*, fetch from `/api/explore` count
-- A preview strip of recently updated sites (pull from `/api/explore`, show 6 cards)
+- A live counter widget: *"X sites hosted, Y page views served"*, fetch from `/api/stats`
+- A preview strip of recently updated sites (pull from `/api/stats`, show 6 cards). "See all sites" links to `/search?platform=myjay`, not a standalone browse page, see Indie Web Search Engine
 - A call-to-action button: *"Claim your subdomain →"* → `/register.html`
 
 ### `register.html`: Registration
@@ -362,12 +389,12 @@ Main: Settings tab:
   platform sends this user (see Notification preferences, below); separate
   form from the rest, its own save button, since it hits a different
   endpoint (`/api/user/notification-prefs`, not `/api/user/update`)
+- Search indexing: "Allow this site to be indexed by MyJay Search", its own
+  form/endpoint (`POST /api/site/search-indexing`) for the same reason
+  email preferences gets one, see Indie Web Search Engine, below
 
-### `explore.html`: Browse Sites
-- Grid of site cards (fetch `/api/explore`)
-- Each card: username, site title or "untitled", last updated, view count
-- Click → opens `username.myjay.net` in new tab
-- Simple text filter input (client-side filter on loaded results)
+(`explore.html` no longer exists: the original Phase 1 "browse sites" page
+was retired in favor of MyJay Search, see the dedicated section below.)
 
 ### `admin.html`: Owner Panel (role: admin only)
 - Redirect to `/login.html` if not admin
@@ -854,12 +881,23 @@ DELETE /api/site/delete      { key } → { ok }
 POST /api/site/rename        { from, to } → { ok }  (copy+delete; also how a file/folder moves)
 GET  /api/site/download      ?key= (repeatable, omit for whole site) → application/zip
 POST /api/site/publish       { published: bool } → { ok }
+POST /api/site/search-indexing { indexed: bool } → { ok }
 
-GET  /api/explore            → { sites: [{ username, siteTitle, updatedAt, viewCount }] }
+GET  /api/stats              → { sites: [{ username, siteTitle, updatedAt, viewCount }], stats: { totalSites, totalViews } }
 GET  /api/sites/:username/files → { username, files: [{ key, size, modified }] }  (public, no session, open CORS)
 GET  /api/health             → { checkedAt, database: {ok,ms}, storage: {ok,ms}, sessions: {ok,ms} }  (public, no session)
 
 POST /api/contact            { category, username?, email, message } → { ok }  (public, no session)
+
+GET  /api/search             ?q=&platform=&tag=&since=&page= → { query, results, total, page, pageSize, usedFallback, suggestion }
+GET  /api/search/autocomplete ?q= → { suggestions: [string] }
+GET  /api/search/random      ?platform= → { url, title, platform, domain }
+GET  /api/search/recent      ?platform=&tag=&limit=&offset= → { results: [...] }
+GET  /api/search/tags        → { tags: [{ tag, count }] }
+GET  /api/search/similar     ?url= → { results: [...] }
+GET  /api/search/stats       → { totalSites, totalPages, platforms: [...] }
+POST /api/search/submit      { url, categoryHint? } → { ok }  (public, no session)
+POST /api/search/remove-request { url, reason? } → { ok }  (public, no session)
 
 GET  /api/admin/users        → { users: [...] }
 PATCH /api/admin/users/:id   { role?, banned?, password?, adminNotes? } → { ok }
@@ -874,6 +912,19 @@ GET  /api/admin/email/templates        → { templates: [{ id, label, category, 
 POST /api/admin/email/templates        { label, category, subject, body } → { id, label, category, subject, body }
 PATCH /api/admin/email/templates/:id   { label?, category?, subject?, body? } → { id, label, category, subject, body }
 DELETE /api/admin/email/templates/:id  → { ok }
+
+GET  /api/admin/search/stats           → { totalSites, totalPages, totalTerms, pendingSubmissions, pendingRemovals, platforms, lastRuns, last30Days }
+GET/POST /api/admin/search/crawl       → { paused } / { action: 'trigger'|'pause'|'resume', platform, full? } → { ok }
+GET  /api/admin/search/sites           ?page=&q=&platform=&status= → { sites: [...], total, page, limit }
+GET/PATCH /api/admin/search/sites/:id  → site detail + pages / { action: 'recrawl'|'block'|'unblock' } → { ok }
+GET/POST /api/admin/search/blocklist   → { entries: [...] } / { domain, reason? } → { ok }
+DELETE /api/admin/search/blocklist/:id → { ok }
+GET  /api/admin/search/removal-requests ?status= → { requests: [...] }
+PATCH /api/admin/search/removal-requests/:id { action: 'approve'|'deny' } → { ok }
+GET  /api/admin/search/submissions     ?status= → { submissions: [...] }
+PATCH /api/admin/search/submissions/:id { action: 'approve'|'reject' } → { ok }
+DELETE /api/admin/search/pages/:id     → { ok }  (remove one page without blocklisting its domain)
+GET  /api/admin/search/queries         → { topQueries, zeroResultQueries, last30Days }
 ```
 
 Contact form categories (`functions/api/contact/index.js`, mirrored in the `<select>` in
@@ -889,7 +940,7 @@ email sending is wanted later, that needs server-side email routing (or a third-
 provider) configured against the `myjay.net` domain, which touches DNS and isn't something to
 wire up casually.
 
-`public/status.html` is powered entirely by `/api/health`, `/api/settings`, and `/api/explore`.
+`public/status.html` is powered entirely by `/api/health`, `/api/settings`, `/api/stats`, and `/api/search/stats`.
 There is no hardcoded "everything is operational" table on that page anymore, every row is a
 real, live check (a trivial query against the database, a 1-item list against file storage,
 a get against the session store). If a check can't be made real with what's actually available,
@@ -907,6 +958,8 @@ don't add a fake row for it, leave it out instead.
 - Admin routes: middleware must verify `user.role === 'admin'`. Do not rely on client-side role checks.
 - CORS: API routes should only accept requests from `myjay.net` origin.
 - **The root admin is untouchable by other admins.** The account whose email matches `env.ADMIN_EMAIL` (see `isRootAdmin()` in `_lib/auth.js`) can't be banned, demoted, password-reset, or deleted by any other admin. This is enforced in `functions/api/admin/users/[id].js` (PATCH and DELETE both check it server-side, first, before touching anything) and mirrored in `public/admin.html`'s UI (the row shows a "protected" badge instead of action buttons for everyone except the root admin themself). The root admin can still do all of this to other admins, and to themself. If `ADMIN_EMAIL` isn't set, this protection is a no-op, there's no root to protect. Never weaken or bypass this check "to make testing easier."
+- **The search crawler never executes or proxies third-party content.** It fetches a crawled page's HTML, extracts plain text fields (title, description, body text, tags) into D1, and discards the rest. Search results link straight to the original external URL, myjay.net never renders or iframes a crawled page. Crawled body text is treated as untrusted: it's HTML-escaped before any `<mark>` highlighting is added (see `highlightExcerpt()` in `functions/_lib/search-tokenize.js`), and the search frontend builds result cards with `createElement`/`textContent`, never `innerHTML` over raw field values, so a crawled page can't plant markup that runs on a search results page.
+- **The crawler doesn't store personally identifiable information from crawled pages.** It keeps extracted title/description/body/tags, not full raw HTML, and search query logging (`search_queries_log`) keeps the query text only, no IP address, no account link, no record of which result a query's clicks landed on.
 
 ---
 
@@ -944,7 +997,8 @@ the site.
 Current pages, in sidebar order: `index.html` (`/docs`, overview + links to
 everything below), `getting-started.html`, `dashboard.html`, `file-manager.html`,
 `code-editor.html`, `publishing.html`, `routing.html`, `file-types-and-limits.html`,
-`analytics.html`, `account-and-security.html`, `troubleshooting.html`.
+`analytics.html`, `search.html`, `search-indexing.html`, `account-and-security.html`,
+`troubleshooting.html`.
 
 **Every docs page is a hand-copied shell**, there's no templating, so adding
 or reordering a page means touching things in multiple places:
@@ -1524,6 +1578,274 @@ its signing secret as `RESEND_WEBHOOK_SECRET` on the Pages project.
 
 ---
 
+## Indie Web Search Engine
+
+MyJay Search (`public/search.html`, `/search`) indexes public pages from
+MyJay, Neocities, and Nekoweb. It replaced the original Phase 1 "Explore"
+page entirely, `public/explore.html` and `functions/api/explore/` are gone,
+and the header nav's "Explore" link is "Search" everywhere now. Two
+foundational decisions shape everything below, both made deliberately
+rather than following the most obvious approach:
+
+- **No FTS5.** D1's SQLite FTS5 (virtual table) support is unreliable right
+  now: there's an open, severe bug where exporting a D1 database containing
+  FTS5 virtual tables can make the *entire database* permanently
+  inaccessible. The index is a hand-rolled inverted index over plain tables
+  instead (`search_terms`), same spirit as this repo's existing hand-rolled
+  `zip.js`/`remarker.js`: more code, zero platform risk.
+- **Neocities is never crawled via its API.** `/api/list` only lists files
+  within a site you already hold credentials for, and Neocities' own API
+  docs explicitly say "do not use the API to data mine / rip all of the
+  sites" (sites doing this get de-listed). Discovery instead scrapes
+  Neocities' own public `/browse` listing (`sort_by=newest`/`last_updated`),
+  which is allowed by their `robots.txt` and listed in their own
+  `sitemap.xml`, the same surface any search engine would use. See
+  `crawler/sources/neocities.js`.
+
+### Architecture
+
+```
+functions/api/search/*          Pages Functions, public search API, reads D1 directly
+functions/api/admin/search/*    Pages Functions, admin controls (existing
+                                 role === 'admin' middleware check covers these for free)
+functions/_lib/search-tokenize.js   shared pure tokenizer/scorer/excerpt-highlighter
+functions/_lib/search-query.js      D1 query helpers used by functions/api/search/*
+functions/_lib/crawler-client.js    thin wrapper around the CRAWLER service binding,
+                                     mirrors functions/_lib/mailer.js's MAILER pattern
+
+crawler/                        standalone Worker, sibling to worker/ and mailer/
+  crawler.js                    queue() consumer, scheduled() cron handler, and a
+                                 fetch() RPC surface reached only via the CRAWLER
+                                 service binding (no public route, same isolation
+                                 as mailer/mailer.js)
+  robots.js                     robots.txt fetch+parse+cache, per-domain rate
+                                 limiting, the crawlerFetch() wrapper every
+                                 outbound request goes through
+  extract.js                    hand-rolled HTML extraction (no DOM exists in the
+                                 Workers runtime, no npm install at deploy time
+                                 either, see Email Infrastructure on why things
+                                 get hand-rolled here) + tag-inference heuristics
+  sources/myjay.js               seeds from MyJay's own D1 `sites` table directly
+  sources/neocities.js           seeds via neocities.org/browse (see above)
+  sources/nekoweb.js              no bulk listing exists; returns no seeds at all,
+                                  see below
+```
+
+**Pages Functions can be a Queue producer but never a consumer, and can't
+have Cron Triggers at all**, confirmed against current Cloudflare docs
+before building this, not assumed. That's why crawling needs its own
+Worker rather than living in `functions/`. One Queue
+(`myjay-crawl-queue`): producer and consumer both live in the crawler
+Worker (it enqueues its own link-discovery jobs and processes them); the
+Pages project never touches the queue directly, admin-triggered actions go
+through the `CRAWLER` service binding instead (`functions/_lib/crawler-client.js`),
+which calls into the crawler's own `runCrawl()`/`runSiteCrawl()`/`runUrlCrawl()`
+functions, the same ones its `scheduled()` handler uses. One KV namespace
+(`myjay-search-cache`, binding `SEARCH_CACHE`): robots.txt cache, per-domain
+rate-limit timestamps, and consecutive-failure streaks live there for the
+crawler; autocomplete/hot-query caching lives there for the search API.
+
+### D1 schema (`schema/migrate-008-search-engine.sql`)
+
+- `search_sites`: one row per indexed domain (platform, domain, root_url,
+  status `active`/`blocked`/`error`, last_crawled_at). Exists even before a
+  single page is crawled, e.g. a pending submission.
+- `search_pages`: one row per crawled page (title, h1, description,
+  body_text capped at 8000 chars, depth, http_status, crawled_at).
+- `search_page_tags`: (page_id, tag), the inferred content-type tags.
+- `search_links`: (from_page_id, to_url), outbound links, for the "future
+  graph features" the spec asked for; not used for ranking yet.
+- `search_terms`: (term, page_id, field, weight), the inverted index. One
+  row per term per field (`title`/`description`/`body`) per page; `weight`
+  is the in-field term frequency, clamped at index time so keyword-stuffing
+  one field can't dominate ranking.
+- `crawl_log`, `blocklist`, `removal_requests`, `submissions`,
+  `search_queries_log`: exactly what their names say, see the admin tab
+  below for how each is used.
+- `sites.search_opt_out` (added by this migration): per-MyJay-site
+  opt-out, default 0 (indexed). Toggled from the dashboard's Settings tab
+  (`POST /api/site/search-indexing`), surfaced in `GET /api/user/me` as
+  `searchIndexed`.
+- Crawl pause flags per platform and the Neocities `/browse` pagination
+  cursor live as ordinary rows in the existing generic `settings` table
+  (see `functions/_lib/settings.js`'s `DEFAULTS`), not a new table.
+
+### Ranking, without FTS5
+
+A query is tokenized with the exact same tokenizer used at index time
+(`tokenize()` in `functions/_lib/search-tokenize.js`, imported by both the
+search API and the crawler via a relative path that crosses the Pages
+Functions / Worker project boundary on purpose: it's a pure function with
+no I/O, and it has to stay byte-identical on both sides or indexed terms
+and query terms silently stop matching, a correctness requirement that
+outweighs this repo's usual "keep sibling Workers self-contained" instinct,
+which exists to avoid *runtime* coupling, not build-time imports of a pure
+function). `searchPages()` in `functions/_lib/search-query.js` looks up
+each term in `search_terms`, joins to `search_pages`/`search_sites`, and
+sums weight (titles count 5x, descriptions 3x, body 1x) grouped by page,
+trying an AND-match (every term present) first and falling back to an
+OR-match ranked by score if that's too sparse. "Did you mean" only runs on
+single-word, zero-result queries: Levenshtein distance in JS against a
+small candidate set of indexed terms (same first letter, similar length)
+pulled from D1, see `suggestCorrection()`.
+
+Result excerpts are built by `highlightExcerpt()`: it HTML-escapes the
+surrounding text first, then wraps matched terms in `<mark>`, in that
+order, never the reverse, since crawled body text is third-party content
+that must never reach a search results page unescaped (see Security
+Rules). The frontend (`public/search.html`) is the one place on the page
+that's allowed to set `innerHTML` from a dynamic value, specifically
+because it's already pre-escaped server-side; everything else on that page
+is built with `createElement`/`textContent`/`setAttribute`, deliberately,
+so no other field (a crawled page's URL, title, etc.) gets a chance to be
+parsed as markup.
+
+### Crawling
+
+**Self-identification, deliberately easy to trace back.** Every outbound
+request (`crawlerFetch()` in `crawler/robots.js`) sends
+`User-Agent: MyJaySearch/1.0 (+https://myjay.net/docs/search-indexing)`
+and a custom `X-Crawler-Info` header pointing at the same URL.
+`public/docs/search-indexing.html` leads with "how to stop this crawler
+visiting your site" near the top, not buried, since that's what a site
+owner finding this in their logs actually wants first.
+
+**robots.txt** (`crawler/robots.js`): fetched and parsed before any page on
+a domain is touched, cached in KV 24h (`getRobotsRules()`). Honors
+`Crawl-delay` if a site sets one larger than the crawler's own 1
+request/second default. A 404 robots.txt means "no restrictions" (a
+well-defined signal); a fetch error (timeout, 5xx, malformed response)
+with no usable cached copy means the domain is skipped for this run
+entirely (`{ failed: true }`), fail closed rather than guess. A page-level
+`<meta name="robots">` or `X-Robots-Tag` header is honored too, even when
+`robots.txt` itself allows the path: `noindex` skips storing the page;
+`nofollow` additionally skips enqueueing its links.
+
+**Rate limiting and safety caps** (`crawler/crawler.js`): a KV-stored
+last-fetched-at timestamp per domain (`checkRateLimit()`/`markFetched()`);
+a queue consumer that isn't yet allowed to fetch a domain re-delivers the
+message with `message.retry({ delaySeconds })` instead of busy-waiting.
+Per crawl run: a hard cap of 200 pages per domain, a depth cap of 2 clicks
+from a site's root, and a circuit breaker (a KV-tracked consecutive-failure
+streak per domain, `failstreak:{domain}`) that marks a site `status =
+'error'` and stops crawling it for the run after 5 failures in a row, so
+one slow or broken site can't eat the whole run's budget.
+
+**Discovery, per platform** (`crawler/sources/*.js`):
+- **MyJay**: `sources/myjay.js` queries the platform's own `sites` table
+  directly (`published = 1 AND search_opt_out = 0`), no HTTP round-trip.
+  Incremental runs only re-seed sites updated in the last 2 days.
+- **Neocities**: `sources/neocities.js` scrapes `neocities.org/browse`
+  (see the FTS5/Neocities decisions above for why, not `/api/list`),
+  extracting `https://{username}.neocities.org` links directly from the
+  page. Full runs scrape `sort_by=newest` and `sort_by=last_updated` up to
+  5 pages each; incremental runs scrape just `last_updated`, 2 pages.
+- **Nekoweb**: `sources/nekoweb.js` returns no seeds at all, Nekoweb has no
+  bulk site listing of any kind, public API or otherwise. Every Nekoweb
+  site enters the index through a manual submission
+  (`POST /api/search/submit`, approved from the admin panel) or by being
+  linked to from a page on another already-indexed site.
+- **Cross-platform organic discovery** happens uniformly in
+  `crawler.js`'s `enqueueDiscoveredLinks()`: any link found on a crawled
+  page pointing at an unrecognized `*.myjay.net`/`*.neocities.org`/
+  `*.nekoweb.org` domain (and not blocklisted) gets a fresh `search_sites`
+  row and a depth-0 crawl job, regardless of which platform discovered it.
+  Links to anything outside those three suffixes are recorded in
+  `search_links` (for the graph-features column) but never crawled.
+
+**Re-crawl schedule**: two Cron Triggers in `crawler/wrangler.toml`, daily
+incremental and weekly full (`scheduled()` tells them apart by comparing
+`controller.cron` against the `FULL_CRAWL_CRON` var). "Pause" (admin
+Crawl Controls) is a flag in `settings`, not an actual Cron Trigger
+removal, Pages Functions has no clean way to manage another Worker's
+triggers without the Workers API and an API token; the paused platform's
+`scheduled()` invocation still fires on schedule, checks the flag, and logs
+a `crawl_log` row with `status = 'skipped'` instead of seeding.
+
+**Extraction** (`crawler/extract.js`): title/h1/meta-description/body-text
+via regex (no DOM in the Workers runtime, see Email Infrastructure on why
+this codebase hand-rolls things instead of vendoring or installing), with
+`<script>`/`<style>`/`<nav>`/`<header>`/`<footer>` stripped before the body
+text is captured. Tag inference (`inferTags()`) is simple heuristics, not a
+classifier: tag counts (`<canvas>`, image density vs. word count,
+`<article>` frequency, `<audio>`/`<video>`) plus a small keyword list
+against the title/description.
+
+### Search API (`functions/api/search/*`, all public, no session, listed
+individually in `_middleware.js`'s `PUBLIC_API_PATHS`, same pattern as the
+old `/api/explore` entry it replaced)
+
+See the API Contract section above for the full endpoint list. Two things
+worth calling out:
+- `GET /api/search/recent` doubles as the "browse with no query" path:
+  `public/search.html` with `?platform=myjay` and no `q` is what replaced
+  `/explore`'s job, hitting this endpoint instead of `searchPages()`.
+- `GET /api/stats` (platform-wide site/view counts, not a search concept
+  at all) and `GET /api/search/stats` (index-specific counts) are
+  deliberately separate endpoints, see "Platform stats and view counts"
+  above for why conflating them would be the wrong call.
+
+### Frontend (`public/search.html`)
+
+One file, two states, gated on whether `q`/`platform`/`tag` are present in
+the URL (`isBrowsing()`): a centered hero (search bar, tagline, quick
+links, a "Surprise me" random-site button, a recently-indexed preview
+strip, top tags) when browsing-empty, or a sticky-search-bar results
+layout (sidebar filters on ≥900px viewports, stacked above results on
+narrow ones, skeleton loaders, pagination) once a query or filter is set.
+State round-trips through the URL (`readStateFromUrl()`/`writeUrl()`,
+`history.pushState`), so every search is a shareable, bookmarkable link,
+and back/forward works via a `popstate` listener. "Submit a site" and
+"Remove this site" are `buildModal()` popups, not separate pages, per the
+project's general "popup the row instead of growing the page" UI
+convention. "Sites like this" expands inline on a result card
+(`toggleSimilar()`), fetching `/api/search/similar` only on first expand,
+cached client-side per URL for the rest of the session.
+
+### Admin panel (`public/admin.html`, "Search" tab, after "Sites")
+
+Six subtabs, `.subtabs`/`.subtab-panel` scoped to `#search-panel`
+(`setupSearchSubTabs()`, same pattern as the Email tab's
+`setupEmailSubTabs()`):
+- **Overview**: stat cards, a health banner (Email tab's pattern: only
+  shows when something looks wrong, nothing indexed yet, or a platform has
+  sites stuck in `error` status), last-run-per-platform table, 30-day
+  pages-indexed chart.
+- **Crawl Controls**: per-platform pause/resume + "run incremental/full
+  now" cards (all three call `functions/_lib/crawler-client.js`, which
+  calls the crawler's `fetch()` RPC surface), plus a searchable, paginated
+  table of every `search_sites` row with re-crawl/block/unblock actions.
+- **Blocklist**: add a domain manually, view/remove existing entries.
+  Blocking sets `search_sites.status = 'blocked'` (filtered out of every
+  public query, see `search-query.js`'s `WHERE s.status = 'active'`
+  clauses) without deleting the underlying rows, reversible via unblock.
+- **Removal Requests** / **Submissions**: queue tables, click a row for the
+  full detail + actions in a modal, same `openContactModal()`-style pattern
+  as the Contact tab. Approving a removal request actually purges the
+  domain's `search_pages`/`search_terms`/`search_page_tags`/`search_links`
+  rows (not just a status flag, "remove" means remove); approving a
+  submission calls the crawler's `crawl-url` action immediately.
+- **Query Analytics**: top searches, zero-result queries (each with an
+  "Add a site" quick action that files a submission right from that row,
+  the suspected-coverage-gap use case the spec asked for), 30-day search
+  volume chart. Deliberately no click-through tracking, consistent with
+  the homepage's own "no trackers, no algorithms" framing.
+
+### Transparency integration
+
+Per your explicit ask, this was integrated into existing pages rather than
+built as a pile of new ones: `public/about.html` gets a "MyJay Search"
+section (what's indexed, how, no click tracking), `public/status.html`
+gets a "Search index" card (live counts, last crawl per platform) next to
+its existing live checks, `public/terms.html` gets a "Search Indexing"
+clause, and `public/register.html` discloses indexing-by-default right
+under the submit button. The two genuinely new pages are both docs
+entries: `public/docs/search.html` (using the engine) and
+`public/docs/search-indexing.html` (how indexing/crawling/opt-out/removal
+actually works, the page the crawler's own User-Agent points to).
+
+---
+
 ## Development Workflow
 
 ```bash
@@ -1559,10 +1881,14 @@ npx wrangler pages deployment tail
 7. `functions/api/site/*`: upload, files, publish, delete
 8. `public/dashboard.html`: the core user experience
 9. `worker/router.js`: serve `username.myjay.net` from R2
-10. `public/explore.html` + `functions/api/explore/index.js`
+10. `functions/api/stats.js`
 11. `public/index.html`: marketing homepage (last, since it pulls live data)
 12. `public/admin.html` + admin API routes
 13. `public/about.html`
+
+(MyJay Search came well after this original Phase 1 list; its own build
+order is covered in the Indie Web Search Engine section below, not folded
+into this one.)
 
 ---
 

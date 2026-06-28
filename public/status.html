@@ -23,7 +23,7 @@
     </div>
     <nav class="nav">
       <a href="/">Home</a>
-      <a href="/explore">Explore</a>
+      <a href="/search">Search</a>
       <a href="/docs">Docs</a>
       <a href="/about">About</a>
       <a href="/contact">Contact</a>
@@ -73,6 +73,32 @@
         </div>
       </div>
       <p class="text-muted mt-1" id="maintenance-explainer"></p>
+    </section>
+
+    <section>
+      <h2>Search index</h2>
+      <p class="text-muted">
+        Live counts from the <a href="/search">MyJay Search</a> index. See
+        <a href="/docs/search-indexing">how indexing works</a> for the full picture.
+      </p>
+      <div class="feature-grid">
+        <div class="card">
+          <h3 id="search-stats-sites">...</h3>
+          <p class="text-muted">sites indexed</p>
+        </div>
+        <div class="card">
+          <h3 id="search-stats-pages">...</h3>
+          <p class="text-muted">pages indexed</p>
+        </div>
+      </div>
+      <div class="table-scroll mt-1">
+        <table>
+          <thead><tr><th>Platform</th><th>Sites</th><th>Last crawled</th></tr></thead>
+          <tbody id="search-stats-platforms-body">
+            <tr><td colspan="3" class="text-muted">loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
     </section>
   </main>
 
@@ -154,9 +180,9 @@
       const explainerEl = document.getElementById('maintenance-explainer');
 
       try {
-        const [settingsRes, exploreRes] = await Promise.all([
+        const [settingsRes, statsRes] = await Promise.all([
           apiFetch('/api/settings'),
-          apiFetch('/api/explore'),
+          apiFetch('/api/stats'),
         ]);
 
         const settings = await settingsRes.json();
@@ -171,8 +197,8 @@
           explainerEl.textContent = 'The platform is not in maintenance mode. Everything should be reachable normally.';
         }
 
-        const explore = await exploreRes.json();
-        const stats = explore.stats || { totalSites: 0, totalViews: 0 };
+        const platformStats = await statsRes.json();
+        const stats = platformStats.stats || { totalSites: 0, totalViews: 0 };
         document.getElementById('stats-sites').textContent = stats.totalSites;
         document.getElementById('stats-views').textContent = stats.totalViews;
       } catch {
@@ -184,10 +210,38 @@
       }
     }
 
+    async function loadSearchStats() {
+      try {
+        const res = await apiFetch('/api/search/stats');
+        const data = await res.json();
+        document.getElementById('search-stats-sites').textContent = data.totalSites.toLocaleString();
+        document.getElementById('search-stats-pages').textContent = data.totalPages.toLocaleString();
+
+        const body = document.getElementById('search-stats-platforms-body');
+        if (!data.platforms || data.platforms.length === 0) {
+          body.innerHTML = '<tr><td colspan="3" class="text-muted">No platforms indexed yet.</td></tr>';
+          return;
+        }
+        body.innerHTML = data.platforms.map((p) => `
+          <tr>
+            <td>${p.platform}</td>
+            <td>${p.sites.toLocaleString()}</td>
+            <td>${p.lastCrawledAt ? new Date(p.lastCrawledAt).toLocaleString() : 'never'}</td>
+          </tr>
+        `).join('');
+      } catch {
+        document.getElementById('search-stats-sites').textContent = '?';
+        document.getElementById('search-stats-pages').textContent = '?';
+        document.getElementById('search-stats-platforms-body').innerHTML =
+          '<tr><td colspan="3" class="text-error">Could not load search stats.</td></tr>';
+      }
+    }
+
     document.getElementById('refresh-btn').addEventListener('click', loadHealth);
 
     loadHealth();
     loadPlatform();
+    loadSearchStats();
   </script>
 </body>
 </html>

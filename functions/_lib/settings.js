@@ -10,6 +10,14 @@ const DEFAULTS = {
   registration_enabled: '1',
   email_signature_name: 'The MyJay Team',
   email_signature_tagline: 'Your corner of the web.',
+  // Search crawler: pause flags per platform (the scheduled() handler in
+  // crawler/ checks these and no-ops, logging a skipped crawl_log row,
+  // rather than actually unregistering its own Cron Trigger) and the
+  // Neocities /api/list pagination cursor.
+  search_crawl_paused_myjay: '0',
+  search_crawl_paused_neocities: '0',
+  search_crawl_paused_nekoweb: '0',
+  search_neocities_cursor: '0',
 };
 
 function toPublicShape(map) {

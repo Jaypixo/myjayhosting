@@ -22,7 +22,7 @@
     </div>
     <nav class="nav">
       <a href="/">Home</a>
-      <a href="/explore">Explore</a>
+      <a href="/search">Search</a>
       <a href="/docs">Docs</a>
       <a href="/contact">Contact</a>
     </nav>
@@ -38,6 +38,7 @@
       <div class="tabs">
         <button class="active" data-tab="users-panel">Users</button>
         <button data-tab="sites-panel">Sites</button>
+        <button data-tab="search-panel">Search</button>
         <button data-tab="contact-panel">Contact <span class="badge hidden" id="contact-new-badge">0</span></button>
         <button data-tab="email-panel">Email</button>
         <button data-tab="stats-panel">Stats</button>
@@ -91,6 +92,152 @@
               <tr><td colspan="7" class="text-muted">loading...</td></tr>
             </tbody>
           </table>
+        </div>
+      </div>
+
+      <div id="search-panel" class="tab-panel">
+        <div class="subtabs">
+          <button class="active" data-subtab="search-overview-panel">Overview</button>
+          <button data-subtab="search-crawl-panel">Crawl Controls</button>
+          <button data-subtab="search-blocklist-panel">Blocklist</button>
+          <button data-subtab="search-removals-panel">Removal Requests</button>
+          <button data-subtab="search-submissions-panel">Submissions</button>
+          <button data-subtab="search-queries-panel">Query Analytics</button>
+        </div>
+
+        <div id="search-overview-panel" class="subtab-panel active">
+          <div class="card hidden" id="search-health-banner" style="border-top:3px solid var(--error)">
+            <h3 class="text-error" id="search-health-title">Nothing indexed yet</h3>
+            <p class="text-muted" id="search-health-body"></p>
+          </div>
+
+          <div class="feature-grid">
+            <div class="card">
+              <h3 id="search-stat-sites">...</h3>
+              <p class="text-muted">indexed sites</p>
+            </div>
+            <div class="card">
+              <h3 id="search-stat-pages">...</h3>
+              <p class="text-muted">indexed pages</p>
+            </div>
+            <div class="card">
+              <h3 id="search-stat-terms">...</h3>
+              <p class="text-muted">distinct terms</p>
+            </div>
+            <div class="card">
+              <h3 id="search-stat-submissions">...</h3>
+              <p class="text-muted">pending submissions</p>
+            </div>
+            <div class="card">
+              <h3 id="search-stat-removals">...</h3>
+              <p class="text-muted">pending removals</p>
+            </div>
+          </div>
+
+          <h3 class="mt-2">Last run per platform</h3>
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>Platform</th><th>Type</th><th>Started</th><th>Status</th><th>Pages crawled</th><th>Pages failed</th></tr></thead>
+              <tbody id="search-runs-body"><tr><td colspan="6" class="text-muted">loading...</td></tr></tbody>
+            </table>
+          </div>
+
+          <h3 class="mt-2">Pages indexed, last 30 days</h3>
+          <div class="chart-bars" id="search-chart"></div>
+        </div>
+
+        <div id="search-crawl-panel" class="subtab-panel">
+          <h3>Per-platform controls</h3>
+          <div class="feature-grid" id="search-platform-controls">
+            <div class="card text-muted">loading...</div>
+          </div>
+
+          <h3 class="mt-2">Indexed sites</h3>
+          <div class="field" style="max-width:320px">
+            <label for="search-sites-search">Search by domain</label>
+            <input type="text" id="search-sites-search" placeholder="username.myjay.net...">
+          </div>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr><th>Domain</th><th>Platform</th><th>Status</th><th>Pages</th><th>Last crawled</th><th>Actions</th></tr>
+              </thead>
+              <tbody id="search-sites-body"><tr><td colspan="6" class="text-muted">loading...</td></tr></tbody>
+            </table>
+          </div>
+          <div class="flex-between mt-1">
+            <button class="btn btn-ghost btn-sm" id="search-sites-prev">← Prev</button>
+            <span class="text-muted" id="search-sites-page-info">page 1</span>
+            <button class="btn btn-ghost btn-sm" id="search-sites-next">Next →</button>
+          </div>
+        </div>
+
+        <div id="search-blocklist-panel" class="subtab-panel">
+          <h3>Add a domain manually</h3>
+          <div class="card">
+            <form id="blocklist-add-form">
+              <div class="form-error" id="blocklist-add-error"></div>
+              <div class="field">
+                <label for="blocklist-domain-input">Domain</label>
+                <input type="text" id="blocklist-domain-input" placeholder="someone.neocities.org" required>
+              </div>
+              <div class="field">
+                <label for="blocklist-reason-input">Reason</label>
+                <input type="text" id="blocklist-reason-input" placeholder="optional">
+              </div>
+              <button type="submit" class="btn btn-sm">Add to blocklist</button>
+            </form>
+          </div>
+
+          <h3 class="mt-2">Blocked domains</h3>
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>Domain</th><th>Reason</th><th>Source</th><th>Added by</th><th>Added</th><th>Actions</th></tr></thead>
+              <tbody id="blocklist-body"><tr><td colspan="6" class="text-muted">loading...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="search-removals-panel" class="subtab-panel">
+          <p class="text-muted">Click a row for the full request and Approve/Deny actions. Approving blocklists the domain and purges it from the index.</p>
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>URL</th><th>Reason</th><th>Requested</th></tr></thead>
+              <tbody id="removals-body"><tr><td colspan="3" class="text-muted">loading...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="search-submissions-panel" class="subtab-panel">
+          <p class="text-muted">Click a row for the full submission and Approve/Reject actions. Approving starts a crawl immediately.</p>
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>URL</th><th>Category hint</th><th>Submitted</th></tr></thead>
+              <tbody id="submissions-body"><tr><td colspan="3" class="text-muted">loading...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="search-queries-panel" class="subtab-panel">
+          <h3>Search volume, last 30 days</h3>
+          <div class="chart-bars" id="search-queries-chart"></div>
+
+          <h3 class="mt-2">Top searches</h3>
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>Query</th><th>Count</th><th>Last searched</th></tr></thead>
+              <tbody id="top-queries-body"><tr><td colspan="3" class="text-muted">loading...</td></tr></tbody>
+            </table>
+          </div>
+
+          <h3 class="mt-2">Zero-result queries</h3>
+          <p class="text-muted">Useful for finding gaps in index coverage.</p>
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>Query</th><th>Count</th><th>Last searched</th><th>Actions</th></tr></thead>
+              <tbody id="zero-result-queries-body"><tr><td colspan="4" class="text-muted">loading...</td></tr></tbody>
+            </table>
+          </div>
         </div>
       </div>
 
@@ -509,7 +656,7 @@
   </footer>
 
   <script type="module">
-    import { apiFetch, getCurrentUser, logout, showAlert, showConfirm, buildModal, attachDismiss } from '/assets/main.js';
+    import { apiFetch, getCurrentUser, logout, showAlert, showConfirm, showPrompt, buildModal, attachDismiss } from '/assets/main.js';
 
     let usersPage = 1;
     let usersTotal = 0;
@@ -1757,6 +1904,557 @@
       });
     }
 
+    // --- Search tab -----------------------------------------------------------
+
+    const SEARCH_PLATFORMS = ['myjay', 'neocities', 'nekoweb'];
+    const PLATFORM_LABELS = { myjay: 'MyJay', neocities: 'Neocities', nekoweb: 'Nekoweb' };
+
+    let searchSitesPage = 1;
+    let searchSitesTotal = 0;
+    let searchSitesQuery = '';
+    const SEARCH_SITES_PAGE_SIZE = 50;
+
+    function renderDailyChart(elId, dailyCounts) {
+      const chartEl = document.getElementById(elId);
+      chartEl.innerHTML = '';
+      const byDate = {};
+      (dailyCounts || []).forEach((d) => { byDate[d.date] = d.count; });
+      const maxVal = Math.max(1, ...Object.values(byDate));
+      const start = new Date();
+      start.setUTCDate(start.getUTCDate() - 29);
+      for (let i = 0; i < 30; i++) {
+        const d = new Date(start);
+        d.setUTCDate(d.getUTCDate() + i);
+        const key = d.toISOString().slice(0, 10);
+        const count = byDate[key] || 0;
+        const bar = document.createElement('div');
+        bar.className = 'chart-bar';
+        bar.style.height = `${(count / maxVal) * 100}%`;
+        bar.title = `${key}: ${count}`;
+        chartEl.appendChild(bar);
+      }
+    }
+
+    function updateSearchHealthBanner(data) {
+      const banner = document.getElementById('search-health-banner');
+      const title = document.getElementById('search-health-title');
+      const body = document.getElementById('search-health-body');
+
+      if (data.totalSites === 0) {
+        title.textContent = 'Nothing indexed yet';
+        body.textContent = 'No sites have been indexed yet. Trigger a crawl from Crawl Controls, or make sure the CRAWLER service binding and the crawl queue are set up (see CLAUDE.md\'s Cloudflare Setup section).';
+        banner.classList.remove('hidden');
+        return;
+      }
+
+      const errored = (data.platforms || []).filter((p) => p.errorSites > 0);
+      if (errored.length > 0) {
+        title.textContent = 'Some sites are failing to crawl';
+        body.textContent = errored.map((p) => `${PLATFORM_LABELS[p.platform] || p.platform}: ${p.errorSites} site(s) in error state`).join(', ');
+        banner.classList.remove('hidden');
+        return;
+      }
+
+      banner.classList.add('hidden');
+    }
+
+    async function loadSearchOverview() {
+      const res = await apiFetch('/api/admin/search/stats');
+      if (!res.ok) return;
+      const data = await res.json();
+
+      document.getElementById('search-stat-sites').textContent = data.totalSites;
+      document.getElementById('search-stat-pages').textContent = data.totalPages;
+      document.getElementById('search-stat-terms').textContent = data.totalTerms;
+      document.getElementById('search-stat-submissions').textContent = data.pendingSubmissions;
+      document.getElementById('search-stat-removals').textContent = data.pendingRemovals;
+
+      updateSearchHealthBanner(data);
+      renderDailyChart('search-chart', data.last30Days);
+
+      const runsBody = document.getElementById('search-runs-body');
+      runsBody.innerHTML = '';
+      if (!data.lastRuns || data.lastRuns.length === 0) {
+        runsBody.innerHTML = '<tr><td colspan="6" class="text-muted">No crawl runs yet.</td></tr>';
+      } else {
+        data.lastRuns.forEach((r) => {
+          const tr = document.createElement('tr');
+          tr.appendChild(td(PLATFORM_LABELS[r.platform] || r.platform));
+          tr.appendChild(td(r.runType));
+          tr.appendChild(td(formatDate(r.startedAt)));
+          tr.appendChild(td(r.status));
+          tr.appendChild(td(String(r.pagesCrawled)));
+          tr.appendChild(td(String(r.pagesFailed)));
+          runsBody.appendChild(tr);
+        });
+      }
+    }
+
+    async function triggerCrawl(platform, full) {
+      const res = await apiFetch('/api/admin/search/crawl', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'trigger', platform, full }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        await showAlert(data.error || 'Could not start crawl.');
+        return;
+      }
+      await showAlert(`Crawl started for ${platform === 'all' ? 'all platforms' : PLATFORM_LABELS[platform]}.`);
+      loadCrawlControls();
+      loadSearchOverview();
+    }
+
+    async function togglePause(platform, pause) {
+      const res = await apiFetch('/api/admin/search/crawl', {
+        method: 'POST',
+        body: JSON.stringify({ action: pause ? 'pause' : 'resume', platform }),
+      });
+      if (!res.ok) return;
+      loadCrawlControls();
+    }
+
+    async function loadCrawlControls() {
+      const [pauseRes, statsRes] = await Promise.all([
+        apiFetch('/api/admin/search/crawl'),
+        apiFetch('/api/admin/search/stats'),
+      ]);
+      const pauseData = pauseRes.ok ? await pauseRes.json() : { paused: {} };
+      const statsData = statsRes.ok ? await statsRes.json() : { platforms: [], lastRuns: [] };
+
+      const wrap = document.getElementById('search-platform-controls');
+      wrap.innerHTML = '';
+      SEARCH_PLATFORMS.forEach((platform) => {
+        const platformStats = (statsData.platforms || []).find((p) => p.platform === platform) || { sites: 0, lastCrawledAt: null };
+        const lastRun = (statsData.lastRuns || []).find((r) => r.platform === platform);
+        const paused = Boolean(pauseData.paused && pauseData.paused[platform]);
+
+        const card = document.createElement('div');
+        card.className = 'card';
+
+        const heading = document.createElement('h3');
+        heading.textContent = `${PLATFORM_LABELS[platform]} `;
+        const statusBadge = document.createElement('span');
+        statusBadge.className = `badge ${paused ? 'badge-warn' : 'badge-live'}`;
+        statusBadge.textContent = paused ? 'paused' : 'active';
+        heading.appendChild(statusBadge);
+        card.appendChild(heading);
+
+        const summary = document.createElement('p');
+        summary.className = 'text-muted';
+        summary.textContent = `${platformStats.sites} sites · last crawled ${platformStats.lastCrawledAt ? formatDate(platformStats.lastCrawledAt) : 'never'}`;
+        card.appendChild(summary);
+
+        const runSummary = document.createElement('p');
+        runSummary.className = 'text-muted';
+        runSummary.style.fontSize = '0.78rem';
+        runSummary.textContent = lastRun
+          ? `Last run: ${lastRun.runType}, ${lastRun.status} (${lastRun.pagesCrawled} crawled, ${lastRun.pagesFailed} failed)`
+          : 'No runs yet.';
+        card.appendChild(runSummary);
+
+        const btnRow = document.createElement('div');
+        btnRow.style.cssText = 'display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:0.5rem';
+
+        const incBtn = document.createElement('button');
+        incBtn.className = 'btn btn-sm';
+        incBtn.textContent = 'Run incremental now';
+        incBtn.addEventListener('click', () => triggerCrawl(platform, false));
+
+        const fullBtn = document.createElement('button');
+        fullBtn.className = 'btn btn-ghost btn-sm';
+        fullBtn.textContent = 'Run full now';
+        fullBtn.addEventListener('click', () => triggerCrawl(platform, true));
+
+        const pauseBtn = document.createElement('button');
+        pauseBtn.className = 'btn btn-ghost btn-sm';
+        pauseBtn.textContent = paused ? 'Resume' : 'Pause';
+        pauseBtn.addEventListener('click', () => togglePause(platform, !paused));
+
+        btnRow.appendChild(incBtn);
+        btnRow.appendChild(fullBtn);
+        btnRow.appendChild(pauseBtn);
+        card.appendChild(btnRow);
+        wrap.appendChild(card);
+      });
+    }
+
+    async function recrawlSite(siteId) {
+      const res = await apiFetch(`/api/admin/search/sites/${siteId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ action: 'recrawl' }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        await showAlert(data.error || 'Could not start re-crawl.');
+        return;
+      }
+      await showAlert('Re-crawl started.');
+    }
+
+    async function toggleBlockSite(site) {
+      const blocking = site.status !== 'blocked';
+      if (blocking) {
+        const ok = await showConfirm(
+          `Block ${site.domain}? It will be removed from search results and never re-crawled until unblocked.`,
+          { title: 'Block domain', confirmText: 'Block', danger: true }
+        );
+        if (!ok) return;
+      }
+      const res = await apiFetch(`/api/admin/search/sites/${site.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ action: blocking ? 'block' : 'unblock' }),
+      });
+      if (!res.ok) return;
+      loadSearchSites();
+    }
+
+    async function loadSearchSites() {
+      const params = new URLSearchParams({ page: String(searchSitesPage) });
+      if (searchSitesQuery) params.set('q', searchSitesQuery);
+      const res = await apiFetch(`/api/admin/search/sites?${params}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      searchSitesTotal = data.total;
+
+      const body = document.getElementById('search-sites-body');
+      body.innerHTML = '';
+      if (data.sites.length === 0) {
+        body.innerHTML = '<tr><td colspan="6" class="text-muted">No sites match.</td></tr>';
+      } else {
+        data.sites.forEach((s) => {
+          const tr = document.createElement('tr');
+          tr.appendChild(td(s.domain));
+          tr.appendChild(td(PLATFORM_LABELS[s.platform] || s.platform));
+
+          const statusTd = document.createElement('td');
+          const statusBadge = document.createElement('span');
+          statusBadge.className = `badge ${s.status === 'active' ? 'badge-live' : s.status === 'blocked' ? 'badge-error' : 'badge-warn'}`;
+          statusBadge.textContent = s.status;
+          statusTd.appendChild(statusBadge);
+          tr.appendChild(statusTd);
+
+          tr.appendChild(td(String(s.pageCount)));
+          tr.appendChild(td(s.lastCrawledAt ? formatDate(s.lastCrawledAt) : 'never'));
+
+          const actionsTd = document.createElement('td');
+          const recrawlBtn = document.createElement('button');
+          recrawlBtn.className = 'btn btn-ghost btn-sm';
+          recrawlBtn.textContent = 'Re-crawl';
+          recrawlBtn.addEventListener('click', () => recrawlSite(s.id));
+
+          const blockBtn = document.createElement('button');
+          blockBtn.className = 'btn btn-ghost btn-sm';
+          blockBtn.textContent = s.status === 'blocked' ? 'Unblock' : 'Block';
+          blockBtn.addEventListener('click', () => toggleBlockSite(s));
+
+          actionsTd.appendChild(recrawlBtn);
+          actionsTd.appendChild(blockBtn);
+          tr.appendChild(actionsTd);
+          body.appendChild(tr);
+        });
+      }
+
+      document.getElementById('search-sites-page-info').textContent =
+        `page ${searchSitesPage} of ${Math.max(1, Math.ceil(searchSitesTotal / SEARCH_SITES_PAGE_SIZE))}`;
+    }
+
+    async function loadBlocklist() {
+      const res = await apiFetch('/api/admin/search/blocklist');
+      if (!res.ok) return;
+      const data = await res.json();
+      const body = document.getElementById('blocklist-body');
+      body.innerHTML = '';
+      if (data.entries.length === 0) {
+        body.innerHTML = '<tr><td colspan="6" class="text-muted">Nothing blocked.</td></tr>';
+        return;
+      }
+      data.entries.forEach((entry) => {
+        const tr = document.createElement('tr');
+        tr.appendChild(td(entry.domain));
+        tr.appendChild(td(entry.reason || ''));
+        tr.appendChild(td(entry.source));
+        tr.appendChild(td(entry.addedBy || ''));
+        tr.appendChild(td(formatDate(entry.addedAt)));
+
+        const actionsTd = document.createElement('td');
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'btn btn-ghost btn-sm';
+        removeBtn.textContent = 'Remove';
+        removeBtn.addEventListener('click', async () => {
+          const ok = await showConfirm(
+            `Remove ${entry.domain} from the blocklist? It becomes eligible to be crawled again.`,
+            { title: 'Remove from blocklist' }
+          );
+          if (!ok) return;
+          await apiFetch(`/api/admin/search/blocklist/${entry.id}`, { method: 'DELETE' });
+          loadBlocklist();
+        });
+        actionsTd.appendChild(removeBtn);
+        tr.appendChild(actionsTd);
+        body.appendChild(tr);
+      });
+    }
+
+    function openRemovalModal(r) {
+      const meta = document.createElement('dl');
+      meta.className = 'modal-meta';
+      const addRow = (label, value) => {
+        const dt = document.createElement('dt');
+        dt.textContent = label;
+        const dd = document.createElement('dd');
+        dd.textContent = value;
+        meta.appendChild(dt);
+        meta.appendChild(dd);
+      };
+      addRow('URL', r.url);
+      addRow('Reason', r.reason || '(none given)');
+      addRow('Requested', formatDate(r.createdAt));
+
+      const { overlay, actions } = buildModal({ title: 'Removal request', body: meta, wide: true });
+      function finish() { detach(); overlay.remove(); }
+      const detach = attachDismiss(overlay, finish);
+
+      const closeBtn = document.createElement('button');
+      closeBtn.className = 'btn btn-ghost btn-sm';
+      closeBtn.textContent = 'Close';
+      closeBtn.addEventListener('click', finish);
+
+      const denyBtn = document.createElement('button');
+      denyBtn.className = 'btn btn-ghost btn-sm';
+      denyBtn.textContent = 'Deny';
+      denyBtn.addEventListener('click', async () => {
+        finish();
+        await apiFetch(`/api/admin/search/removal-requests/${r.id}`, { method: 'PATCH', body: JSON.stringify({ action: 'deny' }) });
+        loadRemovals();
+      });
+
+      const approveBtn = document.createElement('button');
+      approveBtn.className = 'btn btn-danger btn-sm';
+      approveBtn.textContent = 'Approve (blocklist + purge)';
+      approveBtn.addEventListener('click', async () => {
+        const ok = await showConfirm(
+          'Block this domain and permanently remove it from the index? This deletes its indexed pages.',
+          { title: 'Approve removal', confirmText: 'Approve', danger: true }
+        );
+        if (!ok) return;
+        finish();
+        await apiFetch(`/api/admin/search/removal-requests/${r.id}`, { method: 'PATCH', body: JSON.stringify({ action: 'approve' }) });
+        loadRemovals();
+        loadSearchOverview();
+      });
+
+      actions.appendChild(closeBtn);
+      actions.appendChild(denyBtn);
+      actions.appendChild(approveBtn);
+      closeBtn.focus();
+    }
+
+    async function loadRemovals() {
+      const res = await apiFetch('/api/admin/search/removal-requests?status=pending');
+      if (!res.ok) return;
+      const data = await res.json();
+      const body = document.getElementById('removals-body');
+      body.innerHTML = '';
+      if (data.requests.length === 0) {
+        body.innerHTML = '<tr><td colspan="3" class="text-muted">No pending requests.</td></tr>';
+        return;
+      }
+      data.requests.forEach((r) => {
+        const tr = document.createElement('tr');
+        tr.dataset.clickable = 'true';
+        tr.appendChild(td(r.url));
+        tr.appendChild(td(r.reason || ''));
+        tr.appendChild(td(formatDate(r.createdAt)));
+        tr.addEventListener('click', () => openRemovalModal(r));
+        body.appendChild(tr);
+      });
+    }
+
+    function openSubmissionModal(s) {
+      const meta = document.createElement('dl');
+      meta.className = 'modal-meta';
+      const addRow = (label, value) => {
+        const dt = document.createElement('dt');
+        dt.textContent = label;
+        const dd = document.createElement('dd');
+        dd.textContent = value;
+        meta.appendChild(dt);
+        meta.appendChild(dd);
+      };
+      addRow('URL', s.url);
+      addRow('Category hint', s.categoryHint || '(none given)');
+      addRow('Submitted', formatDate(s.submittedAt));
+
+      const { overlay, actions } = buildModal({ title: 'Submission', body: meta, wide: true });
+      function finish() { detach(); overlay.remove(); }
+      const detach = attachDismiss(overlay, finish);
+
+      const closeBtn = document.createElement('button');
+      closeBtn.className = 'btn btn-ghost btn-sm';
+      closeBtn.textContent = 'Close';
+      closeBtn.addEventListener('click', finish);
+
+      const rejectBtn = document.createElement('button');
+      rejectBtn.className = 'btn btn-ghost btn-sm';
+      rejectBtn.textContent = 'Reject';
+      rejectBtn.addEventListener('click', async () => {
+        finish();
+        await apiFetch(`/api/admin/search/submissions/${s.id}`, { method: 'PATCH', body: JSON.stringify({ action: 'reject' }) });
+        loadSubmissions();
+      });
+
+      const approveBtn = document.createElement('button');
+      approveBtn.className = 'btn btn-sm';
+      approveBtn.textContent = 'Approve & crawl';
+      approveBtn.addEventListener('click', async () => {
+        finish();
+        const res = await apiFetch(`/api/admin/search/submissions/${s.id}`, { method: 'PATCH', body: JSON.stringify({ action: 'approve' }) });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          await showAlert(data.error || 'Could not start crawl.');
+        }
+        loadSubmissions();
+        loadSearchOverview();
+      });
+
+      actions.appendChild(closeBtn);
+      actions.appendChild(rejectBtn);
+      actions.appendChild(approveBtn);
+      closeBtn.focus();
+    }
+
+    async function loadSubmissions() {
+      const res = await apiFetch('/api/admin/search/submissions?status=pending');
+      if (!res.ok) return;
+      const data = await res.json();
+      const body = document.getElementById('submissions-body');
+      body.innerHTML = '';
+      if (data.submissions.length === 0) {
+        body.innerHTML = '<tr><td colspan="3" class="text-muted">No pending submissions.</td></tr>';
+        return;
+      }
+      data.submissions.forEach((s) => {
+        const tr = document.createElement('tr');
+        tr.dataset.clickable = 'true';
+        tr.appendChild(td(s.url));
+        tr.appendChild(td(s.categoryHint || ''));
+        tr.appendChild(td(formatDate(s.submittedAt)));
+        tr.addEventListener('click', () => openSubmissionModal(s));
+        body.appendChild(tr);
+      });
+    }
+
+    async function loadSearchQueries() {
+      const res = await apiFetch('/api/admin/search/queries');
+      if (!res.ok) return;
+      const data = await res.json();
+
+      renderDailyChart('search-queries-chart', data.last30Days);
+
+      const topBody = document.getElementById('top-queries-body');
+      topBody.innerHTML = '';
+      if (data.topQueries.length === 0) {
+        topBody.innerHTML = '<tr><td colspan="3" class="text-muted">No searches yet.</td></tr>';
+      } else {
+        data.topQueries.forEach((q) => {
+          const tr = document.createElement('tr');
+          tr.appendChild(td(q.query));
+          tr.appendChild(td(String(q.count)));
+          tr.appendChild(td(formatDate(q.lastSearchedAt)));
+          topBody.appendChild(tr);
+        });
+      }
+
+      const zeroBody = document.getElementById('zero-result-queries-body');
+      zeroBody.innerHTML = '';
+      if (data.zeroResultQueries.length === 0) {
+        zeroBody.innerHTML = '<tr><td colspan="4" class="text-muted">No zero-result searches recorded.</td></tr>';
+      } else {
+        data.zeroResultQueries.forEach((q) => {
+          const tr = document.createElement('tr');
+          tr.appendChild(td(q.query));
+          tr.appendChild(td(String(q.count)));
+          tr.appendChild(td(formatDate(q.lastSearchedAt)));
+
+          const actionsTd = document.createElement('td');
+          const addBtn = document.createElement('button');
+          addBtn.className = 'btn btn-ghost btn-sm';
+          addBtn.textContent = 'Add a site';
+          addBtn.addEventListener('click', async () => {
+            const url = await showPrompt(
+              `Know a good site for "${q.query}"? Paste its URL to add it to the submissions queue.`,
+              { title: 'Add a site', placeholder: 'https://...' }
+            );
+            if (!url) return;
+            const res = await apiFetch('/api/search/submit', { method: 'POST', body: JSON.stringify({ url, categoryHint: q.query }) });
+            if (res.ok) {
+              await showAlert('Added to the submissions queue.');
+              loadSubmissions();
+            } else {
+              const data2 = await res.json().catch(() => ({}));
+              await showAlert(data2.error || 'Could not add it.');
+            }
+          });
+          actionsTd.appendChild(addBtn);
+          tr.appendChild(actionsTd);
+          zeroBody.appendChild(tr);
+        });
+      }
+    }
+
+    function setupSearchSubTabs() {
+      const buttons = document.querySelectorAll('#search-panel .subtabs button');
+      buttons.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          buttons.forEach((b) => b.classList.remove('active'));
+          document.querySelectorAll('#search-panel .subtab-panel').forEach((p) => p.classList.remove('active'));
+          btn.classList.add('active');
+          document.getElementById(btn.dataset.subtab).classList.add('active');
+        });
+      });
+    }
+
+    function setupSearchTab() {
+      setupSearchSubTabs();
+
+      document.getElementById('search-sites-prev').addEventListener('click', () => {
+        if (searchSitesPage > 1) { searchSitesPage--; loadSearchSites(); }
+      });
+      document.getElementById('search-sites-next').addEventListener('click', () => {
+        if (searchSitesPage * SEARCH_SITES_PAGE_SIZE < searchSitesTotal) { searchSitesPage++; loadSearchSites(); }
+      });
+      let searchSitesSearchTimer;
+      document.getElementById('search-sites-search').addEventListener('input', (e) => {
+        clearTimeout(searchSitesSearchTimer);
+        searchSitesSearchTimer = setTimeout(() => {
+          searchSitesQuery = e.target.value.trim().toLowerCase();
+          searchSitesPage = 1;
+          loadSearchSites();
+        }, 250);
+      });
+
+      document.getElementById('blocklist-add-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const errEl = document.getElementById('blocklist-add-error');
+        errEl.textContent = '';
+        const domain = document.getElementById('blocklist-domain-input').value.trim().toLowerCase();
+        const reason = document.getElementById('blocklist-reason-input').value.trim();
+        const res = await apiFetch('/api/admin/search/blocklist', {
+          method: 'POST',
+          body: JSON.stringify({ domain, reason }),
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          errEl.textContent = data.error || 'Something went wrong.';
+          return;
+        }
+        document.getElementById('blocklist-domain-input').value = '';
+        document.getElementById('blocklist-reason-input').value = '';
+        loadBlocklist();
+      });
+    }
+
     function setupTabs() {
       document.querySelectorAll('.tabs button').forEach((btn) => {
         btn.addEventListener('click', () => {
@@ -1872,11 +2570,14 @@
       viewerIsRootAdmin = Boolean(user.isRootAdmin);
       setupTabs();
       setupEmailTab();
+      setupSearchTab();
       renderSystemEmailsTable();
       await Promise.all([
         loadUsers(), loadSites(), loadContact(), loadStats(), loadSettings(),
         loadEmailStats(), loadEmailLogs(), loadEmailBounces(), loadEmailSignature(),
         loadEmailTemplates(), refreshSendPreview(), refreshBroadcastPreview(),
+        loadSearchOverview(), loadCrawlControls(), loadSearchSites(), loadBlocklist(),
+        loadRemovals(), loadSubmissions(), loadSearchQueries(),
       ]);
     }
 

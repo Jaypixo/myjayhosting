@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Search | MyJay Docs</title>
+  <meta name="description" content="How to use MyJay Search: filters, autocomplete, did-you-mean, browsing by tag, and the random-site button.">
+  <link rel="canonical" href="https://myjay.net/docs/search">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Search | MyJay Docs">
+  <meta property="og:description" content="How to use MyJay Search: filters, autocomplete, did-you-mean, tags, and random site.">
+  <meta property="og:url" content="https://myjay.net/docs/search">
+  <meta property="og:image" content="https://myjay.net/assets/img/logo.png">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Search | MyJay Docs">
+  <meta name="twitter:description" content="How to use MyJay Search.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@1,300&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="/assets/img/favicon.png">
+  <link rel="stylesheet" href="/assets/style.css">
+</head>
+<body>
+  <header class="torn-header compact">
+    <div class="nav-auth" data-nav-auth>
+      <a href="/login" class="btn btn-sm btn-outline">Log in</a>
+      <a href="/register" class="btn btn-sm">Register</a>
+    </div>
+    <div class="logo">
+      <img src="/assets/img/logo.png" alt="MyJay.net" onerror="var s=this.nextElementSibling; this.remove(); s.style.display=''">
+      <span class="logo-fallback" style="display:none"><span class="myjay">MyJay</span><span class="dotnet">.net</span></span>
+    </div>
+    <nav class="nav">
+      <a href="/">Home</a>
+      <a href="/search">Search</a>
+      <a href="/docs">Docs</a>
+      <a href="/about">About</a>
+      <a href="/contact">Contact</a>
+    </nav>
+  </header>
+
+  <main class="docs-layout">
+    <aside class="docs-sidebar">
+      <p class="docs-sidebar-title">Documentation</p>
+      <nav class="docs-nav">
+        <a href="/docs">Overview</a>
+        <a href="/docs/getting-started">Getting started</a>
+        <a href="/docs/dashboard">The dashboard</a>
+        <a href="/docs/file-manager">File manager</a>
+        <a href="/docs/code-editor">Code editor</a>
+        <a href="/docs/publishing">Publishing</a>
+        <a href="/docs/routing">How routing works</a>
+        <a href="/docs/public-api">Public files API</a>
+        <a href="/docs/file-types-and-limits">File types &amp; limits</a>
+        <a href="/docs/analytics">Analytics</a>
+        <a href="/docs/search" class="active">Search</a>
+        <a href="/docs/search-indexing">Search indexing</a>
+        <a href="/docs/account-and-security">Account &amp; security</a>
+        <a href="/docs/troubleshooting">Troubleshooting</a>
+      </nav>
+    </aside>
+
+    <div class="docs-content">
+      <span class="section-label">// docs / search</span>
+      <h1>Using MyJay Search.</h1>
+      <p class="text-muted">
+        <a href="/search">MyJay Search</a> indexes public pages from MyJay, Neocities,
+        and Nekoweb. It's a plain ranked match on what you typed, not a tuned-for-engagement
+        algorithm. For how indexing itself works (and how to opt out), see
+        <a href="/docs/search-indexing">search indexing</a>.
+      </p>
+
+      <h2>The basics</h2>
+      <p>
+        Type a query and hit Search, or pick a suggestion as you type
+        (autocomplete is matched against terms already in the index, so a
+        suggestion always returns something). Results are ranked: pages
+        matching every word in your query come first, then pages matching
+        some of them, best matches at the top.
+      </p>
+
+      <h2>Filters</h2>
+      <p>The sidebar (or the filter section above results on narrow screens) lets you narrow by:</p>
+      <ul>
+        <li><strong>Platform</strong>: All, MyJay, Neocities, or Nekoweb</li>
+        <li><strong>Date indexed</strong>: any time, past week, past month, or past 90 days</li>
+        <li><strong>Tag</strong>: an inferred content type like blog, art, or portfolio, see
+          <a href="/docs/search-indexing">how tags get inferred</a></li>
+      </ul>
+      <p class="text-muted">
+        Filters and your query are part of the URL (<code>/search?q=...&amp;platform=...</code>),
+        so a search result page is always a link you can share or bookmark.
+      </p>
+
+      <h2>"Did you mean"</h2>
+      <p>
+        A single-word query that returns nothing gets checked against terms
+        already in the index for anything close (a short edit distance, same
+        first letter and similar length). If something close exists, it's
+        offered as a suggestion, click it to re-run the search.
+      </p>
+
+      <h2>No results, never a blank page</h2>
+      <p>
+        An empty result set always offers something else to do: browse
+        recently indexed sites, a tag, or hit "a random site." The homepage
+        of <a href="/search">/search</a> (no query) shows the same recent
+        feed and tag list, plus a <strong>Surprise me</strong> button that
+        opens one random indexed page in a new tab.
+      </p>
+
+      <h2>Sites like this</h2>
+      <p>
+        Every result card has a "Sites like this" link that expands in
+        place, showing other indexed pages that share tags with it (or, for
+        an untagged page, other pages on the same platform). Nothing is
+        fetched until you click it.
+      </p>
+
+      <h2>What this isn't tracking</h2>
+      <p class="text-muted">
+        Searches are logged as plain query text (for the admin's "what are
+        people searching for" view, and to see which queries return
+        nothing), with no IP address, no account link, and no record of
+        which result you clicked. Consistent with the rest of the platform:
+        no trackers, no algorithm tuned on your behavior.
+      </p>
+
+      <div class="docs-pager">
+        <a class="prev" href="/docs/analytics">
+          <span class="label">← Back</span>
+          Analytics
+        </a>
+        <a class="next" href="/docs/search-indexing">
+          <span class="label">Next</span>
+          Search indexing →
+        </a>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <span class="footnote">[1] MyJay Search is public and doesn't require an account.</span>
+    <span class="footnote">[2] v0.1.0-alpha, independently run.</span>
+    <span class="footnote">[3] <a href="/status">Status</a> · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a></span>
+  </footer>
+
+  <script type="module" src="/assets/main.js"></script>
+</body>
+</html>

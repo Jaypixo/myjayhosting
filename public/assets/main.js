@@ -168,6 +168,14 @@ export function clearFormErrors(form) {
   form.querySelectorAll('.field-error').forEach((e) => e.remove());
 }
 
+export function debounce(fn, waitMs = 250) {
+  let timer;
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), waitMs);
+  };
+}
+
 export async function apiFetch(path, options = {}) {
   const headers = { ...(options.headers || {}) };
   if (!(options.body instanceof FormData) && !headers['Content-Type']) {

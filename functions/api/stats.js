@@ -1,5 +1,11 @@
-import { json } from '../../_lib/auth.js';
+import { json } from '../_lib/auth.js';
 
+// Platform-wide totals: every signed-up site counts (not just published, not
+// just search-indexed), the same query functions/api/explore/index.js used
+// to run before /explore was folded into /search. Kept as its own endpoint
+// rather than tucked into /api/search/stats because it's not a search
+// concept at all, it's core platform stats the homepage and /status have
+// always shown.
 export async function onRequestGet(context) {
   const { env } = context;
 

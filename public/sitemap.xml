@@ -9,7 +9,7 @@
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://myjay.net/explore</loc>
+    <loc>https://myjay.net/search</loc>
     <priority>0.8</priority>
   </url>
   <url>
@@ -46,6 +46,14 @@
   </url>
   <url>
     <loc>https://myjay.net/docs/analytics</loc>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://myjay.net/docs/search</loc>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://myjay.net/docs/search-indexing</loc>
     <priority>0.6</priority>
   </url>
   <url>

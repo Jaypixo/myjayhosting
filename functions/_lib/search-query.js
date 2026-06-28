@@ -1,0 +1,237 @@
+// D1 query helpers backing the public search API (functions/api/search/*).
+// Pages-Functions-only (these assume env.DB is a D1 binding reachable the
+// way Pages Functions reach it; the crawler Worker writes search_terms but
+// never reads it through this module, see crawler/ for its own queries).
+import { tokenize, levenshtein, highlightExcerpt } from './search-tokenize.js';
+
+export const DEFAULT_PAGE_SIZE = 20;
+export const MAX_PAGE_SIZE = 50;
+
+const FIELD_SCORE_SQL = `(CASE st.field WHEN 'title' THEN 5 WHEN 'description' THEN 3 ELSE 1 END)`;
+
+function placeholders(n) {
+  return Array(n).fill('?').join(',');
+}
+
+// One AND-match (every query term present) or OR-match (any term present)
+// ranked search over search_terms, joined to search_pages/search_sites.
+// Filters are always bound via `?`, never interpolated.
+async function rankedSearch(env, terms, { platform, tag, since, requireAll, limit, offset }) {
+  const params = [...terms];
+  let sql = `
+    SELECT p.id, p.url, p.title, p.description, p.body_text, p.crawled_at, p.depth,
+           s.platform, s.domain, s.title AS site_title,
+           SUM(st.weight * ${FIELD_SCORE_SQL}) AS score,
+           COUNT(DISTINCT st.term) AS matched_terms
+    FROM search_terms st
+    JOIN search_pages p ON p.id = st.page_id
+    JOIN search_sites s ON s.id = p.site_id
+  `;
+  if (tag) {
+    sql += ` JOIN search_page_tags spt ON spt.page_id = p.id AND spt.tag = ?`;
+  }
+  sql += ` WHERE st.term IN (${placeholders(terms.length)}) AND s.status = 'active'`;
+  if (tag) params.push(tag);
+  if (platform) {
+    sql += ` AND s.platform = ?`;
+    params.push(platform);
+  }
+  if (since) {
+    sql += ` AND p.crawled_at >= ?`;
+    params.push(since);
+  }
+  sql += ` GROUP BY p.id`;
+  if (requireAll) {
+    sql += ` HAVING matched_terms = ?`;
+    params.push(terms.length);
+  }
+
+  const countResult = await env.DB.prepare(
+    `SELECT COUNT(*) AS total FROM (${sql})`
+  ).bind(...params).first();
+
+  sql += ` ORDER BY score DESC LIMIT ? OFFSET ?`;
+  const rowsResult = await env.DB.prepare(sql).bind(...params, limit, offset).all();
+
+  return { total: countResult?.total || 0, rows: rowsResult.results };
+}
+
+export async function searchPages(env, query, { platform, tag, since, page = 1, pageSize = DEFAULT_PAGE_SIZE } = {}) {
+  const terms = [...new Set(tokenize(query))];
+  const limit = Math.min(MAX_PAGE_SIZE, Math.max(1, pageSize));
+  const offset = (Math.max(1, page) - 1) * limit;
+
+  if (terms.length === 0) {
+    return { results: [], total: 0, terms, usedFallback: false };
+  }
+
+  let { total, rows } = await rankedSearch(env, terms, { platform, tag, since, requireAll: true, limit, offset });
+  let usedFallback = false;
+  if (total === 0 && terms.length > 1) {
+    usedFallback = true;
+    ({ total, rows } = await rankedSearch(env, terms, { platform, tag, since, requireAll: false, limit, offset }));
+  }
+
+  const results = rows.map((row) => ({
+    url: row.url,
+    title: row.title || row.url,
+    excerpt: highlightExcerpt(row.body_text || row.description || '', terms),
+    platform: row.platform,
+    domain: row.domain,
+    lastIndexedAt: row.crawled_at,
+    score: row.score,
+  }));
+
+  return { results, total, terms, usedFallback };
+}
+
+// Candidate terms for "did you mean": same first letter, similar length,
+// pulled from the index itself so a suggestion is always something that
+// would actually return results.
+export async function suggestCorrection(env, query) {
+  const terms = tokenize(query);
+  if (terms.length !== 1) return null; // only single-word queries get a suggestion
+  const [term] = terms;
+
+  const { results } = await env.DB.prepare(
+    `SELECT DISTINCT term FROM search_terms
+     WHERE term LIKE ? AND length(term) BETWEEN ? AND ?
+     LIMIT 300`
+  ).bind(`${term[0]}%`, term.length - 2, term.length + 2).all();
+
+  let best = null;
+  let bestDistance = Infinity;
+  for (const row of results) {
+    if (row.term === term) return null; // exact match exists, no correction needed
+    const distance = levenshtein(term, row.term);
+    if (distance < bestDistance) {
+      bestDistance = distance;
+      best = row.term;
+    }
+  }
+  return bestDistance > 0 && bestDistance <= 2 ? best : null;
+}
+
+export async function getAutocomplete(env, prefix, limit = 8) {
+  const normalized = String(prefix || '').toLowerCase().replace(/[^a-z0-9']/g, '');
+  if (normalized.length < 2) return [];
+  const { results } = await env.DB.prepare(
+    `SELECT term, COUNT(DISTINCT page_id) AS doc_count
+     FROM search_terms
+     WHERE term LIKE ?
+     GROUP BY term
+     ORDER BY doc_count DESC
+     LIMIT ?`
+  ).bind(`${normalized}%`, limit).all();
+  return results.map((r) => r.term);
+}
+
+export async function getRandomPage(env, { platform } = {}) {
+  let sql = `
+    SELECT p.url, p.title, s.platform, s.domain
+    FROM search_pages p JOIN search_sites s ON s.id = p.site_id
+    WHERE s.status = 'active'
+  `;
+  const params = [];
+  if (platform) {
+    sql += ' AND s.platform = ?';
+    params.push(platform);
+  }
+  sql += ' ORDER BY RANDOM() LIMIT 1';
+  return env.DB.prepare(sql).bind(...params).first();
+}
+
+export async function getRecentPages(env, { platform, tag, limit = 24, offset = 0 } = {}) {
+  let sql = `
+    SELECT p.id, p.url, p.title, p.description, p.crawled_at, s.platform, s.domain
+    FROM search_pages p JOIN search_sites s ON s.id = p.site_id
+  `;
+  const params = [];
+  if (tag) {
+    sql += ' JOIN search_page_tags spt ON spt.page_id = p.id AND spt.tag = ?';
+    params.push(tag);
+  }
+  sql += " WHERE s.status = 'active'";
+  if (platform) {
+    sql += ' AND s.platform = ?';
+    params.push(platform);
+  }
+  sql += ' ORDER BY p.crawled_at DESC LIMIT ? OFFSET ?';
+  params.push(Math.min(MAX_PAGE_SIZE, limit), offset);
+  const { results } = await env.DB.prepare(sql).bind(...params).all();
+  return results;
+}
+
+export async function getTagCounts(env) {
+  const { results } = await env.DB.prepare(`
+    SELECT spt.tag, COUNT(*) AS count
+    FROM search_page_tags spt
+    JOIN search_pages p ON p.id = spt.page_id
+    JOIN search_sites s ON s.id = p.site_id
+    WHERE s.status = 'active'
+    GROUP BY spt.tag
+    ORDER BY count DESC
+  `).all();
+  return results;
+}
+
+export async function getSimilarPages(env, pageUrl, limit = 6) {
+  const page = await env.DB.prepare(
+    `SELECT p.id, s.platform FROM search_pages p JOIN search_sites s ON s.id = p.site_id WHERE p.url = ?`
+  ).bind(pageUrl).first();
+  if (!page) return [];
+
+  const { results: tagRows } = await env.DB.prepare(
+    'SELECT tag FROM search_page_tags WHERE page_id = ?'
+  ).bind(page.id).all();
+  const tags = tagRows.map((r) => r.tag);
+
+  if (tags.length > 0) {
+    const { results } = await env.DB.prepare(`
+      SELECT p.url, p.title, p.description, s.platform, s.domain, COUNT(*) AS overlap
+      FROM search_page_tags spt
+      JOIN search_pages p ON p.id = spt.page_id
+      JOIN search_sites s ON s.id = p.site_id
+      WHERE spt.tag IN (${placeholders(tags.length)}) AND p.id != ? AND s.status = 'active'
+      GROUP BY p.id
+      ORDER BY overlap DESC, p.crawled_at DESC
+      LIMIT ?
+    `).bind(...tags, page.id, limit).all();
+    if (results.length > 0) return results;
+  }
+
+  const { results: fallback } = await env.DB.prepare(`
+    SELECT p.url, p.title, p.description, s.platform, s.domain
+    FROM search_pages p JOIN search_sites s ON s.id = p.site_id
+    WHERE s.platform = ? AND p.id != ? AND s.status = 'active'
+    ORDER BY p.crawled_at DESC LIMIT ?
+  `).bind(page.platform, page.id, limit).all();
+  return fallback;
+}
+
+export async function getPublicStats(env) {
+  const totals = await env.DB.prepare(`
+    SELECT
+      (SELECT COUNT(*) FROM search_sites WHERE status = 'active') AS total_sites,
+      (SELECT COUNT(*) FROM search_pages) AS total_pages
+  `).first();
+  const { results: platforms } = await env.DB.prepare(`
+    SELECT platform, COUNT(*) AS sites, MAX(last_crawled_at) AS last_crawled_at
+    FROM search_sites WHERE status = 'active' GROUP BY platform
+  `).all();
+  return {
+    totalSites: totals.total_sites,
+    totalPages: totals.total_pages,
+    platforms,
+  };
+}
+
+export async function logSearchQuery(env, query, resultCount) {
+  try {
+    await env.DB.prepare(
+      'INSERT INTO search_queries_log (id, query, result_count, created_at) VALUES (?, ?, ?, ?)'
+    ).bind(crypto.randomUUID(), query.slice(0, 200), resultCount, new Date().toISOString()).run();
+  } catch {
+    // Analytics-only, never block a search response over a logging failure.
+  }
+}

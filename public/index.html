@@ -48,7 +48,7 @@
     </div>
     <nav class="nav">
       <a href="/">Home</a>
-      <a href="/explore">Explore</a>
+      <a href="/search">Search</a>
       <a href="/docs">Docs</a>
       <a href="/about">About</a>
       <a href="/contact">Contact</a>
@@ -133,7 +133,7 @@
         <div class="empty-state">loading...</div>
       </div>
       <p class="mt-1" style="text-align:right">
-        <a href="/explore">See all sites →</a>
+        <a href="/search?platform=myjay">See all sites →</a>
       </p>
     </section>
 
@@ -176,7 +176,7 @@
   </main>
 
   <footer class="footer">
-    <span class="footnote">[1] Phase 1: hosting, auth, dashboard, explore. Phase 2+: blog tool, guestbook, custom domains, pro plan.</span>
+    <span class="footnote">[1] Phase 1: hosting, auth, dashboard, search. Phase 2+: blog tool, guestbook, custom domains, pro plan.</span>
     <span class="footnote">[2] v0.1.0-alpha, independently run.</span>
     <span class="footnote">[3] <a href="/status">Status</a> · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> · <a href="/about">About</a></span>
   </footer>
@@ -246,7 +246,7 @@
 
     async function load() {
       try {
-        const res = await apiFetch('/api/explore');
+        const res = await apiFetch('/api/stats');
         const data = await res.json();
         const stats = data.stats || { totalSites: 0, totalViews: 0 };
         document.getElementById('stat-sites-num').textContent = stats.totalSites.toLocaleString();

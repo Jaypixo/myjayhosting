@@ -1,0 +1,48 @@
+# Copy this file to crawler/wrangler.toml and fill in your account/resource IDs.
+# Used only if you deploy with `wrangler deploy` from the crawler/ directory.
+
+name = "myjay-crawler"
+main = "crawler.js"
+compatibility_date = "2024-01-01"
+workers_dev = false
+
+account_id = "<your-cloudflare-account-id>"
+
+# This Worker is never given a public route or custom domain. It's reached
+# only by its own Cron Triggers and by the main Pages project's CRAWLER
+# service binding (see wrangler.toml.example), the same isolation
+# mailer/wrangler.toml.example uses for myjay-mailer.
+
+[[d1_databases]]
+binding = "DB"
+database_name = "myjay-db"
+database_id = "<your-d1-database-id>"
+
+# Same KV namespace the main Pages project binds as SEARCH_CACHE: robots.txt
+# cache, per-domain rate-limit timestamps, and consecutive-failure streaks
+# live here. Create with `wrangler kv namespace create myjay-search-cache`.
+[[kv_namespaces]]
+binding = "SEARCH_CACHE"
+id = "<your-kv-namespace-id>"
+
+# The crawl queue: this Worker is both producer (seeding + link discovery
+# enqueue more jobs) and consumer (processes them). Create with
+# `wrangler queues create myjay-crawl-queue`.
+[[queues.producers]]
+queue = "myjay-crawl-queue"
+binding = "CRAWL_QUEUE"
+
+[[queues.consumers]]
+queue = "myjay-crawl-queue"
+max_batch_size = 10
+max_batch_timeout = 5
+max_retries = 3
+
+# Daily incremental crawl, weekly full crawl. scheduled() tells them apart
+# by comparing controller.cron against FULL_CRAWL_CRON below, so this and
+# the [vars] entry must be changed together if you ever retime either one.
+[triggers]
+crons = ["0 3 * * *", "0 4 * * MON"]
+
+[vars]
+FULL_CRAWL_CRON = "0 4 * * MON"

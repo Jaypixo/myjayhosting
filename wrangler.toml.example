@@ -23,12 +23,28 @@ bucket_name = "myjay-sites"
 binding = "SESSIONS"
 id = "<your-kv-namespace-id>"
 
+# --- KV Namespace (search) ----------------------------------------------------
+# Shared with the crawler Worker (crawler/): autocomplete/hot-query caching
+# here, robots.txt cache + rate limiting there. Create with
+# `wrangler kv namespace create myjay-search-cache`.
+[[kv_namespaces]]
+binding = "SEARCH_CACHE"
+id = "<your-kv-namespace-id>"
+
 # --- Mailer service binding ---------------------------------------------------
 # The myjay-mailer Worker (mailer/). Deploy that first (`npm run mailer:deploy`),
 # it has no public route, this binding is the only way anything reaches it.
 [[services]]
 binding = "MAILER"
 service = "myjay-mailer"
+
+# --- Crawler service binding --------------------------------------------------
+# The myjay-crawler Worker (crawler/). Deploy that first (`npm run crawler:deploy`),
+# same no-public-route pattern as MAILER: this binding is the only way the
+# admin panel's crawl controls reach it.
+[[services]]
+binding = "CRAWLER"
+service = "myjay-crawler"
 
 # --- Environment variables ---------------------------------------------------
 [vars]

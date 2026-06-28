@@ -31,7 +31,7 @@
     </div>
     <nav class="nav">
       <a href="/">Home</a>
-      <a href="/explore">Explore</a>
+      <a href="/search">Search</a>
       <a href="/docs">Docs</a>
       <a href="/about">About</a>
       <a href="/contact">Contact</a>
@@ -117,6 +117,29 @@
     </section>
 
     <section>
+      <span class="section-label">// myjay search</span>
+      <h2>About the search engine.</h2>
+      <p>
+        <a href="/search">MyJay Search</a> indexes public pages from three places: MyJay itself,
+        Neocities, and Nekoweb. It's built to find personal sites, not to win at SEO, there's no
+        ranking algorithm tuned to keep you scrolling, just a plain ranked match on what you typed.
+      </p>
+      <p>
+        Every MyJay site is indexed by default once it's published, you can turn that off per-site
+        from the dashboard's Settings tab. Sites on Neocities and Nekoweb get indexed by crawling
+        their public pages, the same way any search engine does, and <code>robots.txt</code> is
+        always respected first, before a single page is fetched. We don't store anything that isn't
+        needed to show a result (no personal data is pulled out of a crawled page), and we don't
+        track which result you click.
+      </p>
+      <p class="text-muted">
+        Don't want your site indexed, or want to suggest one? Use <a href="/search">Search</a>'s
+        submit and removal links, or read <a href="/docs/search-indexing">how indexing actually
+        works</a> for the full detail, including exactly how to opt out for good.
+      </p>
+    </section>
+
+    <section>
       <span class="section-label">// who's behind this</span>
       <h2>One person, not a company.</h2>
       <p class="text-muted">
@@ -132,7 +155,8 @@
       <h2>Dev log.</h2>
       <p class="text-muted">Rough order, no promises on timing.</p>
       <ul class="roadmap-list">
-        <li><span class="badge badge-live">done</span> v0.1.0-alpha: accounts, dashboard, file manager, code editor, publishing, explore page</li>
+        <li><span class="badge badge-live">done</span> v0.1.0-alpha: accounts, dashboard, file manager, code editor, publishing</li>
+        <li><span class="badge badge-live">done</span> MyJay Search: indexes MyJay, Neocities, and Nekoweb</li>
         <li><span class="badge badge-warn">next</span> blog tool: a simple posts list and RSS feed, still static files under the hood</li>
         <li><span class="badge badge-warn">next</span> guestbook: leave a note on someone's site, the old-fashioned way</li>
         <li><span class="badge badge-draft">later</span> microblog: short posts, your own little timeline</li>

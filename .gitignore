@@ -3,5 +3,6 @@ node_modules/
 wrangler.toml
 worker/wrangler.toml
 mailer/wrangler.toml
+crawler/wrangler.toml
 .dev.vars
 CLAUDE.md

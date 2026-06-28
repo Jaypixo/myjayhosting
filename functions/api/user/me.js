@@ -17,5 +17,6 @@ export async function onRequestGet(context) {
     isRootAdmin: isRootAdmin(env, user.email),
     storageUsed: site ? site.storage_bytes : 0,
     published: site ? Boolean(site.published) : false,
+    searchIndexed: site ? !site.search_opt_out : true,
   });
 }

@@ -2139,4 +2139,292 @@ tr[data-clickable]:hover {
 .flex-between { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
 .mt-1 { margin-top: 1rem; }
 .mt-2 { margin-top: 2rem; }
+
+/* ---------------------------------------------------------------------
+   Skeleton loaders (search results, autocomplete, anywhere fetched
+   content needs a placeholder instead of a blank flash)
+   --------------------------------------------------------------------- */
+
+.skeleton {
+  background: linear-gradient(90deg, var(--paper-alt) 25%, var(--border) 50%, var(--paper-alt) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes skeleton-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.skeleton-card {
+  height: 92px;
+  margin-bottom: 1rem;
+}
+
+/* ---------------------------------------------------------------------
+   Platform badges (search results)
+   --------------------------------------------------------------------- */
+
+.badge-myjay      { color: var(--primary); border-color: var(--primary); }
+.badge-neocities  { color: var(--secondary); border-color: var(--secondary); }
+.badge-nekoweb    { color: var(--tertiary); border-color: var(--tertiary); }
+
+/* ---------------------------------------------------------------------
+   Search page
+   --------------------------------------------------------------------- */
+
+.search-hero {
+  text-align: center;
+  padding: 3rem 1.5rem 2rem;
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.search-hero .tagline {
+  color: var(--muted);
+  margin-top: 0.5rem;
+}
+
+.search-bar-row {
+  display: flex;
+  gap: 0.5rem;
+  max-width: 600px;
+  margin: 1.5rem auto 0;
+  position: relative;
+}
+
+.search-bar-row input[type="search"] {
+  flex: 1;
+}
+
+.search-quick-links {
+  margin-top: 1.25rem;
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  font-size: 0.82rem;
+}
+
+.search-autocomplete {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--paper);
+  border: 1px solid var(--border);
+  border-top: none;
+  z-index: 20;
+  text-align: left;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.search-autocomplete button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 0.5rem 0.9rem;
+  font: inherit;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.search-autocomplete button:hover,
+.search-autocomplete button.active {
+  background: var(--paper-alt);
+}
+
+.search-sticky-bar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--paper);
+  border-bottom: 1px solid var(--border);
+  padding: 0.85rem 1.5rem;
+}
+
+.search-sticky-bar .search-bar-row {
+  margin: 0;
+  max-width: 720px;
+}
+
+.search-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+@media (min-width: 900px) {
+  .search-layout {
+    grid-template-columns: 230px 1fr;
+    align-items: start;
+  }
+}
+
+.search-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+@media (min-width: 900px) {
+  .search-sidebar {
+    position: sticky;
+    top: 5rem;
+  }
+}
+
+.search-filter-group h3 {
+  font-family: var(--font-ui);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin: 0 0 0.5rem;
+}
+
+.search-filter-group .checkbox-label {
+  display: block;
+  font-size: 0.85rem;
+}
+
+.tag-chip {
+  display: inline-block;
+  font-family: var(--font-ui);
+  font-size: 0.7rem;
+  letter-spacing: 0.02em;
+  padding: 0.3em 0.7em;
+  margin: 0 0.3em 0.3em 0;
+  border: 1px solid var(--border);
+  background: var(--paper-alt);
+  cursor: pointer;
+}
+
+.tag-chip.active {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.search-results-count {
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-bottom: 1rem;
+}
+
+.search-results-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-height: 0;
+  transition: opacity 0.15s ease;
+}
+
+.search-results-list.is-loading {
+  opacity: 0.4;
+}
+
+@keyframes result-fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.search-result-card {
+  border: 1px solid var(--border);
+  background: var(--paper-alt);
+  padding: 1rem 1.25rem;
+  animation: result-fade-in 0.25s ease-out;
+}
+
+.search-result-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.search-result-title {
+  font-family: var(--font-heading);
+  font-style: italic;
+  font-size: 1.15rem;
+  margin: 0;
+}
+
+.search-result-title a {
+  border-bottom: none;
+}
+
+.search-result-url {
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  color: var(--secondary);
+  word-break: break-all;
+}
+
+.search-result-excerpt {
+  margin: 0.5rem 0 0;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+.search-result-excerpt mark {
+  background: var(--warning);
+  color: var(--ink);
+  padding: 0 0.15em;
+}
+
+.search-result-meta {
+  display: flex;
+  gap: 0.7rem;
+  align-items: center;
+  flex-wrap: wrap;
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin-top: 0.6rem;
+}
+
+.search-result-actions {
+  margin-top: 0.5rem;
+  display: flex;
+  gap: 1rem;
+  font-size: 0.75rem;
+}
+
+.search-result-actions button {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-size: 0.75rem;
+  color: var(--secondary);
+  cursor: pointer;
+  border-bottom: 1px dashed var(--secondary);
+}
+
+.search-similar-panel {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px dashed var(--border);
+  font-size: 0.82rem;
+}
+
+.search-similar-panel ul {
+  margin: 0.4rem 0 0;
+  padding-left: 1.1rem;
+}
+
+.search-pagination {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
 .hidden { display: none !important; }
