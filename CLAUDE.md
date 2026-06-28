@@ -134,19 +134,34 @@ After cloning the repo, copy `wrangler.toml.example` to `wrangler.toml` and fill
 
 ### 9. Search Engine Infrastructure (MyJay Search)
 Added well after the Phase 1 steps above; see "Indie Web Search Engine" for
-the full architecture. Steps, in order:
-- `wrangler queues create myjay-crawl-queue`
-- KV → Create namespace → name it `myjay-search-cache` → bind to the Pages
-  project as `SEARCH_CACHE` (Settings → Functions → Bindings) and to the
-  crawler Worker (its own `wrangler.toml`, see below)
-- Copy `crawler/wrangler.toml.example` to `crawler/wrangler.toml`, fill in
-  your account/resource IDs, then `npm run crawler:deploy`, this registers
-  both the Cron Triggers and the Queue consumer in one deploy
-- Add a `CRAWLER` service binding on the Pages project pointing at
-  `myjay-crawler` (Settings → Functions → Bindings → Service binding), the
-  same way `MAILER` is bound for the mailer Worker
-- `npx wrangler d1 execute myjay-db --file=schema/migrate-008-search-engine.sql`
-- Once deployed, bootstrap a few real Nekoweb seeds yourself via `/search`'s
+the full architecture. The CLI parts (`wrangler queues create`, `wrangler kv
+namespace create`, `wrangler deploy --config crawler/wrangler.toml`, the
+migration) can all be run from a terminal with an authenticated `wrangler`
+and need no dashboard at all. **Only the two binding adds below are
+dashboard-only**, there is no `wrangler` subcommand or API call this repo's
+tooling uses that can add a binding to an existing git-connected Pages
+project, confirmed against current wrangler (checked both v3 and v4) and
+against the Cloudflare docs before writing this down as a hard requirement
+rather than a guess.
+
+1. `wrangler queues create myjay-crawl-queue`
+2. `wrangler kv namespace create myjay-search-cache` (prints an `id`, copy it)
+3. Copy `crawler/wrangler.toml.example` to `crawler/wrangler.toml`, fill in
+   the D1 `database_id` (same one the root `wrangler.toml` uses) and the KV
+   `id` from step 2, then `npm run crawler:deploy`. This one deploy
+   registers the Cron Triggers and the Queue consumer together.
+4. `npx wrangler d1 execute myjay-db --remote --file=schema/migrate-008-search-engine.sql`
+5. **Dashboard, binding 1 of 2**: [dash.cloudflare.com → Workers & Pages](https://dash.cloudflare.com/?to=/:account/workers-and-pages)
+   → click the `myjay` Pages project → **Settings** → **Bindings** → **Add** → **KV namespace**.
+   Variable name: `SEARCH_CACHE`. KV namespace: `myjay-search-cache` (the one from step 2).
+6. **Dashboard, binding 2 of 2**: same project, **Settings** → **Bindings** → **Add** → **Service binding**.
+   Variable name: `CRAWLER`. Service: `myjay-crawler` (the Worker from step 3).
+7. Do steps 5–6 *before* the next `git push`, not after: a binding only takes
+   effect on the deployment created after it's added, and Pages doesn't
+   redeploy on its own just because a binding changed. If you push first,
+   you'd need a second, no-op deployment afterward (an empty commit, or
+   "Retry deployment" on the latest one in the dashboard) to pick it up.
+8. Once deployed, bootstrap a few real Nekoweb seeds yourself via `/search`'s
   "Submit a site" link, Nekoweb has no bulk discovery surface to crawl
 
 ---
@@ -1569,8 +1584,8 @@ is first sent). A bounce both updates the log row and inserts into
 that point on, not just logged.
 
 **Manual steps that can't be done from this codebase**: add the `MAILER`
-service binding to the live Pages project (Settings → Functions → Bindings
-→ Service binding → variable `MAILER` → service `myjay-mailer`, this Pages
+service binding to the live Pages project (Settings → Bindings → Add →
+Service binding → variable `MAILER` → service `myjay-mailer`, this Pages
 project deploys via git push, not local `wrangler.toml`, so the binding has
 to be added in the dashboard directly); create the webhook endpoint in the
 Resend dashboard pointing at `https://myjay.net/api/webhooks/resend` and set
