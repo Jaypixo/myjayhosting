@@ -1695,14 +1695,35 @@ no I/O, and it has to stay byte-identical on both sides or indexed terms
 and query terms silently stop matching, a correctness requirement that
 outweighs this repo's usual "keep sibling Workers self-contained" instinct,
 which exists to avoid *runtime* coupling, not build-time imports of a pure
-function). `searchPages()` in `functions/_lib/search-query.js` looks up
-each term in `search_terms`, joins to `search_pages`/`search_sites`, and
-sums weight (titles count 5x, descriptions 3x, body 1x) grouped by page,
-trying an AND-match (every term present) first and falling back to an
-OR-match ranked by score if that's too sparse. "Did you mean" only runs on
-single-word, zero-result queries: Levenshtein distance in JS against a
-small candidate set of indexed terms (same first letter, similar length)
-pulled from D1, see `suggestCorrection()`.
+function). Both `tokenize()` and the query-parsing path below run text
+through `normalizeQuotes()` first: crawled pages overwhelmingly use
+typographic quotes (U+2018/2019/201C/201D), a query typed on a normal
+keyboard uses straight ones, and without normalizing both to the same
+character first, "don't" indexed from a page and "don't" typed in the
+search box tokenize to different strings and never match. This shipped as
+a fix after search was reported to "completely fail" on anything with an
+apostrophe or quote in it.
+
+`parseQuery()` (same file) splits a query into an optional quoted phrase
+plus the full term list (phrase words included, so a quoted query still
+benefits from the inverted-index lookup rather than needing a table scan).
+`searchPages()` in `functions/_lib/search-query.js` looks up each term in
+`search_terms`, joins to `search_pages`/`search_sites`, and sums
+`weight * fieldScore * idf` grouped by page (titles count 5x, descriptions
+3x, body 1x; `idf` is a smoothed inverse-document-frequency multiplier
+computed in JS by `getTermIdf()`, since D1's SQLite build doesn't reliably
+expose `log()`/`ln()` for computing it in SQL, so a rare term across the
+index counts for more than a common one, the standard TF-IDF idea layered
+on top of the field weighting). A detected phrase adds a large flat bonus
+(`PHRASE_BONUS`) when the literal phrase appears in title/description/body,
+via a `LIKE` check folded into the same aggregate query, never a hard
+filter, an exact-phrase requirement risks zero results over something as
+small as punctuation, so it can only push a match up, never exclude one.
+Matching still tries an AND-match (every term present) first and falls
+back to an OR-match ranked by score if that's too sparse. "Did you mean"
+only runs on single-word, zero-result queries: Levenshtein distance in JS
+against a small candidate set of indexed terms (same first letter, similar
+length) pulled from D1, see `suggestCorrection()`.
 
 Result excerpts are built by `highlightExcerpt()`: it HTML-escapes the
 surrounding text first, then wraps matched terms in `<mark>`, in that
@@ -1739,12 +1760,61 @@ entirely (`{ failed: true }`), fail closed rather than guess. A page-level
 **Rate limiting and safety caps** (`crawler/crawler.js`): a KV-stored
 last-fetched-at timestamp per domain (`checkRateLimit()`/`markFetched()`);
 a queue consumer that isn't yet allowed to fetch a domain re-delivers the
-message with `message.retry({ delaySeconds })` instead of busy-waiting.
-Per crawl run: a hard cap of 200 pages per domain, a depth cap of 2 clicks
-from a site's root, and a circuit breaker (a KV-tracked consecutive-failure
-streak per domain, `failstreak:{domain}`) that marks a site `status =
-'error'` and stops crawling it for the run after 5 failures in a row, so
-one slow or broken site can't eat the whole run's budget.
+message with `message.retry({ delaySeconds })` instead of busy-waiting. A
+circuit breaker (a KV-tracked consecutive-failure streak per domain,
+`failstreak:{domain}`, written only on failure and left to expire on its
+own TTL rather than explicitly cleared on success, see the incident note
+below for why) marks a site `status = 'error'` and stops crawling it for
+the run after 5 failures in a row, so one slow or broken site can't eat
+the whole run's budget.
+
+**Incident: the crawler degraded the entire platform, not just search,
+within hours of going live.** Cloudflare emailed about exceeding the free
+Workers KV (1,000 puts/day) and Queues (10,000 operations/day) limits, and
+myjay.net itself got slow, because KV and D1 are shared with everything
+else the platform does (sessions, login, the dashboard), not sandboxed
+resources search gets to itself. Root cause: `enqueueDiscoveredLinks()`
+originally issued 2-4 separate D1 round-trips *per discovered link*, up to
+~200 links per page, so one single page could cost 100+ sequential D1
+calls and fan out into dozens of new queue messages, each of which would
+do the same thing again. The fix wasn't a tuning knob, it was rewriting
+that function to use a small, fixed number of *batched* D1 queries per
+page (`IN (...)` over every link at once) regardless of how many links the
+page has, plus hard-capping how many new messages one page can actually
+produce. `resetFailureStreak()`'s explicit KV delete-on-success was also
+removed entirely (letting the key expire on its TTL instead), since it
+doubled KV writes for no benefit. Four settings now bound this explicitly,
+admin-editable from Search → Crawl Controls → "Resource limits" (`search_max_pages_per_day`
+default 300, `search_max_pages_per_domain` default 50 [was a hardcoded
+200], `search_max_depth` default 2, `search_max_links_per_page` default
+15), read once per queue *batch* (`getCrawlSettings()`, up to 10 messages),
+not once per message. The daily cap is enforced by acking an entire
+over-budget batch immediately with zero further D1/KV/fetch work, rather
+than retrying it (a retry is itself a Queue operation, retrying instead of
+dropping would make the exact thing being guarded against worse). A
+`MAX_NEW_SITES_PER_PAGE = 5` cap on newly-discovered cross-platform domains
+per page is a hardcoded constant, not a setting, organic discovery volume
+isn't something that needs day-to-day tuning the way the others are.
+
+Two more settings, same admin card, round out "maximal admin control" over
+what the crawler actually does: `search_min_crawl_delay_seconds` (default
+1) is the politeness floor `processPageJob()` enforces between requests to
+the same domain (a site's own `robots.txt` `Crawl-delay` still wins if it
+asks for slower); `search_discovery_enabled` (default on) is a kill switch
+specifically for *new* cross-platform site discovery, independent of the
+daily page cap, an admin who wants to stop the index from growing while
+still re-crawling and refreshing everything already indexed flips this
+off rather than fighting the page caps to approximate the same effect.
+
+The admin panel also got a one-click "Pause all crawling" (and "Resume
+all") button spanning all three platforms at once, pages-crawled-today
+shown live against the daily cap, and a full paginated crawl history table
+(`GET /api/admin/search/crawl-log`, every run on every platform, not just
+the latest-per-platform snapshot the Overview tab already had). If you
+ever see Cloudflare's quota-exceeded emails again, the first move is that
+pause button, not a code change, since it stops new seeding immediately;
+the second move is checking whether the limits above need to come down
+further, not back up.
 
 **Discovery, per platform** (`crawler/sources/*.js`):
 - **MyJay**: `sources/myjay.js` queries the platform's own `sites` table

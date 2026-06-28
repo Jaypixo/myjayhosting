@@ -19,6 +19,20 @@ const STOPWORDS = new Set([
 const MIN_TERM_LENGTH = 2;
 const MAX_TERM_LENGTH = 40;
 
+// Crawled pages overwhelmingly use typographic ('smart') quotes (from CMSes,
+// word processors, auto-conversion), while a query typed on a plain
+// keyboard almost always uses straight quotes. Without normalizing both to
+// the same character first, "don't" indexed from a page (with U+2019) and
+// "don't" typed in the search box (with U+0027) tokenize to different
+// strings and never match, this was reported as search "completely
+// failing" on anything with an apostrophe or quote in it. Both the indexer
+// and the query path run text through this before anything else.
+export function normalizeQuotes(text) {
+  return String(text)
+    .replace(/[‘’ʼʻ]/g, "'")
+    .replace(/[“”]/g, '"');
+}
+
 // Splits on anything that isn't a letter, digit, or apostrophe (so
 // contractions like "don't" survive as one token), lowercases, and drops
 // stopwords/too-short/too-long tokens. Both the indexer and the query path
@@ -26,7 +40,7 @@ const MAX_TERM_LENGTH = 40;
 // "term" is.
 export function tokenize(text) {
   if (!text) return [];
-  const raw = String(text)
+  const raw = normalizeQuotes(text)
     .toLowerCase()
     .split(/[^a-z0-9']+/i)
     .map((t) => t.replace(/^'+|'+$/g, '')); // strip leading/trailing quotes, keep internal ones
@@ -37,6 +51,25 @@ export function tokenize(text) {
     tokens.push(t);
   }
   return tokens;
+}
+
+// A query like `"old web" zine` is a phrase ("old web", matched as a
+// contiguous substring) plus an ordinary term (zine). Only the search API
+// calls this, the crawler never parses a "query", it only ever tokenizes
+// plain page text. Returns the phrase lowercased and quote-normalized (for
+// a literal substring check against stored field text) alongside the full
+// term list (phrase words included) so a quoted query still benefits from
+// the normal inverted-index lookup instead of requiring a table scan.
+export function parseQuery(rawQuery) {
+  const normalized = normalizeQuotes(rawQuery || '');
+  const phraseMatch = normalized.match(/"([^"]+)"/);
+  if (!phraseMatch || !phraseMatch[1].trim()) {
+    return { phrase: null, terms: [...new Set(tokenize(normalized))] };
+  }
+  const phrase = phraseMatch[1].trim().toLowerCase();
+  const remainder = normalized.slice(0, phraseMatch.index) + normalized.slice(phraseMatch.index + phraseMatch[0].length);
+  const terms = [...new Set([...tokenize(phrase), ...tokenize(remainder)])];
+  return { phrase, terms };
 }
 
 // Term -> frequency within one field's text, clamped at `cap` so a page

@@ -18,6 +18,22 @@ const DEFAULTS = {
   search_crawl_paused_neocities: '0',
   search_crawl_paused_nekoweb: '0',
   search_neocities_cursor: '0',
+  // Resource-usage caps for the crawler, admin-editable (Search ->
+  // Crawl Controls). Added after a production incident where the crawler's
+  // own D1/KV/Queue usage degraded the whole platform, not just search, see
+  // CLAUDE.md's "Indie Web Search Engine" section. Defaults here are
+  // intentionally conservative; crawler/crawler.js falls back to its own
+  // (same) defaults if these rows don't exist yet on an older database.
+  search_max_pages_per_day: '300',
+  search_max_pages_per_domain: '50',
+  search_max_depth: '2',
+  search_max_links_per_page: '15',
+  // Politeness floor (seconds between requests to the same domain; a
+  // site's own robots.txt Crawl-delay still wins if it asks for slower
+  // than this) and a kill switch for discovering *new* sites specifically,
+  // independent of re-crawling already-known ones, see crawler/crawler.js.
+  search_min_crawl_delay_seconds: '1',
+  search_discovery_enabled: '1',
 };
 
 function toPublicShape(map) {

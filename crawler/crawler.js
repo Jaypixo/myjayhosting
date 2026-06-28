@@ -10,7 +10,6 @@
 import { extractPage, extractMetaRobots, inferTags } from './extract.js';
 import {
   crawlerFetch, getRobotsRules, isAllowedByRules, checkRateLimit, markFetched,
-  DEFAULT_CRAWL_DELAY_SECONDS,
 } from './robots.js';
 import { termWeights } from '../functions/_lib/search-tokenize.js';
 import * as myjaySource from './sources/myjay.js';
@@ -20,10 +19,53 @@ import * as nekowebSource from './sources/nekoweb.js';
 const SOURCES = { myjay: myjaySource, neocities: neocitiesSource, nekoweb: nekowebSource };
 const PLATFORM_SUFFIXES = { '.myjay.net': 'myjay', '.neocities.org': 'neocities', '.nekoweb.org': 'nekoweb' };
 
-const MAX_DEPTH = 2;
-const MAX_PAGES_PER_DOMAIN_PER_RUN = 200;
 const MAX_CONSECUTIVE_FAILURES = 5;
 const FAILSTREAK_TTL_SECONDS = 3600;
+// Hard ceiling regardless of settings, so a typo'd huge number in the admin
+// panel can't reopen the exact incident this was built to prevent: every
+// link-discovery check below got rewritten to use a fixed, small number of
+// batched D1 queries per page no matter how many links it has, but the
+// number of *new* messages a single page can fan out into still needs its
+// own bound.
+const MAX_NEW_SITES_PER_PAGE = 5;
+const DEFAULT_MAX_PAGES_PER_DAY = 300;
+const DEFAULT_MAX_PAGES_PER_DOMAIN = 50;
+const DEFAULT_MAX_DEPTH = 2;
+const DEFAULT_MAX_LINKS_PER_PAGE = 15;
+const DEFAULT_MIN_CRAWL_DELAY_SECONDS = 1;
+const DEFAULT_DISCOVERY_ENABLED = true;
+
+const SETTINGS_KEYS = [
+  'search_max_pages_per_day', 'search_max_pages_per_domain', 'search_max_depth',
+  'search_max_links_per_page', 'search_min_crawl_delay_seconds', 'search_discovery_enabled',
+];
+
+// Read once per queue batch (see queue() below), not once per message: this
+// used to mean a handful of extra D1 reads, now it means at most one extra
+// read per up-to-10-message batch instead of one per page. See CLAUDE.md's
+// "Indie Web Search Engine" -> incident notes for why this matters.
+async function getCrawlSettings(env) {
+  const since = new Date();
+  since.setUTCHours(0, 0, 0, 0);
+  const [settingsRows, todayCount] = await env.DB.batch([
+    env.DB.prepare(`SELECT key, value FROM settings WHERE key IN (${SETTINGS_KEYS.map(() => '?').join(',')})`).bind(...SETTINGS_KEYS),
+    env.DB.prepare('SELECT COUNT(*) AS n FROM search_pages WHERE crawled_at >= ?').bind(since.toISOString()),
+  ]);
+  const map = {};
+  for (const row of settingsRows.results) map[row.key] = row.value;
+  return {
+    maxPagesPerDay: Number(map.search_max_pages_per_day) || DEFAULT_MAX_PAGES_PER_DAY,
+    maxPagesPerDomain: Number(map.search_max_pages_per_domain) || DEFAULT_MAX_PAGES_PER_DOMAIN,
+    maxDepth: Number(map.search_max_depth) || DEFAULT_MAX_DEPTH,
+    maxLinksPerPage: Number(map.search_max_links_per_page) || DEFAULT_MAX_LINKS_PER_PAGE,
+    minCrawlDelaySeconds: Number(map.search_min_crawl_delay_seconds) || DEFAULT_MIN_CRAWL_DELAY_SECONDS,
+    // Same "missing row" caveat as everywhere else here: absence means the
+    // default, which is enabled, so this only reads as false when a row
+    // explicitly says '0'.
+    discoveryEnabled: map.search_discovery_enabled === '0' ? false : DEFAULT_DISCOVERY_ENABLED,
+    crawledToday: todayCount.results[0]?.n || 0,
+  };
+}
 
 function platformForDomain(domain) {
   for (const [suffix, platform] of Object.entries(PLATFORM_SUFFIXES)) {
@@ -130,9 +172,10 @@ async function recordFailure(env, domain, crawlLogId) {
   return streak;
 }
 
-async function resetFailureStreak(env, domain) {
-  await env.SEARCH_CACHE.delete(`failstreak:${domain}`);
-}
+// No explicit reset-on-success: the failstreak key just expires on its own
+// TTL (FAILSTREAK_TTL_SECONDS). An explicit delete here used to cost one
+// more KV write per successful page, on top of markFetched()'s write,
+// doubling KV usage for no real benefit, letting it lapse naturally is free.
 
 async function indexTerms(env, pageId, fields) {
   const stmts = [];
@@ -170,43 +213,86 @@ async function upsertPage(env, { siteId, url, fields, depth, httpStatus, lastMod
   return pageId;
 }
 
-async function enqueueDiscoveredLinks(env, { links, fromPageId, fromDomain, fromSiteId, fromPlatform, depth, crawlLogId, runStartedAt }) {
-  for (const link of links) {
-    await env.DB.prepare('INSERT OR IGNORE INTO search_links (from_page_id, to_url) VALUES (?, ?)').bind(fromPageId, link).run();
+// Rewritten after a production incident (see CLAUDE.md): the original
+// version did 2-4 separate D1 round-trips PER LINK (up to ~200 links per
+// page), which both hammered the D1 database the whole platform shares and
+// fanned the queue out fast enough to blow through the free-tier daily
+// Queue and KV operation limits in hours. Every D1 check here is now a
+// single batched query over all of a page's links at once, and the actual
+// number of new messages a page can produce is hard-capped regardless of
+// how many links it has.
+async function enqueueDiscoveredLinks(env, { links, fromPageId, fromDomain, fromSiteId, fromPlatform, depth, crawlLogId, runStartedAt, maxDepth, maxLinksPerPage, discoveryEnabled }) {
+  if (fromPageId && links.length > 0) {
+    const capped = links.slice(0, 50);
+    await env.DB.batch(
+      capped.map((l) => env.DB.prepare('INSERT OR IGNORE INTO search_links (from_page_id, to_url) VALUES (?, ?)').bind(fromPageId, l))
+    );
+  }
 
+  if (depth + 1 > maxDepth || links.length === 0) return;
+
+  const sameDomainLinks = [];
+  const crossDomainCandidates = new Map(); // domain -> { platform, url }
+  for (const link of links) {
     let linkDomain;
     try {
       linkDomain = new URL(link).hostname.toLowerCase();
     } catch {
       continue;
     }
-
     if (linkDomain === fromDomain) {
-      if (depth + 1 > MAX_DEPTH) continue;
-      const already = await env.DB.prepare('SELECT 1 FROM search_pages WHERE url = ? AND crawled_at >= ?').bind(link, runStartedAt).first();
-      if (already) continue;
-      await env.CRAWL_QUEUE.send({ url: link, siteId: fromSiteId, platform: fromPlatform, domain: fromDomain, depth: depth + 1, crawlLogId, runStartedAt });
-      continue;
+      sameDomainLinks.push(link);
+    } else {
+      const platform = platformForDomain(linkDomain);
+      if (platform && !crossDomainCandidates.has(linkDomain)) {
+        crossDomainCandidates.set(linkDomain, { platform, url: `https://${linkDomain}/` });
+      }
     }
+  }
 
-    const platform = platformForDomain(linkDomain);
-    if (!platform) continue; // not one of the three platforms we index
+  // Same-domain: one batched "already crawled this run" check instead of
+  // one query per link, and a hard cap on how many get followed at all.
+  const sameDomainCapped = sameDomainLinks.slice(0, maxLinksPerPage);
+  if (sameDomainCapped.length > 0) {
+    const placeholders = sameDomainCapped.map(() => '?').join(',');
+    const { results } = await env.DB.prepare(
+      `SELECT url FROM search_pages WHERE site_id = ? AND crawled_at >= ? AND url IN (${placeholders})`
+    ).bind(fromSiteId, runStartedAt, ...sameDomainCapped).all();
+    const alreadyCrawled = new Set(results.map((r) => r.url));
+    for (const link of sameDomainCapped) {
+      if (alreadyCrawled.has(link)) continue;
+      await env.CRAWL_QUEUE.send({ url: link, siteId: fromSiteId, platform: fromPlatform, domain: fromDomain, depth: depth + 1, crawlLogId, runStartedAt });
+    }
+  }
 
-    const blocked = await env.DB.prepare('SELECT 1 FROM blocklist WHERE domain = ?').bind(linkDomain).first();
-    if (blocked) continue;
+  // Cross-domain: one batched blocklist check + one batched "already known"
+  // check covering every candidate domain on the page at once. Gated on
+  // discoveryEnabled (admin-controllable, "more crawler control"): an admin
+  // may want already-known sites kept fresh without the index continuing
+  // to grow, this is the lever for that, independent of the daily page cap.
+  if (discoveryEnabled && crossDomainCandidates.size > 0) {
+    const domains = [...crossDomainCandidates.keys()];
+    const placeholders = domains.map(() => '?').join(',');
+    const [blockedResult, knownResult] = await env.DB.batch([
+      env.DB.prepare(`SELECT domain FROM blocklist WHERE domain IN (${placeholders})`).bind(...domains),
+      env.DB.prepare(`SELECT domain FROM search_sites WHERE domain IN (${placeholders})`).bind(...domains),
+    ]);
+    const blocked = new Set(blockedResult.results.map((r) => r.domain));
+    const known = new Set(knownResult.results.map((r) => r.domain));
+    const newDomains = domains.filter((d) => !blocked.has(d) && !known.has(d)).slice(0, MAX_NEW_SITES_PER_PAGE);
 
-    const existingSite = await env.DB.prepare('SELECT id FROM search_sites WHERE domain = ?').bind(linkDomain).first();
-    if (existingSite) continue; // already known; its own crawl already covers it
-
-    const siteId = await upsertSearchSite(env, { platform, domain: linkDomain, rootUrl: `https://${linkDomain}/` });
-    await env.CRAWL_QUEUE.send({ url: `https://${linkDomain}/`, siteId, platform, domain: linkDomain, depth: 0, crawlLogId, runStartedAt });
+    for (const domain of newDomains) {
+      const { platform, url } = crossDomainCandidates.get(domain);
+      const siteId = await upsertSearchSite(env, { platform, domain, rootUrl: url });
+      await env.CRAWL_QUEUE.send({ url, siteId, platform, domain, depth: 0, crawlLogId, runStartedAt });
+    }
   }
 }
 
 // Returns `{ retryAfterSeconds }` to ask for a delayed re-delivery, or
 // nothing if the message should just be acked (success, or a terminal skip
 // like "blocklisted"/"disallowed" that's not worth retrying).
-async function processPageJob(env, job) {
+async function processPageJob(env, job, settings) {
   const { url, siteId, platform, domain, depth, crawlLogId, runStartedAt } = job;
 
   const blocked = await env.DB.prepare('SELECT 1 FROM blocklist WHERE domain = ?').bind(domain).first();
@@ -221,7 +307,7 @@ async function processPageJob(env, job) {
   const crawledSoFar = await env.DB.prepare(
     'SELECT COUNT(*) AS n FROM search_pages WHERE site_id = ? AND crawled_at >= ?'
   ).bind(siteId, runStartedAt).first();
-  if ((crawledSoFar?.n || 0) >= MAX_PAGES_PER_DOMAIN_PER_RUN) return;
+  if ((crawledSoFar?.n || 0) >= settings.maxPagesPerDomain) return;
 
   let target;
   try {
@@ -236,7 +322,7 @@ async function processPageJob(env, job) {
   const path = target.pathname + (target.search || '');
   if (!isAllowedByRules(robots.rules, path)) return;
 
-  const minInterval = Math.max(DEFAULT_CRAWL_DELAY_SECONDS, robots.crawlDelay || 0);
+  const minInterval = Math.max(settings.minCrawlDelaySeconds, robots.crawlDelay || 0);
   const rate = await checkRateLimit(env, domain, minInterval);
   if (!rate.allowed) return { retryAfterSeconds: rate.retryAfterSeconds };
 
@@ -258,7 +344,6 @@ async function processPageJob(env, job) {
   const now = new Date().toISOString();
   await env.DB.prepare("UPDATE search_sites SET last_crawled_at = ?, status = 'active' WHERE id = ?").bind(now, siteId).run();
   await env.DB.prepare('UPDATE crawl_log SET pages_crawled = pages_crawled + 1 WHERE id = ?').bind(crawlLogId).run();
-  await resetFailureStreak(env, domain);
 
   const contentType = res.headers.get('Content-Type') || '';
   if (!contentType.includes('text/html')) return;
@@ -298,6 +383,9 @@ async function processPageJob(env, job) {
       depth,
       crawlLogId,
       runStartedAt,
+      maxDepth: settings.maxDepth,
+      maxLinksPerPage: settings.maxLinksPerPage,
+      discoveryEnabled: settings.discoveryEnabled,
     });
   }
 }
@@ -313,9 +401,20 @@ export default {
   },
 
   async queue(batch, env) {
+    // Settings + today's page count are fetched once for the whole batch
+    // (up to 10 messages), not once per message, see getCrawlSettings().
+    const settings = await getCrawlSettings(env);
+    if (settings.crawledToday >= settings.maxPagesPerDay) {
+      // Daily budget already spent: ack the whole batch with zero further
+      // D1/KV/outbound work. These jobs aren't lost forever, the next
+      // incremental/full run re-seeds and re-discovers them.
+      for (const message of batch.messages) message.ack();
+      return;
+    }
+
     for (const message of batch.messages) {
       try {
-        const result = await processPageJob(env, message.body);
+        const result = await processPageJob(env, message.body, settings);
         if (result?.retryAfterSeconds) {
           message.retry({ delaySeconds: result.retryAfterSeconds });
         } else {

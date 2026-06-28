@@ -2,26 +2,67 @@
 // Pages-Functions-only (these assume env.DB is a D1 binding reachable the
 // way Pages Functions reach it; the crawler Worker writes search_terms but
 // never reads it through this module, see crawler/ for its own queries).
-import { tokenize, levenshtein, highlightExcerpt } from './search-tokenize.js';
+import { tokenize, parseQuery, levenshtein, highlightExcerpt } from './search-tokenize.js';
 
 export const DEFAULT_PAGE_SIZE = 20;
 export const MAX_PAGE_SIZE = 50;
 
 const FIELD_SCORE_SQL = `(CASE st.field WHEN 'title' THEN 5 WHEN 'description' THEN 3 ELSE 1 END)`;
+// Dwarfs any plausible term-frequency*idf score, so an exact phrase match
+// always outranks a same-term-count non-phrase match, without ever
+// excluding non-matching pages outright (a hard phrase filter risks zero
+// results over something as small as punctuation; this is a bonus, not a
+// requirement).
+const PHRASE_BONUS = 1000;
 
 function placeholders(n) {
   return Array(n).fill('?').join(',');
 }
 
+// Inverse document frequency per query term, computed in JS rather than in
+// SQL: D1's SQLite build doesn't reliably expose log()/ln(), so the
+// log((N+1)/(df+1))+1 smoothed-IDF formula runs here instead, then gets
+// passed into rankedSearch() as a per-term multiplier. Rare terms count for
+// more than common ones, the standard TF-IDF idea, layered on top of the
+// existing title/description/body field weighting. One extra query, cheap
+// and bounded by the number of distinct query terms, not by index size.
+async function getTermIdf(env, terms) {
+  const [dfResult, totalResult] = await env.DB.batch([
+    env.DB.prepare(`SELECT term, COUNT(DISTINCT page_id) AS df FROM search_terms WHERE term IN (${placeholders(terms.length)}) GROUP BY term`).bind(...terms),
+    env.DB.prepare('SELECT COUNT(*) AS n FROM search_pages'),
+  ]);
+  const totalDocs = Math.max(1, totalResult.results[0]?.n || 1);
+  const dfByTerm = new Map(dfResult.results.map((r) => [r.term, r.df]));
+  const idf = new Map();
+  for (const term of terms) {
+    const df = dfByTerm.get(term) || 1;
+    idf.set(term, Math.log((totalDocs + 1) / (df + 1)) + 1);
+  }
+  return idf;
+}
+
 // One AND-match (every query term present) or OR-match (any term present)
 // ranked search over search_terms, joined to search_pages/search_sites.
 // Filters are always bound via `?`, never interpolated.
-async function rankedSearch(env, terms, { platform, tag, since, requireAll, limit, offset }) {
-  const params = [...terms];
+async function rankedSearch(env, terms, { phrase, idfByTerm, platform, tag, since, requireAll, limit, offset }) {
+  const params = [];
+  const idfCase = terms.map(() => 'WHEN ? THEN ?').join(' ');
   let sql = `
     SELECT p.id, p.url, p.title, p.description, p.body_text, p.crawled_at, p.depth,
            s.platform, s.domain, s.title AS site_title,
-           SUM(st.weight * ${FIELD_SCORE_SQL}) AS score,
+           SUM(st.weight * ${FIELD_SCORE_SQL} * (CASE st.term ${idfCase} ELSE 1 END)) AS term_score,
+  `;
+  for (const term of terms) params.push(term, idfByTerm.get(term) || 1);
+
+  if (phrase) {
+    sql += ` MAX(CASE WHEN (p.title LIKE ? OR p.description LIKE ? OR p.body_text LIKE ?) THEN ${PHRASE_BONUS} ELSE 0 END) AS phrase_bonus,`;
+    const likeParam = `%${phrase}%`;
+    params.push(likeParam, likeParam, likeParam);
+  } else {
+    sql += ` 0 AS phrase_bonus,`;
+  }
+
+  sql += `
            COUNT(DISTINCT st.term) AS matched_terms
     FROM search_terms st
     JOIN search_pages p ON p.id = st.page_id
@@ -29,9 +70,10 @@ async function rankedSearch(env, terms, { platform, tag, since, requireAll, limi
   `;
   if (tag) {
     sql += ` JOIN search_page_tags spt ON spt.page_id = p.id AND spt.tag = ?`;
+    params.push(tag);
   }
   sql += ` WHERE st.term IN (${placeholders(terms.length)}) AND s.status = 'active'`;
-  if (tag) params.push(tag);
+  params.push(...terms);
   if (platform) {
     sql += ` AND s.platform = ?`;
     params.push(platform);
@@ -50,14 +92,14 @@ async function rankedSearch(env, terms, { platform, tag, since, requireAll, limi
     `SELECT COUNT(*) AS total FROM (${sql})`
   ).bind(...params).first();
 
-  sql += ` ORDER BY score DESC LIMIT ? OFFSET ?`;
+  sql += ` ORDER BY (term_score + phrase_bonus) DESC LIMIT ? OFFSET ?`;
   const rowsResult = await env.DB.prepare(sql).bind(...params, limit, offset).all();
 
   return { total: countResult?.total || 0, rows: rowsResult.results };
 }
 
 export async function searchPages(env, query, { platform, tag, since, page = 1, pageSize = DEFAULT_PAGE_SIZE } = {}) {
-  const terms = [...new Set(tokenize(query))];
+  const { phrase, terms } = parseQuery(query);
   const limit = Math.min(MAX_PAGE_SIZE, Math.max(1, pageSize));
   const offset = (Math.max(1, page) - 1) * limit;
 
@@ -65,21 +107,24 @@ export async function searchPages(env, query, { platform, tag, since, page = 1, 
     return { results: [], total: 0, terms, usedFallback: false };
   }
 
-  let { total, rows } = await rankedSearch(env, terms, { platform, tag, since, requireAll: true, limit, offset });
+  const idfByTerm = await getTermIdf(env, terms);
+
+  let { total, rows } = await rankedSearch(env, terms, { phrase, idfByTerm, platform, tag, since, requireAll: true, limit, offset });
   let usedFallback = false;
   if (total === 0 && terms.length > 1) {
     usedFallback = true;
-    ({ total, rows } = await rankedSearch(env, terms, { platform, tag, since, requireAll: false, limit, offset }));
+    ({ total, rows } = await rankedSearch(env, terms, { phrase, idfByTerm, platform, tag, since, requireAll: false, limit, offset }));
   }
 
+  const highlightTerms = phrase ? [...terms, phrase] : terms;
   const results = rows.map((row) => ({
     url: row.url,
     title: row.title || row.url,
-    excerpt: highlightExcerpt(row.body_text || row.description || '', terms),
+    excerpt: highlightExcerpt(row.body_text || row.description || '', highlightTerms),
     platform: row.platform,
     domain: row.domain,
     lastIndexedAt: row.crawled_at,
-    score: row.score,
+    score: row.term_score + row.phrase_bonus,
   }));
 
   return { results, total, terms, usedFallback };

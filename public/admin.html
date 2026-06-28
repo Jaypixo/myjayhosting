@@ -144,10 +144,83 @@
 
           <h3 class="mt-2">Pages indexed, last 30 days</h3>
           <div class="chart-bars" id="search-chart"></div>
+
+          <h3 class="mt-2">Crawl history</h3>
+          <p class="text-muted">Every run, every platform, not just the latest one above.</p>
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>Platform</th><th>Type</th><th>Started</th><th>Status</th><th>Crawled</th><th>Failed</th><th>Triggered by</th></tr></thead>
+              <tbody id="crawl-history-body"><tr><td colspan="7" class="text-muted">loading...</td></tr></tbody>
+            </table>
+          </div>
+          <div class="flex-between mt-1">
+            <button class="btn btn-ghost btn-sm" id="crawl-history-prev">← Prev</button>
+            <span class="text-muted" id="crawl-history-page-info">page 1</span>
+            <button class="btn btn-ghost btn-sm" id="crawl-history-next">Next →</button>
+          </div>
         </div>
 
         <div id="search-crawl-panel" class="subtab-panel">
-          <h3>Per-platform controls</h3>
+          <div class="flex-between">
+            <h3>Resource budget</h3>
+            <div>
+              <button class="btn btn-danger btn-sm" id="search-pause-all-btn">Pause all crawling</button>
+              <button class="btn btn-ghost btn-sm" id="search-resume-all-btn">Resume all</button>
+            </div>
+          </div>
+          <div class="card">
+            <h3 id="search-budget-today">...</h3>
+            <p class="text-muted">pages crawled today, across all platforms, against the daily cap below. Resets at 00:00 UTC.</p>
+          </div>
+
+          <h3 class="mt-2">Resource limits</h3>
+          <p class="text-muted">
+            These bound how much the crawler can do, the whole point being to never
+            again exceed the Workers KV / Queues free-tier daily limits or load the
+            shared platform database hard enough to slow down everything else.
+          </p>
+          <div class="card">
+            <form id="search-limits-form">
+              <div class="form-error" id="search-limits-error"></div>
+              <div class="feature-grid">
+                <div class="field">
+                  <label for="limit-max-pages-per-day">Max pages crawled per day (all platforms combined)</label>
+                  <input type="number" id="limit-max-pages-per-day" min="1" required>
+                </div>
+                <div class="field">
+                  <label for="limit-max-pages-per-domain">Max pages per domain, per run</label>
+                  <input type="number" id="limit-max-pages-per-domain" min="1" required>
+                </div>
+                <div class="field">
+                  <label for="limit-max-depth">Max link-following depth</label>
+                  <input type="number" id="limit-max-depth" min="0" required>
+                </div>
+                <div class="field">
+                  <label for="limit-max-links-per-page">Max links followed per page</label>
+                  <input type="number" id="limit-max-links-per-page" min="0" required>
+                </div>
+                <div class="field">
+                  <label for="limit-min-crawl-delay">Min seconds between requests to the same domain</label>
+                  <input type="number" id="limit-min-crawl-delay" min="1" required>
+                </div>
+              </div>
+              <button type="submit" class="btn btn-sm">Save limits</button>
+              <span class="text-ok hidden" id="search-limits-success">Saved.</span>
+            </form>
+          </div>
+
+          <div class="card">
+            <label class="checkbox-label">
+              <input type="checkbox" id="search-discovery-checkbox">
+              Discover new sites (cross-platform links found on crawled pages)
+            </label>
+            <p class="text-muted" style="margin:0.4rem 0 0">
+              Turn off to stop the index from growing while still re-crawling and refreshing
+              everything already indexed. Independent of the daily page cap above.
+            </p>
+          </div>
+
+          <h3 class="mt-2">Per-platform controls</h3>
           <div class="feature-grid" id="search-platform-controls">
             <div class="card text-muted">loading...</div>
           </div>
@@ -1914,6 +1987,10 @@
     let searchSitesQuery = '';
     const SEARCH_SITES_PAGE_SIZE = 50;
 
+    let crawlHistoryPage = 1;
+    let crawlHistoryTotal = 0;
+    const CRAWL_HISTORY_PAGE_SIZE = 25;
+
     function renderDailyChart(elId, dailyCounts) {
       const chartEl = document.getElementById(elId);
       chartEl.innerHTML = '';
@@ -1990,6 +2067,42 @@
       }
     }
 
+    async function loadCrawlHistory() {
+      const res = await apiFetch(`/api/admin/search/crawl-log?page=${crawlHistoryPage}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      crawlHistoryTotal = data.total;
+
+      const body = document.getElementById('crawl-history-body');
+      body.innerHTML = '';
+      if (data.runs.length === 0) {
+        body.innerHTML = '<tr><td colspan="7" class="text-muted">No crawl runs yet.</td></tr>';
+      } else {
+        data.runs.forEach((r) => {
+          const tr = document.createElement('tr');
+          tr.appendChild(td(PLATFORM_LABELS[r.platform] || r.platform));
+          tr.appendChild(td(r.runType));
+          tr.appendChild(td(formatDate(r.startedAt)));
+
+          const statusTd = document.createElement('td');
+          const statusBadge = document.createElement('span');
+          statusBadge.className = `badge ${r.status === 'completed' ? 'badge-live' : r.status === 'failed' ? 'badge-error' : r.status === 'skipped' ? '' : 'badge-warn'}`;
+          statusBadge.textContent = r.status;
+          statusBadge.title = r.error || '';
+          statusTd.appendChild(statusBadge);
+          tr.appendChild(statusTd);
+
+          tr.appendChild(td(String(r.pagesCrawled)));
+          tr.appendChild(td(String(r.pagesFailed)));
+          tr.appendChild(td(r.triggeredBy || ''));
+          body.appendChild(tr);
+        });
+      }
+
+      document.getElementById('crawl-history-page-info').textContent =
+        `page ${crawlHistoryPage} of ${Math.max(1, Math.ceil(crawlHistoryTotal / CRAWL_HISTORY_PAGE_SIZE))}`;
+    }
+
     async function triggerCrawl(platform, full) {
       const res = await apiFetch('/api/admin/search/crawl', {
         method: 'POST',
@@ -2019,8 +2132,28 @@
         apiFetch('/api/admin/search/crawl'),
         apiFetch('/api/admin/search/stats'),
       ]);
-      const pauseData = pauseRes.ok ? await pauseRes.json() : { paused: {} };
+      const pauseData = pauseRes.ok ? await pauseRes.json() : { paused: {}, limits: {}, pagesCrawledToday: 0 };
       const statsData = statsRes.ok ? await statsRes.json() : { platforms: [], lastRuns: [] };
+
+      const limits = pauseData.limits || {};
+      document.getElementById('search-budget-today').textContent =
+        `${pauseData.pagesCrawledToday || 0} / ${limits.maxPagesPerDay ?? '?'}`;
+      if (document.activeElement?.id !== 'limit-max-pages-per-day') {
+        document.getElementById('limit-max-pages-per-day').value = limits.maxPagesPerDay ?? '';
+      }
+      if (document.activeElement?.id !== 'limit-max-pages-per-domain') {
+        document.getElementById('limit-max-pages-per-domain').value = limits.maxPagesPerDomain ?? '';
+      }
+      if (document.activeElement?.id !== 'limit-max-depth') {
+        document.getElementById('limit-max-depth').value = limits.maxDepth ?? '';
+      }
+      if (document.activeElement?.id !== 'limit-max-links-per-page') {
+        document.getElementById('limit-max-links-per-page').value = limits.maxLinksPerPage ?? '';
+      }
+      if (document.activeElement?.id !== 'limit-min-crawl-delay') {
+        document.getElementById('limit-min-crawl-delay').value = limits.minCrawlDelaySeconds ?? '';
+      }
+      document.getElementById('search-discovery-checkbox').checked = pauseData.discoveryEnabled !== false;
 
       const wrap = document.getElementById('search-platform-controls');
       wrap.innerHTML = '';
@@ -2418,6 +2551,60 @@
     function setupSearchTab() {
       setupSearchSubTabs();
 
+      document.getElementById('search-pause-all-btn').addEventListener('click', async () => {
+        const ok = await showConfirm(
+          'Pause crawling for MyJay, Neocities, and Nekoweb all at once? Already-queued pages keep getting processed; this only stops new crawl runs from being seeded.',
+          { title: 'Pause all crawling', confirmText: 'Pause all', danger: true }
+        );
+        if (!ok) return;
+        await apiFetch('/api/admin/search/crawl', { method: 'POST', body: JSON.stringify({ action: 'pause-all' }) });
+        loadCrawlControls();
+      });
+      document.getElementById('search-resume-all-btn').addEventListener('click', async () => {
+        await apiFetch('/api/admin/search/crawl', { method: 'POST', body: JSON.stringify({ action: 'resume-all' }) });
+        loadCrawlControls();
+      });
+
+      document.getElementById('crawl-history-prev').addEventListener('click', () => {
+        if (crawlHistoryPage > 1) { crawlHistoryPage--; loadCrawlHistory(); }
+      });
+      document.getElementById('crawl-history-next').addEventListener('click', () => {
+        if (crawlHistoryPage * CRAWL_HISTORY_PAGE_SIZE < crawlHistoryTotal) { crawlHistoryPage++; loadCrawlHistory(); }
+      });
+
+      document.getElementById('search-discovery-checkbox').addEventListener('change', async (e) => {
+        await apiFetch('/api/admin/search/crawl', {
+          method: 'POST',
+          body: JSON.stringify({ action: 'set-discovery', enabled: e.target.checked }),
+        });
+      });
+
+      document.getElementById('search-limits-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const errEl = document.getElementById('search-limits-error');
+        errEl.textContent = '';
+        const limits = {
+          maxPagesPerDay: document.getElementById('limit-max-pages-per-day').value,
+          maxPagesPerDomain: document.getElementById('limit-max-pages-per-domain').value,
+          maxDepth: document.getElementById('limit-max-depth').value,
+          maxLinksPerPage: document.getElementById('limit-max-links-per-page').value,
+          minCrawlDelaySeconds: document.getElementById('limit-min-crawl-delay').value,
+        };
+        const res = await apiFetch('/api/admin/search/crawl', {
+          method: 'POST',
+          body: JSON.stringify({ action: 'set-limits', limits }),
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          errEl.textContent = data.error || 'Something went wrong.';
+          return;
+        }
+        const successEl = document.getElementById('search-limits-success');
+        successEl.classList.remove('hidden');
+        setTimeout(() => successEl.classList.add('hidden'), 2000);
+        loadCrawlControls();
+      });
+
       document.getElementById('search-sites-prev').addEventListener('click', () => {
         if (searchSitesPage > 1) { searchSitesPage--; loadSearchSites(); }
       });
@@ -2576,7 +2763,7 @@
         loadUsers(), loadSites(), loadContact(), loadStats(), loadSettings(),
         loadEmailStats(), loadEmailLogs(), loadEmailBounces(), loadEmailSignature(),
         loadEmailTemplates(), refreshSendPreview(), refreshBroadcastPreview(),
-        loadSearchOverview(), loadCrawlControls(), loadSearchSites(), loadBlocklist(),
+        loadSearchOverview(), loadCrawlHistory(), loadCrawlControls(), loadSearchSites(), loadBlocklist(),
         loadRemovals(), loadSubmissions(), loadSearchQueries(),
       ]);
     }

@@ -494,6 +494,23 @@ input:focus, textarea:focus, select:focus {
   outline-offset: -1px;
 }
 
+/* The base `input` rule above (full-width, padded, bordered, backgrounded)
+   was written for text/email/password fields and applies to every <input>
+   by default, including checkboxes and radios -- `.checkbox-label input`
+   only ever overrode `width`, so a checkbox or radio outside that one
+   context (or sharing it, the padding/border/background still applied)
+   rendered as a large bordered/filled box instead of a native control.
+   Most visible on radios specifically, a circle that isn't round reads as
+   broken in a way an oversized square checkbox doesn't. */
+input[type="checkbox"],
+input[type="radio"] {
+  width: auto;
+  padding: 0;
+  border: none;
+  background: none;
+  accent-color: var(--primary);
+}
+
 .field-hint {
   font-size: 0.75rem;
   color: var(--muted);
@@ -2344,10 +2361,15 @@ tr[data-clickable]:hover {
 
 .search-result-head {
   display: flex;
-  align-items: baseline;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 1rem;
   flex-wrap: wrap;
+}
+
+.search-result-head .badge {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .search-result-title {
