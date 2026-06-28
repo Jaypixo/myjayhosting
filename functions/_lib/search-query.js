@@ -6,6 +6,9 @@ import { tokenize, parseQuery, levenshtein, highlightExcerpt } from './search-to
 
 export const DEFAULT_PAGE_SIZE = 20;
 export const MAX_PAGE_SIZE = 50;
+// A search box isn't a textarea: this bounds the IN-list/CASE-expression
+// size for a pasted paragraph-length query, not normal sentence-length use.
+const MAX_QUERY_TERMS = 25;
 
 const FIELD_SCORE_SQL = `(CASE st.field WHEN 'title' THEN 5 WHEN 'description' THEN 3 ELSE 1 END)`;
 // Dwarfs any plausible term-frequency*idf score, so an exact phrase match
@@ -41,10 +44,23 @@ async function getTermIdf(env, terms) {
   return idf;
 }
 
-// One AND-match (every query term present) or OR-match (any term present)
-// ranked search over search_terms, joined to search_pages/search_sites.
-// Filters are always bound via `?`, never interpolated.
-async function rankedSearch(env, terms, { phrase, idfByTerm, platform, tag, since, requireAll, limit, offset }) {
+// A single ranked pass over every page matching *any* query term (never a
+// hard "must match all" filter, see below for why), joined to
+// search_pages/search_sites. Filters are always bound via `?`, never
+// interpolated.
+//
+// Sort order is the whole point: similarity (how much of the query a page
+// covers, `matched_terms`) comes before relevance (`term_score +
+// phrase_bonus`). A page matching 4 of a 5-word sentence outranks a page
+// matching one rare word in that sentence, even though the rare word
+// alone might score higher on weight*idf -- requiring every word (the old
+// AND-then-OR-fallback design) made anything sentence-length almost never
+// match anything at all, since real pages essentially never contain every
+// single word of a typed sentence. Ranking by coverage first instead of
+// filtering on it means a long query degrades gracefully: the best
+// partial match still comes first, nothing returns zero results just
+// because the query had seven words instead of two.
+async function rankedSearch(env, terms, { phrase, idfByTerm, platform, tag, since, limit, offset }) {
   const params = [];
   const idfCase = terms.map(() => 'WHEN ? THEN ?').join(' ');
   let sql = `
@@ -83,23 +99,21 @@ async function rankedSearch(env, terms, { phrase, idfByTerm, platform, tag, sinc
     params.push(since);
   }
   sql += ` GROUP BY p.id`;
-  if (requireAll) {
-    sql += ` HAVING matched_terms = ?`;
-    params.push(terms.length);
-  }
 
   const countResult = await env.DB.prepare(
     `SELECT COUNT(*) AS total FROM (${sql})`
   ).bind(...params).first();
 
-  sql += ` ORDER BY (term_score + phrase_bonus) DESC LIMIT ? OFFSET ?`;
+  sql += ` ORDER BY matched_terms DESC, (term_score + phrase_bonus) DESC LIMIT ? OFFSET ?`;
   const rowsResult = await env.DB.prepare(sql).bind(...params, limit, offset).all();
 
   return { total: countResult?.total || 0, rows: rowsResult.results };
 }
 
 export async function searchPages(env, query, { platform, tag, since, page = 1, pageSize = DEFAULT_PAGE_SIZE } = {}) {
-  const { phrase, terms } = parseQuery(query);
+  const parsed = parseQuery(query);
+  const phrase = parsed.phrase;
+  const terms = parsed.terms.slice(0, MAX_QUERY_TERMS);
   const limit = Math.min(MAX_PAGE_SIZE, Math.max(1, pageSize));
   const offset = (Math.max(1, page) - 1) * limit;
 
@@ -108,13 +122,7 @@ export async function searchPages(env, query, { platform, tag, since, page = 1, 
   }
 
   const idfByTerm = await getTermIdf(env, terms);
-
-  let { total, rows } = await rankedSearch(env, terms, { phrase, idfByTerm, platform, tag, since, requireAll: true, limit, offset });
-  let usedFallback = false;
-  if (total === 0 && terms.length > 1) {
-    usedFallback = true;
-    ({ total, rows } = await rankedSearch(env, terms, { phrase, idfByTerm, platform, tag, since, requireAll: false, limit, offset }));
-  }
+  const { total, rows } = await rankedSearch(env, terms, { phrase, idfByTerm, platform, tag, since, limit, offset });
 
   const highlightTerms = phrase ? [...terms, phrase] : terms;
   const results = rows.map((row) => ({
@@ -125,7 +133,13 @@ export async function searchPages(env, query, { platform, tag, since, page = 1, 
     domain: row.domain,
     lastIndexedAt: row.crawled_at,
     score: row.term_score + row.phrase_bonus,
+    matchedTerms: row.matched_terms,
   }));
+
+  // Still meaningful even without the old two-query design: true whenever
+  // even the best result didn't cover every term, i.e. this is the
+  // closest match available, not a complete one.
+  const usedFallback = results.length > 0 && results[0].matchedTerms < terms.length;
 
   return { results, total, terms, usedFallback };
 }

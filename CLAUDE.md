@@ -1719,11 +1719,28 @@ on top of the field weighting). A detected phrase adds a large flat bonus
 via a `LIKE` check folded into the same aggregate query, never a hard
 filter, an exact-phrase requirement risks zero results over something as
 small as punctuation, so it can only push a match up, never exclude one.
-Matching still tries an AND-match (every term present) first and falls
-back to an OR-match ranked by score if that's too sparse. "Did you mean"
-only runs on single-word, zero-result queries: Levenshtein distance in JS
-against a small candidate set of indexed terms (same first letter, similar
-length) pulled from D1, see `suggestCorrection()`.
+
+**Similarity before relevance, deliberately, and this replaced an earlier
+AND-then-OR-fallback design.** The original approach required every query
+term to be present (an AND-match), only falling back to ranking by score
+over *any* matching term if that returned zero rows. That works for two or
+three keywords; it falls apart for anything sentence-length, since a real
+page essentially never contains every single word of a typed sentence
+verbatim, every long query landed in the fallback path, ranked purely by
+`term_score`, which let one rare-word match outrank a page that actually
+covered most of the sentence. `rankedSearch()` now runs a single query
+(matching *any* term, same as the old fallback) but orders by
+`matched_terms DESC, (term_score + phrase_bonus) DESC` — coverage first,
+weighted relevance only as the tiebreaker. A page matching 4 of 5 distinct
+query words always outranks a page matching 1, regardless of field weight
+or rarity; relevance only decides ordering among pages tied on coverage.
+This is reported back as `usedFallback` in the API response (true when
+even the top result didn't cover every term), kept for the same meaning
+the old two-query design used it for, even though there's only one query
+now. "Did you mean" only runs on single-word, zero-result queries:
+Levenshtein distance in JS against a small candidate set of indexed terms
+(same first letter, similar length) pulled from D1, see
+`suggestCorrection()`.
 
 Result excerpts are built by `highlightExcerpt()`: it HTML-escapes the
 surrounding text first, then wraps matched terms in `<mark>`, in that

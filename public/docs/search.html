@@ -73,9 +73,51 @@
       <p>
         Type a query and hit Search, or pick a suggestion as you type
         (autocomplete is matched against terms already in the index, so a
-        suggestion always returns something). Results are ranked: pages
-        matching every word in your query come first, then pages matching
-        some of them, best matches at the top.
+        suggestion always returns something). You can type a single word,
+        a few keywords, or a full sentence, all three work.
+      </p>
+
+      <h2>How results are ranked</h2>
+      <p>
+        <strong>Similarity comes before relevance.</strong> Every result is
+        scored on two separate things, in this order:
+      </p>
+      <ol>
+        <li>
+          <strong>Similarity</strong>: how much of what you typed a page
+          actually covers. A page matching 4 of the 5 distinct words in
+          your search outranks a page matching only 1 of them, full stop,
+          regardless of anything else.
+        </li>
+        <li>
+          <strong>Relevance</strong>: only used to break ties between pages
+          tied on similarity. This is where word position (title beats
+          a meta description, which beats the body text), word rarity (a
+          distinctive word counts for more than a common one, the same
+          idea behind TF-IDF if you've heard that term), and an exact
+          phrase match (see below) all come in.
+        </li>
+      </ol>
+      <p>
+        This is deliberately different from requiring every word to match.
+        A search box that demands all of your words appear on the same
+        page falls apart the moment you type more than two or three words,
+        since real pages almost never contain a full sentence verbatim.
+        Ranking by coverage instead of filtering on it means a long,
+        sentence-length query degrades gracefully: the closest match is
+        still first, and you never get a blank page just because you typed
+        in full sentences instead of keywords.
+      </p>
+
+      <h2>Exact phrases</h2>
+      <p>
+        Wrap part of your query in quotes, <code>"like this"</code>, and a
+        page containing that exact phrase (anywhere in its title,
+        description, or body) gets ranked well above one that only matches
+        the same words scattered separately. It's a bonus, not a
+        requirement: a page that doesn't contain the literal phrase can
+        still show up ranked by ordinary word matching, quoting something
+        narrows the ranking, it never narrows you down to zero results.
       </p>
 
       <h2>Filters</h2>

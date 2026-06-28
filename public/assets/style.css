@@ -688,8 +688,14 @@ input[type="radio"] {
 }
 
 /* Grids lay cards out with `gap`, not stacking margin, the rule above is
-   only meant for cards stacked directly in normal flow. */
-.feature-grid .card + .card {
+   only meant for cards stacked directly in normal flow. Every grid of
+   cards needs this override, not just .feature-grid: forgetting one (this
+   one was missing for .site-grid) means every non-first card in a row
+   gets an extra margin-top stacked on top of the grid's own gap, which
+   doesn't read as "a bit more spacing", it reads as "the first card is
+   bigger than the others" since only it keeps its full box height. */
+.feature-grid .card + .card,
+.site-grid .card + .card {
   margin-top: 0;
 }
 
@@ -804,16 +810,6 @@ input[type="radio"] {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 1rem;
-}
-
-.site-card h3 {
-  margin-bottom: 0.25rem;
-  word-break: break-word;
-}
-
-.site-card .meta {
-  font-size: 0.75rem;
-  color: var(--muted);
 }
 
 /* ---------------------------------------------------------------------
@@ -2000,15 +1996,14 @@ tr[data-clickable]:hover {
    --------------------------------------------------------------------- */
 
 .site-card {
-  display: flex !important;
+  display: flex;
   flex-direction: column;
   text-decoration: none;
-  border-bottom: none !important;
   transition: border-color 0.12s;
 }
 
 .site-card:hover {
-  border-color: var(--secondary);
+  border-color: var(--primary);
 }
 
 .site-card-head {
@@ -2016,6 +2011,14 @@ tr[data-clickable]:hover {
   align-items: center;
   gap: 0.75rem;
   margin-bottom: 0.75rem;
+}
+
+/* Modifier for the platform-badge variant (search.html's "recently
+   indexed" tiles), not the default: the avatar variant (homepage preview
+   strip) wants the avatar hugging the name, this variant wants the badge
+   pushed to the far edge instead. */
+.site-card-head.with-badge {
+  justify-content: space-between;
 }
 
 .site-avatar {
@@ -2321,12 +2324,20 @@ tr[data-clickable]:hover {
   margin: 0 0.3em 0.3em 0;
   border: 1px solid var(--border);
   background: var(--paper-alt);
+  color: var(--ink);
   cursor: pointer;
+  transition: border-color 0.12s, color 0.12s;
+}
+
+.tag-chip:hover {
+  border-color: var(--primary);
+  color: var(--primary);
 }
 
 .tag-chip.active {
   border-color: var(--primary);
   color: var(--primary);
+  background: var(--paper);
 }
 
 .search-results-count {
@@ -2354,9 +2365,29 @@ tr[data-clickable]:hover {
 
 .search-result-card {
   border: 1px solid var(--border);
+  border-left: 3px solid var(--border);
   background: var(--paper-alt);
   padding: 1rem 1.25rem;
   animation: result-fade-in 0.25s ease-out;
+  transition: border-left-color 0.12s;
+}
+
+/* A quick-glance platform identity down the left edge, the same three
+   colors as the platform badges, without resorting to a box-shadow (the
+   design system doesn't use those on components). Shared with .site-card
+   (the "recently indexed" tiles on /search and the homepage), which gets
+   the matching left-border treatment below. */
+.search-result-card.platform-myjay,
+.site-card.platform-myjay      { border-left-color: var(--primary); }
+.search-result-card.platform-neocities,
+.site-card.platform-neocities  { border-left-color: var(--secondary); }
+.search-result-card.platform-nekoweb,
+.site-card.platform-nekoweb    { border-left-color: var(--tertiary); }
+
+.site-card.platform-myjay,
+.site-card.platform-neocities,
+.site-card.platform-nekoweb {
+  border-left-width: 3px;
 }
 
 .search-result-head {
@@ -2431,6 +2462,12 @@ tr[data-clickable]:hover {
   border-bottom: 1px dashed var(--secondary);
 }
 
+.search-result-actions button:hover,
+.search-result-actions button:focus-visible {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+
 .search-similar-panel {
   margin-top: 0.75rem;
   padding-top: 0.75rem;
@@ -2443,10 +2480,39 @@ tr[data-clickable]:hover {
   padding-left: 1.1rem;
 }
 
+.search-similar-panel a {
+  border-bottom: 1px dashed var(--secondary);
+}
+
 .search-pagination {
   display: flex;
   justify-content: center;
   gap: 1rem;
   margin-top: 1.5rem;
 }
+
+.search-hero-stats {
+  margin-top: 1rem;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.search-hero-stats strong {
+  color: var(--primary);
+  font-weight: 500;
+}
+
+/* Keyboard-focus parity for the hand-rolled buttons on this page (tag
+   chips, "Sites like this", pagination): native buttons get a focus ring
+   for free, these are styled to look like plain text/links so they don't,
+   without this they're invisible to keyboard navigation. */
+.search-autocomplete button:focus-visible,
+.search-result-actions button:focus-visible,
+.tag-chip:focus-visible,
+.search-pagination button:focus-visible {
+  outline: 1px solid var(--primary);
+  outline-offset: 2px;
+}
+
 .hidden { display: none !important; }

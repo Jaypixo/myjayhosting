@@ -50,7 +50,8 @@
     <section id="hero-section" class="search-hero">
       <span class="section-label">// myjay search</span>
       <h1><em>Search the indie web.</em></h1>
-      <p class="tagline">MyJay, Neocities, and Nekoweb. No tracking, no ranking algorithm, no SEO slop.</p>
+      <p class="tagline">MyJay, Neocities, and Nekoweb. No tracking, no popularity contest, no SEO slop.</p>
+      <p class="search-hero-stats" id="hero-stats"></p>
 
       <form id="hero-search-form" class="search-bar-row">
         <input type="search" id="hero-search-input" placeholder="Search the indie web..." autocomplete="off">
@@ -60,6 +61,8 @@
 
       <div class="search-quick-links">
         <a href="#" id="submit-link">Submit a site</a>
+        <a href="#" id="hero-remove-link">Remove your site</a>
+        <a href="/docs/search">How ranking works</a>
         <a href="/about#myjay-search">About</a>
         <a href="/status">Status</a>
         <button type="button" id="hero-random-btn" class="btn btn-ghost btn-sm">Surprise me</button>
@@ -123,8 +126,8 @@
   </main>
 
   <footer class="footer">
-    <span class="footnote">[1] Indexes public pages from MyJay, Neocities, and Nekoweb. <code>robots.txt</code> is always respected. <a href="/docs/search-indexing">How indexing works</a>.</span>
-    <span class="footnote">[2] v0.1.0-alpha, independently run.</span>
+    <span class="footnote">[1] Indexes public pages from MyJay, Neocities, and Nekoweb. <code>robots.txt</code> is always respected. <a href="/docs/search-indexing">How indexing works</a> · <a href="#" id="footer-remove-link">Remove your site</a>.</span>
+    <span class="footnote">[2] Ranking explained: <a href="/docs/search">how results are ordered</a>. v0.1.0-alpha, independently run.</span>
     <span class="footnote">[3] <a href="/status">Status</a> · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a></span>
   </footer>
 
@@ -325,7 +328,7 @@
       removeBtn.addEventListener('click', () => openRemoveModal(r.url));
       const actions = el('div', { className: 'search-result-actions' }, [similarBtn, removeBtn]);
 
-      return el('div', { className: 'search-result-card' }, [head, excerpt, meta, actions, similarPanel]);
+      return el('div', { className: `search-result-card platform-${r.platform}` }, [head, excerpt, meta, actions, similarPanel]);
     }
 
     async function toggleSimilar(url, panel) {
@@ -401,9 +404,15 @@
           grid.appendChild(el('div', { className: 'empty-state', text: 'Nothing indexed yet.' }));
         } else {
           data.results.forEach((r) => {
-            grid.appendChild(el('a', { className: 'card site-card', href: r.url, target: '_blank', rel: 'noopener' }, [
-              el('div', { className: 'site-card-name', text: r.title || r.url }),
-              el('div', { className: 'site-card-url', text: hostnameOf(r.url) }),
+            grid.appendChild(el('a', { className: `card site-card platform-${r.platform}`, href: r.url, target: '_blank', rel: 'noopener' }, [
+              el('div', { className: 'site-card-head with-badge' }, [
+                el('div', {}, [
+                  el('div', { className: 'site-card-name', text: r.title || r.url }),
+                  el('div', { className: 'site-card-url', text: hostnameOf(r.url) }),
+                ]),
+                el('span', { className: `badge badge-${r.platform}`, text: PLATFORM_LABELS[r.platform] || r.platform }),
+              ]),
+              el('div', { className: 'site-card-meta', text: `indexed ${formatDate(r.crawled_at)}` }),
             ]));
           });
         }
@@ -600,6 +609,28 @@
 
     // ── Init ─────────────────────────────────────────────────────────────────
 
+    function elTag(tag, text) {
+      const node = document.createElement(tag);
+      node.textContent = text;
+      return node;
+    }
+
+    async function loadHeroStats() {
+      const statsEl = document.getElementById('hero-stats');
+      try {
+        const res = await apiFetch('/api/search/stats');
+        const data = await res.json();
+        statsEl.innerHTML = '';
+        statsEl.appendChild(document.createTextNode('Indexing '));
+        statsEl.appendChild(elTag('strong', data.totalSites.toLocaleString()));
+        statsEl.appendChild(document.createTextNode(' sites, '));
+        statsEl.appendChild(elTag('strong', data.totalPages.toLocaleString()));
+        statsEl.appendChild(document.createTextNode(' pages, and counting.'));
+      } catch {
+        statsEl.textContent = '';
+      }
+    }
+
     async function init() {
       state = readStateFromUrl();
       setupSearchForms();
@@ -607,8 +638,11 @@
       document.getElementById('random-btn').addEventListener('click', goRandom);
       document.getElementById('hero-random-btn').addEventListener('click', goRandom);
       document.getElementById('submit-link').addEventListener('click', (e) => { e.preventDefault(); openSubmitModal(); });
+      document.getElementById('hero-remove-link').addEventListener('click', (e) => { e.preventDefault(); openRemoveModal(''); });
+      document.getElementById('footer-remove-link').addEventListener('click', (e) => { e.preventDefault(); openRemoveModal(''); });
       window.addEventListener('popstate', () => { state = readStateFromUrl(); render(); });
       await loadSidebarTags();
+      loadHeroStats();
       render();
     }
 
