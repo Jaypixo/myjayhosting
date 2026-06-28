@@ -11,12 +11,16 @@ export const MAX_PAGE_SIZE = 50;
 const MAX_QUERY_TERMS = 25;
 
 const FIELD_SCORE_SQL = `(CASE st.field WHEN 'title' THEN 5 WHEN 'description' THEN 3 ELSE 1 END)`;
-// Dwarfs any plausible term-frequency*idf score, so an exact phrase match
-// always outranks a same-term-count non-phrase match, without ever
-// excluding non-matching pages outright (a hard phrase filter risks zero
-// results over something as small as punctuation; this is a bonus, not a
-// requirement).
-const PHRASE_BONUS = 1000;
+// Large enough to dwarf even a worst-case term_score (a single very rare
+// word at title weight with high idf can reach into the low thousands),
+// so an exact phrase match always outranks a same-coverage non-phrase
+// match, without ever excluding non-matching pages outright (a hard
+// phrase filter risks zero results over something as small as
+// punctuation; this is a bonus, not a requirement). parseQuery() treats
+// any multi-word query as an implicit phrase candidate even with no
+// quotes, so this applies far more often than just explicitly-quoted
+// searches, see its comment for why.
+const PHRASE_BONUS = 100000;
 
 function placeholders(n) {
   return Array(n).fill('?').join(',');

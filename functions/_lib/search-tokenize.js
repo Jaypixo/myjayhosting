@@ -60,16 +60,27 @@ export function tokenize(text) {
 // a literal substring check against stored field text) alongside the full
 // term list (phrase words included) so a quoted query still benefits from
 // the normal inverted-index lookup instead of requiring a table scan.
+//
+// Quotes are optional, not required: a query with no quotes at all is
+// *also* treated as an implicit phrase candidate (the whole query, as
+// typed). Someone pasting or typing exact text from a page is searching
+// for that exact text whether or not they remembered the quote-marks
+// convention, and the page that actually contains it verbatim should rank
+// first either way. Quotes still matter for isolating one phrase inside a
+// longer query that also has other, separate words.
 export function parseQuery(rawQuery) {
-  const normalized = normalizeQuotes(rawQuery || '');
+  const normalized = normalizeQuotes(rawQuery || '').trim();
   const phraseMatch = normalized.match(/"([^"]+)"/);
-  if (!phraseMatch || !phraseMatch[1].trim()) {
-    return { phrase: null, terms: [...new Set(tokenize(normalized))] };
+  if (phraseMatch && phraseMatch[1].trim()) {
+    const phrase = phraseMatch[1].trim().toLowerCase();
+    const remainder = normalized.slice(0, phraseMatch.index) + normalized.slice(phraseMatch.index + phraseMatch[0].length);
+    const terms = [...new Set([...tokenize(phrase), ...tokenize(remainder)])];
+    return { phrase, terms };
   }
-  const phrase = phraseMatch[1].trim().toLowerCase();
-  const remainder = normalized.slice(0, phraseMatch.index) + normalized.slice(phraseMatch.index + phraseMatch[0].length);
-  const terms = [...new Set([...tokenize(phrase), ...tokenize(remainder)])];
-  return { phrase, terms };
+
+  const terms = [...new Set(tokenize(normalized))];
+  const impliedPhrase = terms.length > 1 ? normalized.toLowerCase() : null;
+  return { phrase: impliedPhrase, terms };
 }
 
 // Term -> frequency within one field's text, clamped at `cap` so a page
