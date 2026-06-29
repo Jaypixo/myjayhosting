@@ -8,9 +8,7 @@
 // mailer.js uses for env.MAILER. No public route, no custom domain: the
 // service binding and the Cron Triggers are the only ways in.
 import { extractPage, extractMetaRobots, inferTags } from './extract.js';
-import {
-  crawlerFetch, getRobotsRules, isAllowedByRules, checkRateLimit, markFetched,
-} from './robots.js';
+import { crawlerFetch, getRobotsRules, isAllowedByRules } from './robots.js';
 import { termWeights } from '../functions/_lib/search-tokenize.js';
 import * as myjaySource from './sources/myjay.js';
 import * as neocitiesSource from './sources/neocities.js';
@@ -20,7 +18,6 @@ const SOURCES = { myjay: myjaySource, neocities: neocitiesSource, nekoweb: nekow
 const PLATFORM_SUFFIXES = { '.myjay.net': 'myjay', '.neocities.org': 'neocities', '.nekoweb.org': 'nekoweb' };
 
 const MAX_CONSECUTIVE_FAILURES = 5;
-const FAILSTREAK_TTL_SECONDS = 3600;
 // Hard ceiling regardless of settings, so a typo'd huge number in the admin
 // panel can't reopen the exact incident this was built to prevent: every
 // link-discovery check below got rewritten to use a fixed, small number of
@@ -137,10 +134,16 @@ async function runSiteCrawl(env, { siteId, triggeredBy }) {
 
   const now = new Date().toISOString();
   const crawlLogId = crypto.randomUUID();
-  await env.DB.prepare(
-    `INSERT INTO crawl_log (id, platform, run_type, started_at, status, triggered_by)
-     VALUES (?, ?, 'manual', ?, 'running', ?)`
-  ).bind(crawlLogId, site.platform, now, triggeredBy).run();
+  await env.DB.batch([
+    // A manual re-crawl is also how an admin clears a tripped circuit
+    // breaker: leaving status='error' would make the job just enqueued
+    // below bail out immediately, since processPageJob() checks it first.
+    env.DB.prepare("UPDATE search_sites SET status = 'active', consecutive_failures = 0 WHERE id = ?").bind(siteId),
+    env.DB.prepare(
+      `INSERT INTO crawl_log (id, platform, run_type, started_at, status, triggered_by)
+       VALUES (?, ?, 'manual', ?, 'running', ?)`
+    ).bind(crawlLogId, site.platform, now, triggeredBy),
+  ]);
 
   await env.CRAWL_QUEUE.send({ url: site.root_url, siteId, platform: site.platform, domain: site.domain, depth: 0, crawlLogId, runStartedAt: now });
   return { crawlLogId };
@@ -162,20 +165,39 @@ async function runUrlCrawl(env, { url, triggeredBy }) {
   return runSiteCrawl(env, { siteId, triggeredBy });
 }
 
-async function recordFailure(env, domain, crawlLogId) {
-  const key = `failstreak:${domain}`;
-  const streak = (Number(await env.SEARCH_CACHE.get(key)) || 0) + 1;
-  await env.SEARCH_CACHE.put(key, String(streak), { expirationTtl: FAILSTREAK_TTL_SECONDS });
-  if (crawlLogId) {
-    await env.DB.prepare('UPDATE crawl_log SET pages_failed = pages_failed + 1 WHERE id = ?').bind(crawlLogId).run();
-  }
-  return streak;
+// Rate-limiting and failure-tracking both moved off KV and onto these two
+// search_sites columns (migrate-009-crawler-control.sql) after a second
+// production incident: markFetched()/recordFailure() were writing to KV on
+// essentially every single page, a cost completely separate from (and
+// additional to) the daily page-count budget, so reducing the page budget
+// alone never fixed the "exceeded daily KV put limit" emails. D1 writes
+// are not the constrained resource, KV writes are, and search_sites
+// already gets written on every page regardless, so this state rides
+// along on writes that already have to happen rather than adding new ones.
+async function recordSuccess(env, siteId, attemptedAt, crawlLogId) {
+  await env.DB.batch([
+    env.DB.prepare(
+      `UPDATE search_sites SET last_attempted_at = ?, last_crawled_at = ?, status = 'active', consecutive_failures = 0 WHERE id = ?`
+    ).bind(attemptedAt, attemptedAt, siteId),
+    env.DB.prepare('UPDATE crawl_log SET pages_crawled = pages_crawled + 1 WHERE id = ?').bind(crawlLogId),
+  ]);
 }
 
-// No explicit reset-on-success: the failstreak key just expires on its own
-// TTL (FAILSTREAK_TTL_SECONDS). An explicit delete here used to cost one
-// more KV write per successful page, on top of markFetched()'s write,
-// doubling KV usage for no real benefit, letting it lapse naturally is free.
+async function recordFailure(env, siteId, attemptedAt, crawlLogId) {
+  const stmts = [
+    env.DB.prepare(
+      `UPDATE search_sites
+       SET last_attempted_at = ?,
+           consecutive_failures = consecutive_failures + 1,
+           status = CASE WHEN consecutive_failures + 1 >= ? THEN 'error' ELSE status END
+       WHERE id = ?`
+    ).bind(attemptedAt, MAX_CONSECUTIVE_FAILURES, siteId),
+  ];
+  if (crawlLogId) {
+    stmts.push(env.DB.prepare('UPDATE crawl_log SET pages_failed = pages_failed + 1 WHERE id = ?').bind(crawlLogId));
+  }
+  await env.DB.batch(stmts);
+}
 
 async function indexTerms(env, pageId, fields) {
   const stmts = [];
@@ -295,19 +317,19 @@ async function enqueueDiscoveredLinks(env, { links, fromPageId, fromDomain, from
 async function processPageJob(env, job, settings) {
   const { url, siteId, platform, domain, depth, crawlLogId, runStartedAt } = job;
 
-  const blocked = await env.DB.prepare('SELECT 1 FROM blocklist WHERE domain = ?').bind(domain).first();
-  if (blocked) return;
+  // Blocklist, site status/failure-streak, and per-domain-this-run count
+  // all come from one batched round trip instead of three sequential ones.
+  const [blockedResult, siteResult, countResult] = await env.DB.batch([
+    env.DB.prepare('SELECT 1 FROM blocklist WHERE domain = ?').bind(domain),
+    env.DB.prepare('SELECT status, consecutive_failures, last_attempted_at FROM search_sites WHERE id = ?').bind(siteId),
+    env.DB.prepare('SELECT COUNT(*) AS n FROM search_pages WHERE site_id = ? AND crawled_at >= ?').bind(siteId, runStartedAt),
+  ]);
+  if (blockedResult.results.length > 0) return;
 
-  const streak = Number(await env.SEARCH_CACHE.get(`failstreak:${domain}`)) || 0;
-  if (streak >= MAX_CONSECUTIVE_FAILURES) {
-    await env.DB.prepare("UPDATE search_sites SET status = 'error' WHERE id = ?").bind(siteId).run();
-    return;
-  }
-
-  const crawledSoFar = await env.DB.prepare(
-    'SELECT COUNT(*) AS n FROM search_pages WHERE site_id = ? AND crawled_at >= ?'
-  ).bind(siteId, runStartedAt).first();
-  if ((crawledSoFar?.n || 0) >= settings.maxPagesPerDomain) return;
+  const site = siteResult.results[0];
+  if (!site) return; // site row gone (e.g. deleted), nothing to crawl
+  if (site.status === 'error' || site.consecutive_failures >= MAX_CONSECUTIVE_FAILURES) return;
+  if ((countResult.results[0]?.n || 0) >= settings.maxPagesPerDomain) return;
 
   let target;
   try {
@@ -322,28 +344,34 @@ async function processPageJob(env, job, settings) {
   const path = target.pathname + (target.search || '');
   if (!isAllowedByRules(robots.rules, path)) return;
 
+  // Rate limiting reads search_sites.last_attempted_at, the same column
+  // every attempt (success or failure) below writes to, rather than a
+  // separate KV timestamp: no extra write needed for something already
+  // being recorded, see recordSuccess()/recordFailure().
   const minInterval = Math.max(settings.minCrawlDelaySeconds, robots.crawlDelay || 0);
-  const rate = await checkRateLimit(env, domain, minInterval);
-  if (!rate.allowed) return { retryAfterSeconds: rate.retryAfterSeconds };
+  if (site.last_attempted_at) {
+    const elapsedMs = Date.now() - new Date(site.last_attempted_at).getTime();
+    const minMs = minInterval * 1000;
+    if (elapsedMs < minMs) {
+      return { retryAfterSeconds: Math.ceil((minMs - elapsedMs) / 1000) };
+    }
+  }
 
+  const now = new Date().toISOString();
   let res;
   try {
     res = await crawlerFetch(url);
   } catch {
-    await markFetched(env, domain, minInterval);
-    await recordFailure(env, domain, crawlLogId);
+    await recordFailure(env, siteId, now, crawlLogId);
     return;
   }
-  await markFetched(env, domain, minInterval);
 
   if (!res.ok) {
-    await recordFailure(env, domain, crawlLogId);
+    await recordFailure(env, siteId, now, crawlLogId);
     return;
   }
 
-  const now = new Date().toISOString();
-  await env.DB.prepare("UPDATE search_sites SET last_crawled_at = ?, status = 'active' WHERE id = ?").bind(now, siteId).run();
-  await env.DB.prepare('UPDATE crawl_log SET pages_crawled = pages_crawled + 1 WHERE id = ?').bind(crawlLogId).run();
+  await recordSuccess(env, siteId, now, crawlLogId);
 
   const contentType = res.headers.get('Content-Type') || '';
   if (!contentType.includes('text/html')) return;
@@ -421,7 +449,9 @@ export default {
           message.ack();
         }
       } catch (err) {
-        await recordFailure(env, message.body?.domain, message.body?.crawlLogId).catch(() => {});
+        if (message.body?.siteId) {
+          await recordFailure(env, message.body.siteId, new Date().toISOString(), message.body.crawlLogId).catch(() => {});
+        }
         message.ack();
       }
     }

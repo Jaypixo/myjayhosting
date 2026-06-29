@@ -168,10 +168,27 @@
               <button class="btn btn-ghost btn-sm" id="search-resume-all-btn">Resume all</button>
             </div>
           </div>
-          <div class="card">
-            <h3 id="search-budget-today">...</h3>
-            <p class="text-muted">pages crawled today, across all platforms, against the daily cap below. Resets at 00:00 UTC.</p>
+          <div class="feature-grid">
+            <div class="card">
+              <h3 id="search-budget-today">...</h3>
+              <p class="text-muted">crawled today (cap below). Resets 00:00 UTC.</p>
+            </div>
+            <div class="card">
+              <h3 id="search-failed-today">...</h3>
+              <p class="text-muted">failed today (approx., by run start)</p>
+            </div>
+            <div class="card">
+              <h3 id="search-sites-in-error">...</h3>
+              <p class="text-muted">sites currently in error state</p>
+            </div>
           </div>
+          <p class="text-muted" style="font-size:0.8rem">
+            Workers KV writes from the crawler itself should now be close to zero:
+            rate-limiting and failure-tracking moved to D1 (the columns below), the only
+            remaining KV writes are robots.txt caching for brand-new domains (one per
+            domain per 24h) and the search page's autocomplete cache (unrelated to
+            crawling, see <code>functions/api/search/autocomplete.js</code>).
+          </p>
 
           <h3 class="mt-2">Resource limits</h3>
           <p class="text-muted">
@@ -226,16 +243,27 @@
           </div>
 
           <h3 class="mt-2">Indexed sites</h3>
-          <div class="field" style="max-width:320px">
-            <label for="search-sites-search">Search by domain</label>
-            <input type="text" id="search-sites-search" placeholder="username.myjay.net...">
+          <div class="flex-between" style="align-items:flex-end">
+            <div class="field" style="max-width:320px; margin:0">
+              <label for="search-sites-search">Search by domain</label>
+              <input type="text" id="search-sites-search" placeholder="username.myjay.net...">
+            </div>
+            <div class="field" style="max-width:180px; margin:0">
+              <label for="search-sites-status-filter">Status</label>
+              <select id="search-sites-status-filter">
+                <option value="">All</option>
+                <option value="active">Active</option>
+                <option value="error">Error</option>
+                <option value="blocked">Blocked</option>
+              </select>
+            </div>
           </div>
           <div class="table-scroll">
             <table>
               <thead>
-                <tr><th>Domain</th><th>Platform</th><th>Status</th><th>Pages</th><th>Last crawled</th><th>Actions</th></tr>
+                <tr><th>Domain</th><th>Platform</th><th>Status</th><th>Pages</th><th>Last attempt</th><th>Last crawled</th><th>Failures</th><th>Actions</th></tr>
               </thead>
-              <tbody id="search-sites-body"><tr><td colspan="6" class="text-muted">loading...</td></tr></tbody>
+              <tbody id="search-sites-body"><tr><td colspan="8" class="text-muted">loading...</td></tr></tbody>
             </table>
           </div>
           <div class="flex-between mt-1">
@@ -1985,6 +2013,7 @@
     let searchSitesPage = 1;
     let searchSitesTotal = 0;
     let searchSitesQuery = '';
+    let searchSitesStatus = '';
     const SEARCH_SITES_PAGE_SIZE = 50;
 
     let crawlHistoryPage = 1;
@@ -2138,6 +2167,8 @@
       const limits = pauseData.limits || {};
       document.getElementById('search-budget-today').textContent =
         `${pauseData.pagesCrawledToday || 0} / ${limits.maxPagesPerDay ?? '?'}`;
+      document.getElementById('search-failed-today').textContent = pauseData.pagesFailedToday || 0;
+      document.getElementById('search-sites-in-error').textContent = pauseData.sitesInErrorState || 0;
       if (document.activeElement?.id !== 'limit-max-pages-per-day') {
         document.getElementById('limit-max-pages-per-day').value = limits.maxPagesPerDay ?? '';
       }
@@ -2245,6 +2276,7 @@
     async function loadSearchSites() {
       const params = new URLSearchParams({ page: String(searchSitesPage) });
       if (searchSitesQuery) params.set('q', searchSitesQuery);
+      if (searchSitesStatus) params.set('status', searchSitesStatus);
       const res = await apiFetch(`/api/admin/search/sites?${params}`);
       if (!res.ok) return;
       const data = await res.json();
@@ -2253,7 +2285,7 @@
       const body = document.getElementById('search-sites-body');
       body.innerHTML = '';
       if (data.sites.length === 0) {
-        body.innerHTML = '<tr><td colspan="6" class="text-muted">No sites match.</td></tr>';
+        body.innerHTML = '<tr><td colspan="8" class="text-muted">No sites match.</td></tr>';
       } else {
         data.sites.forEach((s) => {
           const tr = document.createElement('tr');
@@ -2268,12 +2300,24 @@
           tr.appendChild(statusTd);
 
           tr.appendChild(td(String(s.pageCount)));
+          tr.appendChild(td(s.lastAttemptedAt ? formatDate(s.lastAttemptedAt) : 'never'));
           tr.appendChild(td(s.lastCrawledAt ? formatDate(s.lastCrawledAt) : 'never'));
+
+          const failuresTd = document.createElement('td');
+          if (s.consecutiveFailures > 0) {
+            const failBadge = document.createElement('span');
+            failBadge.className = 'badge badge-warn';
+            failBadge.textContent = `${s.consecutiveFailures} in a row`;
+            failuresTd.appendChild(failBadge);
+          } else {
+            failuresTd.textContent = '0';
+          }
+          tr.appendChild(failuresTd);
 
           const actionsTd = document.createElement('td');
           const recrawlBtn = document.createElement('button');
           recrawlBtn.className = 'btn btn-ghost btn-sm';
-          recrawlBtn.textContent = 'Re-crawl';
+          recrawlBtn.textContent = s.status === 'error' ? 'Reset & re-crawl' : 'Re-crawl';
           recrawlBtn.addEventListener('click', () => recrawlSite(s.id));
 
           const blockBtn = document.createElement('button');
@@ -2619,6 +2663,11 @@
           searchSitesPage = 1;
           loadSearchSites();
         }, 250);
+      });
+      document.getElementById('search-sites-status-filter').addEventListener('change', (e) => {
+        searchSitesStatus = e.target.value;
+        searchSitesPage = 1;
+        loadSearchSites();
       });
 
       document.getElementById('blocklist-add-form').addEventListener('submit', async (e) => {

@@ -19,8 +19,10 @@ database_name = "myjay-db"
 database_id = "<your-d1-database-id>"
 
 # Same KV namespace the main Pages project binds as SEARCH_CACHE: robots.txt
-# cache, per-domain rate-limit timestamps, and consecutive-failure streaks
-# live here. Create with `wrangler kv namespace create myjay-search-cache`.
+# cache lives here, plus the search API's autocomplete cache. Per-domain
+# rate limiting and failure tracking moved to D1 (search_sites columns)
+# after a production incident, see CLAUDE.md, so they're not KV-backed
+# anymore. Create with `wrangler kv namespace create myjay-search-cache`.
 [[kv_namespaces]]
 binding = "SEARCH_CACHE"
 id = "<your-kv-namespace-id>"
@@ -32,11 +34,15 @@ id = "<your-kv-namespace-id>"
 queue = "myjay-crawl-queue"
 binding = "CRAWL_QUEUE"
 
+# max_concurrency = 1 is load-bearing, not a tuning knob: see the comment
+# in the real crawler/wrangler.toml (gitignored) for why. Do not deploy
+# this consumer without it.
 [[queues.consumers]]
 queue = "myjay-crawl-queue"
 max_batch_size = 10
 max_batch_timeout = 5
 max_retries = 3
+max_concurrency = 1
 
 # Daily incremental crawl, weekly full crawl. scheduled() tells them apart
 # by comparing controller.cron against FULL_CRAWL_CRON below, so this and

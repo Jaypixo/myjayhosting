@@ -25,9 +25,14 @@ export async function onRequestGet(context) {
 
   const since = new Date();
   since.setUTCHours(0, 0, 0, 0);
-  const todayRow = await env.DB.prepare(
-    'SELECT COUNT(*) AS n FROM search_pages WHERE crawled_at >= ?'
-  ).bind(since.toISOString()).first();
+  const [crawledRow, runsRow, errorSitesRow] = await env.DB.batch([
+    env.DB.prepare('SELECT COUNT(*) AS n FROM search_pages WHERE crawled_at >= ?').bind(since.toISOString()),
+    // pages_failed on runs that *started* today, an approximation (a run
+    // spanning midnight undercounts slightly) but good enough for "is
+    // today noisy" at a glance, not a billing-accurate figure.
+    env.DB.prepare("SELECT COALESCE(SUM(pages_failed), 0) AS n FROM crawl_log WHERE started_at >= ?").bind(since.toISOString()),
+    env.DB.prepare("SELECT COUNT(*) AS n FROM search_sites WHERE status = 'error'"),
+  ]);
 
   const limits = {};
   for (const [field, [settingKey]] of Object.entries(LIMIT_KEYS)) {
@@ -42,7 +47,9 @@ export async function onRequestGet(context) {
     },
     limits,
     discoveryEnabled: map.search_discovery_enabled !== '0',
-    pagesCrawledToday: todayRow?.n || 0,
+    pagesCrawledToday: crawledRow.results[0]?.n || 0,
+    pagesFailedToday: runsRow.results[0]?.n || 0,
+    sitesInErrorState: errorSitesRow.results[0]?.n || 0,
   });
 }
 

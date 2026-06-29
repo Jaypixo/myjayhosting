@@ -20,6 +20,8 @@ export async function onRequestGet(context) {
     status: site.status,
     firstIndexedAt: site.first_indexed_at,
     lastCrawledAt: site.last_crawled_at,
+    lastAttemptedAt: site.last_attempted_at,
+    consecutiveFailures: site.consecutive_failures,
     pages: pages.map((p) => ({
       id: p.id,
       url: p.url,

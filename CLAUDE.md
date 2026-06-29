@@ -1827,11 +1827,67 @@ The admin panel also got a one-click "Pause all crawling" (and "Resume
 all") button spanning all three platforms at once, pages-crawled-today
 shown live against the daily cap, and a full paginated crawl history table
 (`GET /api/admin/search/crawl-log`, every run on every platform, not just
-the latest-per-platform snapshot the Overview tab already had). If you
-ever see Cloudflare's quota-exceeded emails again, the first move is that
-pause button, not a code change, since it stops new seeding immediately;
-the second move is checking whether the limits above need to come down
-further, not back up.
+the latest-per-platform snapshot the Overview tab already had).
+
+**Second incident, a day later: lowering the daily cap from 300 to 10
+didn't stop the KV-limit emails, and the logged count overshot the new
+cap by ~39x (390 pages against a cap of 10).** Two separate bugs, not one:
+
+1. **The daily-budget check had a race condition.** `getCrawlSettings()`
+   reads "pages crawled today" from D1, compares it to the cap, and the
+   queue consumer's `[[queues.consumers]]` block had no `max_concurrency`
+   set, which means *"leaving this unset will mean that the number of
+   invocations will scale to the currently supported maximum"* (Cloudflare's
+   own words). Cloudflare can and does run many `queue()` invocations
+   concurrently when draining a backlog. Each one reads the same
+   "5 crawled so far, cap is 10" snapshot before any of the others have
+   written their results back, so each independently decides it's fine to
+   proceed. The overshoot multiplier is roughly however many ran in
+   parallel, a read-then-act check against a shared counter is not atomic
+   just because the read happens first. Fix: `max_concurrency = 1` in
+   `crawler/wrangler.toml`'s consumer block. This is **load-bearing, not a
+   tuning knob** — removing it reopens this exact bug. Serializing message
+   processing costs nothing here: the per-domain rate limit was always
+   going to keep this slow regardless, there was no real throughput to
+   give up.
+2. **The daily-budget fix from the first incident only ever bounded *page
+   count*, and KV puts were never proportional to page count in the first
+   place.** `markFetched()` (rate limiting) and `recordFailure()` (circuit
+   breaker) both wrote to KV on essentially *every single page*, completely
+   independent of whatever the page-count cap was set to. Turning the cap
+   down to 10 reduced pages crawled, but each of those 10 pages still cost
+   the same 1-2 KV writes it always had, so a low cap alone was never going
+   to fix a per-page KV cost problem. Fix: both moved off KV entirely, onto
+   two new `search_sites` columns (`last_attempted_at`, `consecutive_failures`,
+   `migrate-009-crawler-control.sql`) that ride along on a D1 write the
+   page was already making, rather than adding a new write anywhere.
+   `processPageJob()` now reads blocklist status, site status/failure
+   streak, and per-domain count as *one* batched query, and rate-limits
+   against `last_attempted_at` instead of a separate KV timestamp.
+   Crawler-side KV writes are now close to zero: only a robots.txt cache
+   miss for a brand-new domain (one per domain per 24h) still touches KV.
+   `/api/search/autocomplete`'s cache is a separate, unrelated KV write
+   source sharing the same account-wide daily quota (search traffic, not
+   crawling) — its TTL was bumped from 300s to 1800s for the same reason.
+
+A manual "Re-crawl" from the admin panel now also resets `status` back to
+`active` and `consecutive_failures` to 0 first (`runSiteCrawl()`): without
+this, re-crawling a site stuck in `status = 'error'` would enqueue a job
+that immediately bails out, since `processPageJob()` checks status before
+doing anything else. The Crawl Controls sites table shows
+`consecutive_failures` and `last_attempted_at` per site now (previously
+invisible, KV-only, 1-hour TTL), plus a status filter (active/error/blocked),
+and the Overview-adjacent budget card shows today's failures and the
+count of sites currently in `error` status, not just pages crawled.
+
+If you see Cloudflare's quota-exceeded emails again: check
+`max_concurrency` is still `1` on the consumer first (a redeploy without
+the consumer block present, or a config that drops it, is the failure
+mode that bit us twice), then check whether anything new is writing to
+`SEARCH_CACHE` per-page rather than per-domain-per-day. Lowering the page
+cap alone is not a fix if the thing exceeding quota isn't proportional to
+page count, confirm what's actually writing to KV before reaching for that
+knob again.
 
 **Discovery, per platform** (`crawler/sources/*.js`):
 - **MyJay**: `sources/myjay.js` queries the platform's own `sites` table

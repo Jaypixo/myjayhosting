@@ -1,7 +1,11 @@
 import { json } from '../../_lib/auth.js';
 import { getAutocomplete } from '../../_lib/search-query.js';
 
-const CACHE_TTL_SECONDS = 300;
+// 30 minutes, not 5: this is also a KV put on every cache miss, sharing
+// the same account-wide daily KV write quota the crawler was blowing
+// through, see CLAUDE.md's incident notes. The index doesn't change fast
+// enough for a short TTL to buy anything but more puts under real traffic.
+const CACHE_TTL_SECONDS = 1800;
 
 export async function onRequestGet(context) {
   const { request, env } = context;

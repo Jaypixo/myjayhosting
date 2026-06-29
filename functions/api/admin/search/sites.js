@@ -19,11 +19,12 @@ export async function onRequestGet(context) {
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
 
   const { results } = await env.DB.prepare(`
-    SELECT s.id, s.platform, s.domain, s.root_url, s.title, s.status, s.first_indexed_at, s.last_crawled_at,
+    SELECT s.id, s.platform, s.domain, s.root_url, s.title, s.status, s.first_indexed_at,
+           s.last_crawled_at, s.last_attempted_at, s.consecutive_failures,
            (SELECT COUNT(*) FROM search_pages p WHERE p.site_id = s.id) AS page_count
     FROM search_sites s
     ${where}
-    ORDER BY s.last_crawled_at DESC
+    ORDER BY s.last_attempted_at DESC
     LIMIT ? OFFSET ?
   `).bind(...params, PAGE_SIZE, offset).all();
 
@@ -40,6 +41,8 @@ export async function onRequestGet(context) {
       pageCount: s.page_count,
       firstIndexedAt: s.first_indexed_at,
       lastCrawledAt: s.last_crawled_at,
+      lastAttemptedAt: s.last_attempted_at,
+      consecutiveFailures: s.consecutive_failures,
     })),
     total: total.count,
     page,
